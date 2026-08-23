@@ -1,0 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+* { box-sizing: border-box; }
+body { font-family: 'Inter', 'Segoe UI', sans-serif; }
+
+@import "tailwindcss";
+
+.sidebar {
+  transition: transform 0.3s ease;
+}
+
+/* Reusable responsive layout helpers — grids and the review-viewer's
+   PDF+sidebar split all collapse to a single stacked column on narrow
+   screens instead of squeezing side-by-side. */
+.dg-grid-2 { grid-template-columns: 1fr 1fr; }
+.dg-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+.dg-viewer-body { display: flex; overflow: hidden; }
+.dg-viewer-sidebar { width: 340px; flex-shrink: 0; }
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed !important;
+    top: 0; left: 0; bottom: 0;
+    z-index: 50;
+    transform: translateX(-100%);
+    width: 260px !important;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .sidebar-backdrop {
+    display: block;
+  }
+  .main-content {
+    margin-left: 0 !important;
+  }
+  .stat-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* ← ADD THESE NEW ONES */
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .dashboard-grid > div:last-child {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+   .page-content {
+    padding: 12px !important;
+  }
+
+  .role-badge {
+    display: none;
+  }
+
+  .stat-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .topbar-date {
+    display: none !important;
+  }
+  
+  .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  .page-content {
+    padding: 12px !important;
+    overflow-x: hidden !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .stat-grid > div {
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .dg-grid-2, .dg-grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dg-viewer-body {
+    flex-direction: column !important;
+    overflow-y: auto !important;
+  }
+  .dg-viewer-sidebar {
+    width: 100% !important;
+    border-left: none !important;
+    border-top: 1px solid #e8ecf2;
+  }
+}
+
+@media (min-width: 769px) {
+  .sidebar-backdrop {
+    display: none !important;
+  }
+}
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 49;
+}
+@media (max-width: 768px) {
+  .sidebar-close-btn {
+    display: flex !important;
+  }
+}

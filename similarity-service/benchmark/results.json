@@ -1,0 +1,32 @@
+{
+  "tfidf": {
+    "tp": 0,
+    "fp": 0,
+    "tn": 15,
+    "fn": 15,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "accuracy": 50.0
+  },
+  "sbert": {
+    "tp": 15,
+    "fp": 0,
+    "tn": 15,
+    "fn": 0,
+    "precision": 100.0,
+    "recall": 100.0,
+    "f1": 100.0,
+    "accuracy": 100.0
+  },
+  "hybrid": {
+    "tp": 6,
+    "fp": 0,
+    "tn": 15,
+    "fn": 9,
+    "precision": 100.0,
+    "recall": 40.0,
+    "f1": 57.1,
+    "accuracy": 70.0
+  }
+}

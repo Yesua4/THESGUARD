@@ -1,0 +1,11 @@
+# This repo holds 3 deployable apps (TECHNO-BACKEND, TECHNO-FRONTEND,
+# similarity-service) plus non-code reference/thesis material that
+# shouldn't be pushed to a repo connected to public hosting platforms.
+MANUSCRIPT_THESISGUARD.docx
+ACHIEVE, DOST-HRNDA, and DNSC RDE/
+rules to follow in creating CFDs and DFDs..pdf
+.claude/
+
+# OS junk
+.DS_Store
+Thumbs.db

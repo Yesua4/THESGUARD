@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+pydantic
+spacy
+nltk
+scikit-learn
+sentence-transformers
+
+# Two of the above need a one-time data/model download that pip alone
+# doesn't do -- this must run once during deployment (as a build-command
+# step, not baked into this file):
+#   python -m spacy download en_core_web_sm
+#   python -m nltk.downloader stopwords

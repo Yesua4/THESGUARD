@@ -1,0 +1,272 @@
+[
+  {
+    "a_id": 13,
+    "b_id": 14,
+    "a_title": "Smart Waste Segregation Bin Using IoT Sensors",
+    "b_title": "IoT-Enabled Automatic Waste Sorting Bin for Barangay Solid Waste Management",
+    "true_similar": true,
+    "predicted_similar": false,
+    "score": 56.88
+  },
+  {
+    "a_id": 88,
+    "b_id": 73,
+    "a_title": "Municipal Agricultural Office Farmer Registry System",
+    "b_title": "Daycare-to-Parent Mobile Notification and Billing System",
+    "true_similar": false,
+    "predicted_similar": false,
+    "score": 14.45
+  },
+  {
+    "a_id": 27,
+    "b_id": 28,
+    "a_title": "Web-Based Blood Donor Matching and Coordination System",
+    "b_title": "Development of an Online Blood Donor-Recipient Matching Platform",
+    "true_similar": true,
+    "predicted_similar": true,
+    "score": 67.53
+  },
+  {
+    "a_id": 25,
+    "b_id": 26,
+    "a_title": "Smart Parking Management System Using Sensor-Based Slot Detection",
+    "b_title": "Sensor-Based Smart Parking Slot Availability and Management System",
+    "true_similar": true,
+    "predicted_similar": true,
+    "score": 72.24
+  },
+  {
+    "a_id": 63,
+    "b_id": 31,
+    "a_title": "Barangay Health Worker Household Profiling System",
+    "b_title": "Online Thesis Repository System for University Libraries",
+    "true_similar": false,
+    "predicted_similar": false,
+    "score": 15.35
+  },
+  {
+    "a_id": 7,
+    "b_id": 8,
+    "a_title": "Online Appointment Scheduling System for Rural Health Units",
+    "b_title": "Web-Based Patient Appointment and Scheduling Platform for Community Health Centers",
+    "true_similar": true,
+    "predicted_similar": false,
+    "score": 55.04
+  },
+  {
+    "a_id": 11,
+    "b_id": 12,
+    "a_title": "Learning Management System for Senior High School Distance Education",
+    "b_title": "Web-Based Learning Management Platform for Senior High School Modular Learning",
+    "true_similar": true,
+    "predicted_similar": false,
+    "score": 58.27
+  },
+  {
+    "a_id": 19,
+    "b_id": 20,
+    "a_title": "Mobile Application for Promoting Local Tourism Destinations",
+    "b_title": "Development of a Tourism Information Mobile App for Local Destination Promotion",
+    "true_similar": true,
+    "predicted_similar": true,
+    "score": 65.87
+  },
+  {
+    "a_id": 32,
+    "b_id": 110,
+    "a_title": "Restaurant Table Reservation and Ordering System",
+    "b_title": "Barangay Public Address and Announcement Broadcast Logging System",
+    "true_similar": false,
+    "predicted_similar": false,
+    "score": 15.97
+  },
+  {
+    "a_id": 9,
+    "b_id": 10,
+    "a_title": "IoT-Based Early Fire Detection and Alert System for Residential Buildings",
+    "b_title": "Development of a Sensor-Based Fire Early Warning System Using IoT",
+    "true_similar": true,
+    "predicted_similar": false,
+    "score": 59.18
+  },
+  {
+    "a_id": 1,
+    "b_id": 2,
+    "a_title": "Smart Attendance Monitoring System Using QR Code Technology",
+    "b_title": "QR-Based Class Attendance Tracking and Monitoring Application",
+    "true_similar": true,
+    "predicted_similar": false,
+    "score": 55.58
+  },
+  {
+    "a_id": 3,
+    "b_id": 4,
+    "a_title": "Web-Based Online Voting System for Student Council Elections",
+    "b_title": "Development of a Secure Electronic Voting Platform for Campus Elections",
+    "true_similar": true,
+    "predicted_similar": false,
+    "score": 52.82
+  },
+  {
+    "a_id": 92,
+    "b_id": 112,
+    "a_title": "Online Costume and Event Rental Booking System",
+    "b_title": "Homeowners Association Dues Collection and Complaint System",
+    "true_similar": false,
+    "predicted_similar": false,
+    "score": 17.79
+  },
+  {
+    "a_id": 41,
+    "b_id": 98,
+    "a_title": "Daycare Center Enrollment and Attendance Management System",
+    "b_title": "Online Loan Application and Credit Scoring System for Microfinance",
+    "true_similar": false,
+    "predicted_similar": false,
+    "score": 13.45
+  },
+  {
+    "a_id": 15,
+    "b_id": 16,
+    "a_title": "AI-Powered Chatbot for University Student Inquiry and Support",
+    "b_title": "Development of an Intelligent Chatbot Assistant for Student Frequently Asked Questions",
+    "true_similar": true,
+    "predicted_similar": false,
+    "score": 59.88
+  },
+  {
+    "a_id": 17,
+    "b_id": 18,
+    "a_title": "IoT-Based Smart Irrigation and Farm Monitoring System",
+    "b_title": "Smart Farming System for Automated Soil Monitoring and Irrigation Control",
+    "true_similar": true,
+    "predicted_similar": true,
+    "score": 65.87
+  },
+  {
+    "a_id": 89,
+    "b_id": 78,
+    "a_title": "Online Piano and Music Lesson Booking System",
+    "b_title": "Online Uniform and School Supply Ordering System for Private Schools",
+    "true_similar": false,
+    "predicted_similar": false,
+    "score": 25.14
+  },
+  {
+    "a_id": 5,
+    "b_id": 6,
+    "a_title": "Inventory Management System for Small Retail Businesses",
+    "b_title": "Automated Stock Monitoring and Inventory System for Micro-Retailers",
+    "true_similar": true,
+    "predicted_similar": false,
+    "score": 54.72
+  },
+  {
+    "a_id": 29,
+    "b_id": 30,
+    "a_title": "Automated Payroll and Employee Time Tracking System",
+    "b_title": "Biometric-Integrated Automated Payroll Processing System for Small Enterprises",
+    "true_similar": true,
+    "predicted_similar": false,
+    "score": 59.74
+  },
+  {
+    "a_id": 36,
+    "b_id": 83,
+    "a_title": "Job Portal and Applicant Tracking System for Local Employment Offices",
+    "b_title": "Online Consultation Booking System for Legal Aid Clinics",
+    "true_similar": false,
+    "predicted_similar": false,
+    "score": 21.35
+  },
+  {
+    "a_id": 70,
+    "b_id": 48,
+    "a_title": "Funeral Service Booking and Records Management System",
+    "b_title": "Rice Mill Production and Inventory Tracking System",
+    "true_similar": false,
+    "predicted_similar": false,
+    "score": 20.29
+  },
+  {
+    "a_id": 52,
+    "b_id": 79,
+    "a_title": "Community Pantry Coordination and Inventory System",
+    "b_title": "Cooperative Member Savings and Loan Management System",
+    "true_similar": false,
+    "predicted_similar": false,
+    "score": 21.93
+  },
+  {
+    "a_id": 23,
+    "b_id": 24,
+    "a_title": "Computerized Barangay Information and Records Management System",
+    "b_title": "Barangay Records Management and Certificate Issuance System",
+    "true_similar": true,
+    "predicted_similar": true,
+    "score": 64.26
+  },
+  {
+    "a_id": 69,
+    "b_id": 97,
+    "a_title": "Driving School Enrollment and Scheduling System",
+    "b_title": "Barangay Youth Council Program and Activity Management System",
+    "true_similar": false,
+    "predicted_similar": false,
+    "score": 25.92
+  },
+  {
+    "a_id": 56,
+    "b_id": 53,
+    "a_title": "Online Complaint Desk System for Campus Facilities Maintenance",
+    "b_title": "Online Feedback and Rating System for Public Utility Vehicles",
+    "true_similar": false,
+    "predicted_similar": false,
+    "score": 24.16
+  },
+  {
+    "a_id": 21,
+    "b_id": 22,
+    "a_title": "Online Hotel Booking and Reservation Management System",
+    "b_title": "Web-Based Reservation System for Small Hotel Room Booking Management",
+    "true_similar": true,
+    "predicted_similar": true,
+    "score": 68.56
+  },
+  {
+    "a_id": 103,
+    "b_id": 91,
+    "a_title": "Online Bakeshop Pre-Order and Custom Cake Booking System",
+    "b_title": "Municipal Tricycle Franchise and Route Management System",
+    "true_similar": false,
+    "predicted_similar": false,
+    "score": 20.25
+  },
+  {
+    "a_id": 64,
+    "b_id": 55,
+    "a_title": "Freelancer Project and Client Management System",
+    "b_title": "Cold Storage Facility Inventory Monitoring System",
+    "true_similar": false,
+    "predicted_similar": false,
+    "score": 19.19
+  },
+  {
+    "a_id": 121,
+    "b_id": 76,
+    "a_title": "Community Water System Consumption Billing and Monitoring System",
+    "b_title": "Online Voter Information and Precinct Finder System",
+    "true_similar": false,
+    "predicted_similar": false,
+    "score": 14.65
+  },
+  {
+    "a_id": 47,
+    "b_id": 106,
+    "a_title": "Online Tutoring Session Booking System",
+    "b_title": "Community-Based Recycling Center Collection and Credit System",
+    "true_similar": false,
+    "predicted_similar": false,
+    "score": 11.6
+  }
+]

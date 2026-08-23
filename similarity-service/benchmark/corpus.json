@@ -1,0 +1,928 @@
+{
+  "corpus": [
+    {
+      "title": "Smart Attendance Monitoring System Using QR Code Technology",
+      "abstract": "This study presents a web-based attendance monitoring system that uses QR codes to record student attendance in real time. The system addresses the inefficiency and manipulation risks of manual and paper-based attendance logging in higher education institutions. Each student is issued a unique QR code linked to their enrollment record, which is scanned upon entry to automatically log attendance data to a central database. The system generates attendance reports for instructors and provides students with a real-time view of their attendance history.",
+      "objectives": "To design and develop a QR code-based attendance logging module for classroom use. To implement a real-time database that records scan timestamps and generates attendance reports. To provide instructors with a dashboard for monitoring class attendance trends and flagging chronic absenteeism.",
+      "batch": "2023-2024",
+      "id": 1
+    },
+    {
+      "title": "QR-Based Class Attendance Tracking and Monitoring Application",
+      "abstract": "Manual attendance checking in classrooms is time-consuming and susceptible to proxy attendance and human error. This research develops a mobile-and-web application that automates student attendance recording through scannable QR codes unique to each learner. When a student's code is scanned at the start of a session, the system timestamps the entry and updates a centralized attendance database instantly. Faculty members can subsequently generate attendance summaries and identify students at risk due to excessive absences.",
+      "objectives": "To develop a scanning module capable of reading student-specific QR codes for attendance purposes. To build a centralized database that stores and updates attendance records in real time. To create a reporting dashboard that helps faculty identify attendance patterns and at-risk students.",
+      "batch": "2023-2024",
+      "id": 2
+    },
+    {
+      "title": "Web-Based Online Voting System for Student Council Elections",
+      "abstract": "Traditional paper ballot elections in academic institutions are labor-intensive to tally and prone to disputes over vote counting. This project proposes a secure web-based voting platform that allows verified students to cast votes for student council positions remotely. The system authenticates voters using their institutional credentials, prevents duplicate voting, and automatically tallies results once the voting period closes. An administrative panel allows election committees to configure candidates, positions, and voting schedules.",
+      "objectives": "To develop a secure authentication mechanism that verifies eligible student voters. To implement a vote-casting module that prevents duplicate or fraudulent submissions. To automate the tallying and reporting of election results for the election committee.",
+      "batch": "2023-2024",
+      "id": 3
+    },
+    {
+      "title": "Development of a Secure Electronic Voting Platform for Campus Elections",
+      "abstract": "Manually counting paper ballots during campus-wide elections often leads to delayed results and allegations of tampering. This capstone project introduces an electronic voting system that enables students to vote for their preferred candidates through an authenticated online portal. Each voter's identity is verified against the student registry to ensure one vote per student, and the platform computes final results automatically once polls close. Election organizers are given administrative tools to manage candidate lists and set the voting window.",
+      "objectives": "To build an identity verification system that restricts voting to eligible, registered students. To design a ballot submission process that guards against duplicate votes. To provide automated vote tallying and result generation for campus election organizers.",
+      "batch": "2023-2024",
+      "id": 4
+    },
+    {
+      "title": "Inventory Management System for Small Retail Businesses",
+      "abstract": "Many small retail businesses in the Philippines still rely on manual, spreadsheet-based methods to track stock levels, resulting in frequent stockouts and overstocking. This study develops a desktop-based inventory management system that automates stock tracking, generates low-stock alerts, and produces sales and inventory reports for business owners. The system supports barcode scanning for faster product entry and integrates a simple point-of-sale module for recording transactions.",
+      "objectives": "To automate stock level tracking and reduce reliance on manual spreadsheet records. To implement a barcode-based product entry and lookup feature. To generate low-stock alerts and periodic inventory and sales reports for business owners.",
+      "batch": "2023-2024",
+      "id": 5
+    },
+    {
+      "title": "Automated Stock Monitoring and Inventory System for Micro-Retailers",
+      "abstract": "Micro and small retail store owners frequently struggle with stock discrepancies because inventory is still tracked manually using notebooks or spreadsheets. This research presents a computerized inventory system that tracks product stock levels automatically, notifies the owner when items are running low, and produces summarized inventory and sales reports. Barcode scanning is incorporated to speed up the recording of incoming and outgoing stock, alongside a basic sales recording feature.",
+      "objectives": "To replace manual, spreadsheet-based stock tracking with an automated system. To incorporate barcode scanning for efficient product entry and stock updates. To provide low-stock notifications and generate inventory and sales summary reports.",
+      "batch": "2023-2024",
+      "id": 6
+    },
+    {
+      "title": "Online Appointment Scheduling System for Rural Health Units",
+      "abstract": "Patients visiting rural health units often experience long queues due to walk-in-only scheduling and the absence of a digital booking mechanism. This project develops a web-based appointment system that allows patients to book consultation slots online, view available schedules per physician, and receive appointment reminders via SMS or email. Health unit staff are given an administrative interface to manage daily schedules and patient records.",
+      "objectives": "To develop an online booking interface for scheduling patient consultations. To implement an SMS/email reminder feature to reduce missed appointments. To provide health unit staff a dashboard for managing physician schedules and patient queues.",
+      "batch": "2023-2024",
+      "id": 7
+    },
+    {
+      "title": "Web-Based Patient Appointment and Scheduling Platform for Community Health Centers",
+      "abstract": "Community health centers frequently face overcrowding because patients can only schedule consultations by walking in, with no digital alternative available. This study proposes an online platform through which patients can reserve consultation timeslots with a specific doctor, check real-time schedule availability, and get automated reminders prior to their appointment. Center staff are equipped with an administrative panel to oversee schedules and patient queuing.",
+      "objectives": "To create a web-based interface that lets patients reserve consultation timeslots online. To integrate automated appointment reminders to minimize no-shows. To equip health center staff with tools to manage physician schedules and patient queues.",
+      "batch": "2023-2024",
+      "id": 8
+    },
+    {
+      "title": "IoT-Based Early Fire Detection and Alert System for Residential Buildings",
+      "abstract": "Delayed fire detection in residential buildings often results in significant property damage and loss of life. This study designs an Internet of Things (IoT) based system that uses smoke and temperature sensors connected to a microcontroller to detect early signs of fire. Upon detection, the system triggers a local alarm and sends real-time notifications to residents and barangay emergency responders through a mobile application.",
+      "objectives": "To design a sensor network capable of detecting smoke and abnormal temperature changes. To develop a microcontroller-based alert mechanism that triggers alarms upon fire detection. To implement a mobile notification feature that alerts residents and emergency responders in real time.",
+      "batch": "2023-2024",
+      "id": 9
+    },
+    {
+      "title": "Development of a Sensor-Based Fire Early Warning System Using IoT",
+      "abstract": "Fires in residential areas are frequently detected too late, leading to extensive damage and casualties that could have been minimized with earlier warning. This research develops an IoT-enabled early warning system that continuously monitors smoke levels and temperature using connected sensors linked to a microcontroller unit. When fire indicators are detected, the system immediately activates a physical alarm and pushes real-time alerts to household members and local emergency responders via a companion mobile app.",
+      "objectives": "To implement a continuous sensor-monitoring network for smoke and temperature readings. To build a microcontroller-driven alarm mechanism triggered by fire indicators. To develop a companion mobile application that delivers real-time fire alerts to residents and responders.",
+      "batch": "2023-2024",
+      "id": 10
+    },
+    {
+      "title": "Learning Management System for Senior High School Distance Education",
+      "abstract": "The shift to distance learning exposed the lack of centralized digital platforms for content delivery and assessment in many senior high schools. This project develops a learning management system that allows teachers to upload modules, create quizzes, and track student progress, while students can access materials, submit outputs, and view their grades online. The system supports offline-downloadable content for students with limited internet connectivity.",
+      "objectives": "To build a content management module for uploading and organizing learning materials. To develop an online quiz and grading feature for assessing student performance. To support offline access to downloaded modules for students with limited connectivity.",
+      "batch": "2023-2024",
+      "id": 11
+    },
+    {
+      "title": "Web-Based Learning Management Platform for Senior High School Modular Learning",
+      "abstract": "When distance education became necessary, many senior high schools found themselves without any centralized system for distributing lessons or assessing learners digitally. This capstone project builds an online learning platform where teachers can post modules, construct quizzes, and monitor learner progress, and where students can retrieve materials, submit requirements, and check their scores. To accommodate students with unreliable internet access, the platform allows downloadable, offline-viewable content.",
+      "objectives": "To develop a module upload and organization feature for teachers. To implement an online quiz-taking and automated grading feature. To enable offline downloading of learning content for students with connectivity issues.",
+      "batch": "2023-2024",
+      "id": 12
+    },
+    {
+      "title": "Smart Waste Segregation Bin Using IoT Sensors",
+      "abstract": "Improper waste segregation remains a persistent problem in many barangays despite ongoing information campaigns. This study designs a smart bin equipped with sensors that automatically detect and sort biodegradable, non-biodegradable, and recyclable waste as it is deposited. An ultrasonic sensor monitors the bin's fill level and sends a notification to waste collection personnel once a bin is nearly full, optimizing collection schedules.",
+      "objectives": "To design a sensor-based mechanism that automatically classifies deposited waste into segregation categories. To implement a fill-level monitoring feature using ultrasonic sensors. To develop a notification system that alerts collection personnel when bins require emptying.",
+      "batch": "2023-2024",
+      "id": 13
+    },
+    {
+      "title": "IoT-Enabled Automatic Waste Sorting Bin for Barangay Solid Waste Management",
+      "abstract": "Despite continuous awareness campaigns, many barangays still struggle with residents failing to properly segregate their household waste. This research develops an intelligent waste bin that leverages onboard sensors to automatically identify and sort waste into biodegradable, non-biodegradable, and recyclable compartments upon disposal. The bin also incorporates an ultrasonic fill-level sensor that alerts garbage collection staff when the container is approaching capacity, allowing for more efficient collection routing.",
+      "objectives": "To develop an automatic waste classification mechanism using onboard sensors. To integrate an ultrasonic sensor for real-time bin fill-level detection. To create an alert system that notifies collection staff when bins need to be emptied.",
+      "batch": "2023-2024",
+      "id": 14
+    },
+    {
+      "title": "AI-Powered Chatbot for University Student Inquiry and Support",
+      "abstract": "University registrar and admissions offices are frequently overwhelmed by repetitive student inquiries regarding enrollment, requirements, and deadlines. This project develops an AI-powered chatbot that can answer frequently asked questions instantly through a web-based chat interface, using natural language processing to interpret student queries. The chatbot escalates unresolved or complex inquiries to a human staff member for follow-up.",
+      "objectives": "To develop a natural language processing model capable of interpreting common student inquiries. To implement a web-based chat interface for instant automated responses. To design an escalation mechanism that routes unresolved queries to human staff.",
+      "batch": "2023-2024",
+      "id": 15
+    },
+    {
+      "title": "Development of an Intelligent Chatbot Assistant for Student Frequently Asked Questions",
+      "abstract": "Administrative offices such as the registrar are often inundated with repetitive questions from students about enrollment procedures, document requirements, and important deadlines. This study builds an intelligent chatbot assistant that uses natural language processing to understand student questions and respond instantly through a web-based messaging interface. Queries that the chatbot cannot confidently resolve are automatically forwarded to a human staff member.",
+      "objectives": "To build a natural language processing component that interprets frequently asked student questions. To implement an automated, web-based chat interface for instantaneous responses. To establish an escalation pathway that forwards unresolved inquiries to human administrative staff.",
+      "batch": "2023-2024",
+      "id": 16
+    },
+    {
+      "title": "IoT-Based Smart Irrigation and Farm Monitoring System",
+      "abstract": "Smallholder farmers often over-irrigate or under-irrigate crops due to the absence of real-time soil and weather data, reducing yield and wasting water. This study develops an IoT-based system that monitors soil moisture, temperature, and humidity using field-deployed sensors, and automatically triggers irrigation pumps when soil moisture falls below a set threshold. Farmers can view real-time farm conditions and irrigation history through a mobile application.",
+      "objectives": "To deploy soil moisture, temperature, and humidity sensors across the monitored farm area. To develop an automated irrigation trigger based on real-time soil moisture readings. To build a mobile application that displays real-time farm conditions and irrigation logs.",
+      "batch": "2023-2024",
+      "id": 17
+    },
+    {
+      "title": "Smart Farming System for Automated Soil Monitoring and Irrigation Control",
+      "abstract": "Without access to real-time soil and environmental data, smallholder farmers commonly misjudge irrigation timing, leading to reduced crop yield and inefficient water use. This research proposes a smart farming system that continuously monitors soil moisture, temperature, and humidity through field sensors and automatically activates irrigation pumps once moisture levels drop below a configured threshold. A companion mobile app allows farmers to check current farm conditions and review past irrigation activity.",
+      "objectives": "To install and configure soil moisture, temperature, and humidity sensors in the farm field. To implement automatic irrigation activation triggered by real-time soil moisture thresholds. To develop a mobile application for viewing current farm status and irrigation history.",
+      "batch": "2023-2024",
+      "id": 18
+    },
+    {
+      "title": "Mobile Application for Promoting Local Tourism Destinations",
+      "abstract": "Many local tourist destinations in the province lack an accessible digital platform to showcase attractions, leading tourists to rely on outdated printed brochures or word of mouth. This project develops a mobile application that presents information on local tourist spots, including photos, descriptions, operating hours, and directions via integrated maps. Users can bookmark favorite destinations and view user-submitted reviews and ratings.",
+      "objectives": "To develop a mobile catalog of local tourist destinations with descriptions and photos. To integrate map-based directions for navigating to selected tourist spots. To implement a review and rating feature for user-generated feedback on destinations.",
+      "batch": "2023-2024",
+      "id": 19
+    },
+    {
+      "title": "Development of a Tourism Information Mobile App for Local Destination Promotion",
+      "abstract": "Numerous tourist attractions within the province remain difficult for visitors to discover due to the lack of a modern digital information source, leaving tourists dependent on outdated brochures or informal recommendations. This capstone develops a mobile application that catalogs local tourist destinations, complete with photos, descriptions, hours of operation, and map-integrated directions. The app also allows users to bookmark preferred spots and leave ratings and reviews for other travelers.",
+      "objectives": "To build a mobile-accessible catalog of local tourist attractions with descriptive details. To integrate map-based navigation features for reaching selected destinations. To develop a user review and rating module for tourist destination feedback.",
+      "batch": "2023-2024",
+      "id": 20
+    },
+    {
+      "title": "Online Hotel Booking and Reservation Management System",
+      "abstract": "Small and mid-sized hotels frequently rely on phone calls and walk-in bookings, which can lead to double bookings and inefficient room allocation. This study develops a web-based hotel reservation system that allows guests to check room availability, make bookings, and pay online, while hotel staff manage reservations, room status, and billing through an administrative dashboard.",
+      "objectives": "To develop an online room availability checker and booking interface for guests. To implement an online payment feature for reservation confirmation. To provide hotel staff a dashboard for managing reservations, room status, and billing records.",
+      "batch": "2023-2024",
+      "id": 21
+    },
+    {
+      "title": "Web-Based Reservation System for Small Hotel Room Booking Management",
+      "abstract": "Many small and medium-sized hotels still depend heavily on phone-based and walk-in reservations, a practice that often results in overlapping bookings and poor room utilization. This research proposes a web-based reservation platform that enables guests to view room availability, complete bookings, and settle payments online, while giving hotel personnel an administrative interface for managing reservations, tracking room status, and processing billing.",
+      "objectives": "To build an online interface for guests to view availability and complete room bookings. To integrate an online payment gateway for reservation settlement. To develop an administrative dashboard for hotel staff to manage reservations, room status, and billing.",
+      "batch": "2023-2024",
+      "id": 22
+    },
+    {
+      "title": "Computerized Barangay Information and Records Management System",
+      "abstract": "Barangay offices commonly maintain resident records, certifications, and blotter reports using paper-based filing, making retrieval slow and records vulnerable to loss or damage. This project develops a computerized system that digitizes resident profiling, automates the issuance of barangay certificates and clearances, and logs blotter reports electronically for easier retrieval and reporting.",
+      "objectives": "To digitize resident profiling and records previously maintained on paper. To automate the generation of barangay certificates and clearances. To implement an electronic blotter logging feature for incident reporting and retrieval.",
+      "batch": "2023-2024",
+      "id": 23
+    },
+    {
+      "title": "Barangay Records Management and Certificate Issuance System",
+      "abstract": "Many barangay offices continue to rely on paper-based filing for resident information, certifications, and blotter records, resulting in slow retrieval and a higher risk of lost or damaged documents. This study develops a computerized records management system that digitizes resident profiles, streamlines the issuance of certificates and clearances, and records blotter incidents electronically for faster access and reporting.",
+      "objectives": "To convert paper-based resident records into a digital profiling system. To streamline and automate the issuance process for barangay certificates and clearances. To develop an electronic blotter recording feature for incident logging and retrieval.",
+      "batch": "2023-2024",
+      "id": 24
+    },
+    {
+      "title": "Smart Parking Management System Using Sensor-Based Slot Detection",
+      "abstract": "Drivers in congested commercial areas often waste time searching for available parking slots, contributing to traffic congestion. This study develops a smart parking system that uses sensors installed in each parking slot to detect occupancy status in real time, displaying available slots on an entrance signage board and a companion mobile app for drivers.",
+      "objectives": "To install slot-level sensors capable of detecting real-time parking occupancy. To develop a display board showing available parking slots at the facility entrance. To build a mobile application that shows drivers real-time parking slot availability.",
+      "batch": "2023-2024",
+      "id": 25
+    },
+    {
+      "title": "Sensor-Based Smart Parking Slot Availability and Management System",
+      "abstract": "In busy commercial districts, drivers frequently spend excessive time circling for open parking spaces, worsening local traffic conditions. This research develops a smart parking management system equipped with occupancy sensors in individual parking slots, providing real-time availability data displayed on an entrance signboard as well as through a mobile application accessible to drivers.",
+      "objectives": "To deploy occupancy sensors capable of real-time parking slot status detection. To implement an entrance display board indicating currently available slots. To develop a companion mobile app providing drivers real-time parking availability information.",
+      "batch": "2023-2024",
+      "id": 26
+    },
+    {
+      "title": "Web-Based Blood Donor Matching and Coordination System",
+      "abstract": "Hospitals and blood banks often struggle to quickly locate compatible donors during urgent blood shortages, relying on manual phone trees and social media appeals. This project develops a web-based platform that registers willing donors by blood type and location, allowing hospitals to search and contact compatible, nearby donors quickly during emergencies. The system also sends notifications to eligible donors when a matching request is posted.",
+      "objectives": "To develop a donor registration module capturing blood type and location data. To implement a search feature allowing hospitals to find compatible nearby donors. To build a notification system alerting eligible donors of urgent blood requests.",
+      "batch": "2023-2024",
+      "id": 27
+    },
+    {
+      "title": "Development of an Online Blood Donor-Recipient Matching Platform",
+      "abstract": "During urgent blood shortages, hospitals and blood banks often have difficulty quickly identifying compatible donors, resorting to manual phone calls and social media posts. This research builds an online platform where willing donors register their blood type and location, enabling hospitals to quickly search for and contact nearby compatible donors in emergencies. The platform additionally sends alerts to matching, eligible donors whenever a new blood request is submitted.",
+      "objectives": "To build a donor registration feature that records blood type and location details. To implement a compatible-donor search function for hospital use during emergencies. To develop an alert mechanism notifying eligible donors of new matching blood requests.",
+      "batch": "2023-2024",
+      "id": 28
+    },
+    {
+      "title": "Automated Payroll and Employee Time Tracking System",
+      "abstract": "Small businesses that compute payroll manually often experience computation errors and delays in salary release. This study develops an automated payroll system integrated with biometric time tracking, which computes employee salaries based on logged hours, applicable deductions, and government contributions. The system generates payslips and payroll summary reports for management review.",
+      "objectives": "To integrate biometric time tracking with automated payroll computation. To implement deduction and government contribution calculations within the payroll process. To generate digital payslips and payroll summary reports for management.",
+      "batch": "2023-2024",
+      "id": 29
+    },
+    {
+      "title": "Biometric-Integrated Automated Payroll Processing System for Small Enterprises",
+      "abstract": "Manual payroll computation in small enterprises frequently results in calculation mistakes and delayed disbursement of employee salaries. This capstone project develops an automated payroll system that integrates with biometric time-tracking hardware, computing salaries based on recorded work hours, statutory deductions, and government contributions. Digital payslips and consolidated payroll reports are generated for management's reference.",
+      "objectives": "To integrate biometric attendance hardware with an automated payroll computation module. To implement statutory deduction and government contribution calculations. To produce digital payslips and consolidated payroll summary reports.",
+      "batch": "2023-2024",
+      "id": 30
+    },
+    {
+      "title": "Online Thesis Repository System for University Libraries",
+      "abstract": "University libraries often store completed thesis manuscripts in physical archives that are difficult to search and prone to deterioration. This project develops a digital repository that allows students and faculty to upload, search, and view completed thesis documents online, with metadata tagging for author, program, and year.",
+      "objectives": "To develop a digital upload and storage module for completed thesis manuscripts. To implement metadata-based search and filtering for archived documents. To provide role-based access control for students, faculty, and library staff.",
+      "batch": "2023-2024",
+      "id": 31
+    },
+    {
+      "title": "Restaurant Table Reservation and Ordering System",
+      "abstract": "Dine-in restaurants often experience long waiting times due to manual order-taking and table assignment. This study develops a system that allows customers to reserve tables online and place orders via a tablet-based menu, sending orders directly to the kitchen display system.",
+      "objectives": "To develop an online table reservation module for customers. To implement a tablet-based digital ordering interface. To integrate a kitchen display system that receives orders in real time.",
+      "batch": "2023-2024",
+      "id": 32
+    },
+    {
+      "title": "Vehicle Rental Management System",
+      "abstract": "Car rental businesses that rely on manual logbooks often struggle to track vehicle availability and rental history accurately. This project develops a system that manages vehicle inventory, tracks rental bookings, and computes rental fees automatically based on rental duration.",
+      "objectives": "To develop a vehicle inventory and availability tracking module. To implement an online booking feature for reserving rental vehicles. To automate rental fee computation based on rental duration and vehicle type.",
+      "batch": "2023-2024",
+      "id": 33
+    },
+    {
+      "title": "Gym Membership and Class Scheduling System",
+      "abstract": "Fitness gyms that track memberships manually often face difficulty monitoring membership expiration and class attendance. This study develops a system that manages member registration, tracks membership validity, and allows members to book fitness classes online.",
+      "objectives": "To develop a member registration and membership tracking module. To implement an online class booking and scheduling feature. To generate membership expiration alerts for gym administrators.",
+      "batch": "2023-2024",
+      "id": 34
+    },
+    {
+      "title": "Online Pharmacy Inventory and Ordering System",
+      "abstract": "Local pharmacies often face difficulty tracking medicine stock levels and expiration dates using manual methods. This project develops a system that monitors medicine inventory, alerts staff of low stock and near-expiry items, and allows customers to place orders online for pickup.",
+      "objectives": "To develop a medicine inventory tracking module with expiration monitoring. To implement low-stock and near-expiry alert notifications. To build an online ordering feature for customer medicine pickup requests.",
+      "batch": "2023-2024",
+      "id": 35
+    },
+    {
+      "title": "Job Portal and Applicant Tracking System for Local Employment Offices",
+      "abstract": "Public employment offices often manually match job seekers to postings using printed listings, a slow and inefficient process. This study develops an online job portal that allows employers to post vacancies and job seekers to apply, with an applicant tracking dashboard for employment office staff.",
+      "objectives": "To develop an online job posting and browsing module. To implement an application submission and tracking feature for job seekers. To provide employment office staff a dashboard for managing postings and applicants.",
+      "batch": "2023-2024",
+      "id": 36
+    },
+    {
+      "title": "Condominium Facility Booking and Management System",
+      "abstract": "Condominium administrators often manage shared facility reservations, such as function rooms, using manual logbooks that are prone to double-booking. This project develops a system that allows residents to reserve shared facilities online and enables administrators to manage schedules and dues.",
+      "objectives": "To develop an online facility reservation module for residents. To implement a conflict-checking mechanism to prevent double bookings. To provide administrators a dashboard for managing facility schedules and association dues.",
+      "batch": "2023-2024",
+      "id": 37
+    },
+    {
+      "title": "School Clinic Health Record Management System",
+      "abstract": "School clinics that maintain student health records on paper often experience difficulty retrieving records quickly during emergencies. This study develops a digital health record system that stores student medical histories, tracks clinic visits, and generates health reports for the school nurse.",
+      "objectives": "To digitize student health records previously maintained on paper. To implement a clinic visit logging feature for tracking student consultations. To generate health summary reports for school nurses and administrators.",
+      "batch": "2023-2024",
+      "id": 38
+    },
+    {
+      "title": "Online Book Exchange Platform for Students",
+      "abstract": "Students often struggle to find affordable secondhand textbooks, relying on scattered social media posts. This project develops an online platform where students can list, browse, and request to exchange or purchase used textbooks within their institution.",
+      "objectives": "To develop a book listing and browsing module for secondhand textbooks. To implement a request and exchange coordination feature between students. To provide a search and filter function by subject and course.",
+      "batch": "2023-2024",
+      "id": 39
+    },
+    {
+      "title": "Water Refilling Station Delivery and Order Management System",
+      "abstract": "Water refilling stations that rely on manual order-taking via phone calls often experience delays and miscommunication with delivery routes. This study develops a system that allows customers to place refill orders online and helps station staff manage delivery scheduling and routes.",
+      "objectives": "To develop an online ordering module for water refilling requests. To implement a delivery scheduling and route management feature for staff. To provide order status tracking for customers.",
+      "batch": "2023-2024",
+      "id": 40
+    },
+    {
+      "title": "Daycare Center Enrollment and Attendance Management System",
+      "abstract": "Daycare centers that track child enrollment and daily attendance manually often face record-keeping errors. This project develops a system that manages child enrollment records, tracks daily attendance, and notifies parents of pickup and drop-off times via SMS.",
+      "objectives": "To digitize child enrollment records for daycare management. To implement a daily attendance tracking feature for enrolled children. To develop an SMS notification feature for parent pickup and drop-off alerts.",
+      "batch": "2023-2024",
+      "id": 41
+    },
+    {
+      "title": "Motorcycle Repair Shop Service and Inventory System",
+      "abstract": "Small motorcycle repair shops often track service records and spare parts inventory manually, leading to inaccurate stock counts. This study develops a system that logs customer service requests, tracks spare parts inventory, and generates service billing.",
+      "objectives": "To develop a service request logging module for motorcycle repairs. To implement a spare parts inventory tracking feature. To automate service billing computation based on parts and labor.",
+      "batch": "2023-2024",
+      "id": 42
+    },
+    {
+      "title": "Online Complaint and Feedback System for Local Government Units",
+      "abstract": "Residents often have limited channels to formally submit complaints or feedback to local government units, relying on in-person visits. This project develops an online system that allows residents to submit complaints, track resolution status, and rate the handling of their concerns.",
+      "objectives": "To develop an online complaint submission module for residents. To implement a status tracking feature for submitted complaints. To provide a feedback and rating mechanism for complaint resolution.",
+      "batch": "2023-2024",
+      "id": 43
+    },
+    {
+      "title": "Poultry Farm Monitoring and Management System",
+      "abstract": "Poultry farm owners often track feeding schedules, mortality rates, and production data using handwritten logs, making analysis difficult. This study develops a system that logs feeding schedules, tracks flock health and mortality, and generates production reports for farm owners.",
+      "objectives": "To develop a feeding schedule logging and reminder module. To implement flock health and mortality tracking features. To generate production and performance reports for farm management.",
+      "batch": "2023-2024",
+      "id": 44
+    },
+    {
+      "title": "Church Membership and Donation Management System",
+      "abstract": "Churches that track membership records and donations manually often experience difficulty generating accurate financial reports. This project develops a system that manages member records, logs donations and tithes, and generates financial summary reports for church administrators.",
+      "objectives": "To digitize church membership records management. To implement a donation and tithe logging feature. To generate financial summary reports for church administration.",
+      "batch": "2023-2024",
+      "id": 45
+    },
+    {
+      "title": "Carwash Business Queue and Service Management System",
+      "abstract": "Carwash shops that manage customer queues manually often experience confusion during peak hours. This study develops a system that manages customer queue numbers, tracks service status per vehicle, and computes billing based on service package selected.",
+      "objectives": "To develop a digital queue management module for carwash customers. To implement a service status tracking feature per vehicle. To automate billing computation based on selected service packages.",
+      "batch": "2023-2024",
+      "id": 46
+    },
+    {
+      "title": "Online Tutoring Session Booking System",
+      "abstract": "Independent tutors often manage session bookings through informal text messages, leading to scheduling conflicts. This project develops a system that allows students to browse tutor availability, book sessions online, and make payments, while tutors manage their schedules digitally.",
+      "objectives": "To develop an online tutor availability browsing and booking module. To implement a payment processing feature for booked sessions. To provide tutors a schedule management dashboard.",
+      "batch": "2023-2024",
+      "id": 47
+    },
+    {
+      "title": "Rice Mill Production and Inventory Tracking System",
+      "abstract": "Rice mills that track palay intake, milling output, and inventory manually often face discrepancies in stock records. This study develops a system that logs palay intake, tracks milling output and byproducts, and manages finished rice inventory.",
+      "objectives": "To develop a palay intake logging module for rice mill operations. To implement milling output and byproduct tracking features. To manage finished rice product inventory and stock reports.",
+      "batch": "2023-2024",
+      "id": 48
+    },
+    {
+      "title": "Online Resume Builder and Career Guidance Platform for Graduating Students",
+      "abstract": "Graduating students often lack guidance on formatting professional resumes and identifying suitable career paths. This project develops a platform that guides students through building a professional resume using templates and provides career path suggestions based on their program and skills.",
+      "objectives": "To develop a guided resume-building module with professional templates. To implement a career path suggestion feature based on program and skill inputs. To provide downloadable resume export in standard formats.",
+      "batch": "2023-2024",
+      "id": 49
+    },
+    {
+      "title": "Veterinary Clinic Appointment and Patient Record System",
+      "abstract": "Veterinary clinics that manage pet patient records and appointments manually often struggle with record retrieval and scheduling conflicts. This study develops a system that manages pet patient records, schedules appointments, and tracks vaccination history.",
+      "objectives": "To digitize pet patient record management for veterinary clinics. To implement an online appointment scheduling module. To develop a vaccination history tracking feature.",
+      "batch": "2023-2024",
+      "id": 50
+    },
+    {
+      "title": "Sari-Sari Store Point-of-Sale and Credit Tracking System",
+      "abstract": "Neighborhood sari-sari stores that extend credit to regular customers often track \"utang\" using handwritten notebooks that are easily lost. This project develops a point-of-sale system that manages product sales and tracks customer credit balances digitally.",
+      "objectives": "To develop a point-of-sale module for recording daily store transactions. To implement a customer credit tracking feature to replace handwritten notebooks. To generate sales and outstanding credit reports for the store owner.",
+      "batch": "2023-2024",
+      "id": 51
+    },
+    {
+      "title": "Community Pantry Coordination and Inventory System",
+      "abstract": "Community pantries organized by volunteers often struggle to track donated goods and distribution fairness using manual tallying. This study develops a system that logs donated inventory, tracks distribution per household, and helps organizers coordinate volunteer schedules.",
+      "objectives": "To develop a donation inventory logging module for community pantries. To implement a distribution tracking feature per household or beneficiary. To provide a volunteer scheduling and coordination feature.",
+      "batch": "2023-2024",
+      "id": 52
+    },
+    {
+      "title": "Online Feedback and Rating System for Public Utility Vehicles",
+      "abstract": "Commuters currently have no formal channel to report unsafe or poor service from public utility vehicle drivers. This project develops a mobile application where commuters can rate and leave feedback on specific PUV trips, which is aggregated for transport cooperative review.",
+      "objectives": "To develop a trip rating and feedback submission module for commuters. To implement an aggregation dashboard for transport cooperatives to review driver ratings. To provide a flagging feature for reporting safety concerns.",
+      "batch": "2023-2024",
+      "id": 53
+    },
+    {
+      "title": "Barbershop and Salon Appointment Booking System",
+      "abstract": "Barbershops and salons that manage walk-in-only service often cause long customer wait times during peak hours. This study develops a system that allows customers to book haircut or salon service appointments online and lets staff manage daily service schedules.",
+      "objectives": "To develop an online appointment booking module for salon and barbershop services. To implement a staff schedule management dashboard. To provide customers appointment reminders via SMS or email.",
+      "batch": "2023-2024",
+      "id": 54
+    },
+    {
+      "title": "Cold Storage Facility Inventory Monitoring System",
+      "abstract": "Cold storage facility operators often track stored goods and storage duration manually, risking spoilage from overlooked items. This project develops a system that logs stored inventory with entry dates, tracks storage duration, and alerts staff of items nearing recommended storage limits.",
+      "objectives": "To develop an inventory logging module with entry-date tracking for cold storage. To implement storage duration monitoring and alerts. To generate inventory turnover reports for facility operators.",
+      "batch": "2023-2024",
+      "id": 55
+    },
+    {
+      "title": "Online Complaint Desk System for Campus Facilities Maintenance",
+      "abstract": "Students and staff often report facility issues, such as broken fixtures, informally, causing delays in maintenance response. This study develops a system that allows the campus community to report facility issues online, which are routed to the maintenance office for tracking and resolution.",
+      "objectives": "To develop an online facility issue reporting module for the campus community. To implement a ticket routing and status tracking feature for the maintenance office. To generate maintenance response time reports for administration.",
+      "batch": "2023-2024",
+      "id": 56
+    },
+    {
+      "title": "Photography Studio Booking and Portfolio Management System",
+      "abstract": "Independent photography studios often manage client bookings and portfolio showcases through separate, disconnected tools. This project develops a system that allows clients to book photography sessions online and view the studio's portfolio, while the studio manages bookings and galleries centrally.",
+      "objectives": "To develop an online session booking module for photography clients. To implement a portfolio gallery management feature for the studio. To provide booking calendar management for photographers.",
+      "batch": "2023-2024",
+      "id": 57
+    },
+    {
+      "title": "Laundry Shop Order Tracking and Notification System",
+      "abstract": "Laundry shops that track customer orders using handwritten claim stubs often lose track of order status and readiness. This study develops a system that logs customer laundry orders, tracks processing status, and sends SMS notifications when orders are ready for pickup.",
+      "objectives": "To develop an order logging module for laundry shop transactions. To implement an order status tracking feature from drop-off to pickup. To develop an SMS notification feature alerting customers of order readiness.",
+      "batch": "2023-2024",
+      "id": 58
+    },
+    {
+      "title": "Online Class Scheduling Conflict Checker for University Registrars",
+      "abstract": "University registrars manually cross-check class schedules for room and faculty conflicts, a process that is slow and error-prone during enrollment periods. This project develops a system that automatically detects scheduling conflicts among rooms, faculty, and sections during class scheduling.",
+      "objectives": "To develop an automated conflict detection algorithm for class scheduling. To implement a scheduling interface for registrars to assign rooms and faculty. To generate conflict reports prior to schedule finalization.",
+      "batch": "2023-2024",
+      "id": 59
+    },
+    {
+      "title": "Fitness Progress Tracking Mobile Application",
+      "abstract": "Gym-goers who track workout progress manually in notebooks often find it difficult to visualize long-term fitness trends. This study develops a mobile application that lets users log workouts, track body measurements over time, and visualize progress through charts.",
+      "objectives": "To develop a workout logging module for recording exercises and repetitions. To implement a body measurement tracking feature over time. To provide visual progress charts based on logged fitness data.",
+      "batch": "2023-2024",
+      "id": 60
+    },
+    {
+      "title": "Online Requirement Submission and Checklist System for Enrollment",
+      "abstract": "During enrollment periods, registrar staff manually verify submitted requirements against a checklist, causing long queues. This project develops a system where students upload enrollment requirements online, which staff verify against a digital checklist before enrollment approval.",
+      "objectives": "To develop an online requirement upload module for students. To implement a digital checklist verification feature for registrar staff. To automate enrollment status updates based on requirement completion.",
+      "batch": "2023-2024",
+      "id": 61
+    },
+    {
+      "title": "Coffee Shop Loyalty Rewards and Ordering System",
+      "abstract": "Local coffee shops that manually track customer loyalty punch cards often lose records when cards are misplaced. This study develops a system that digitally tracks customer purchases and loyalty points, and allows online pre-ordering for pickup.",
+      "objectives": "To develop a digital loyalty points tracking module tied to customer accounts. To implement an online pre-ordering feature for pickup. To generate purchase history reports for loyalty program management.",
+      "batch": "2023-2024",
+      "id": 62
+    },
+    {
+      "title": "Barangay Health Worker Household Profiling System",
+      "abstract": "Barangay health workers currently profile household health information using paper forms that are difficult to consolidate for reporting. This project develops a mobile data collection system for health workers to profile households digitally and generate consolidated health reports.",
+      "objectives": "To develop a mobile household health profiling module for barangay health workers. To implement data consolidation features for generating barangay-wide health reports. To provide search and filter functions for specific health conditions.",
+      "batch": "2023-2024",
+      "id": 63
+    },
+    {
+      "title": "Freelancer Project and Client Management System",
+      "abstract": "Independent freelancers often manage multiple client projects and invoices using scattered spreadsheets and messaging apps. This study develops a system that helps freelancers track project status, client communication logs, and generate invoices in one platform.",
+      "objectives": "To develop a project and task tracking module for freelance work. To implement a client communication log feature. To automate invoice generation based on tracked project hours or milestones.",
+      "batch": "2023-2024",
+      "id": 64
+    },
+    {
+      "title": "Public Market Stall Rental and Fee Collection System",
+      "abstract": "Public market administrators that track stall rentals and fee payments manually often experience discrepancies in collection records. This project develops a system that manages stall rental assignments, tracks fee payments, and flags overdue accounts for market administrators.",
+      "objectives": "To digitize stall rental assignment and tracking records. To implement a fee payment logging and receipt generation feature. To develop an overdue account flagging feature for market administrators.",
+      "batch": "2023-2024",
+      "id": 65
+    },
+    {
+      "title": "Scholarship Application and Screening Management System",
+      "abstract": "Scholarship offices that process applications manually often experience delays in screening and disbursement due to high application volume. This study develops a system that allows students to apply for scholarships online and enables staff to screen applications based on defined criteria.",
+      "objectives": "To develop an online scholarship application submission module. To implement a criteria-based screening and ranking feature for applications. To generate applicant status reports for scholarship committees.",
+      "batch": "2023-2024",
+      "id": 66
+    },
+    {
+      "title": "Boarding House Tenant and Billing Management System",
+      "abstract": "Boarding house owners that track tenant records and monthly billing manually often struggle with computation errors and record loss. This project develops a system that manages tenant records, computes monthly rent and utility billing, and tracks payment history.",
+      "objectives": "To digitize tenant record management for boarding houses. To automate monthly rent and utility billing computation. To track and generate tenant payment history reports.",
+      "batch": "2023-2024",
+      "id": 67
+    },
+    {
+      "title": "Public Library Book Cataloging and Borrowing System",
+      "abstract": "Public libraries that catalog books manually using card systems often experience difficulty tracking book availability and borrower history. This study develops a system that catalogs library books digitally, tracks borrowing and return transactions, and computes overdue penalties.",
+      "objectives": "To digitize book catalog records for public library management. To implement a borrowing and return transaction tracking feature. To automate overdue penalty computation and notifications.",
+      "batch": "2023-2024",
+      "id": 68
+    },
+    {
+      "title": "Driving School Enrollment and Scheduling System",
+      "abstract": "Driving schools that manage student enrollment and practical session scheduling manually often experience double-booked instructors. This project develops a system that manages student enrollment, schedules practical driving sessions, and tracks instructor availability.",
+      "objectives": "To develop a student enrollment and course tracking module for driving schools. To implement a practical session scheduling feature with instructor availability checks. To generate completion certificates upon course completion.",
+      "batch": "2023-2024",
+      "id": 69
+    },
+    {
+      "title": "Funeral Service Booking and Records Management System",
+      "abstract": "Funeral homes that manage service bookings and client records manually often experience difficulty during high-demand periods. This study develops a system that manages service package bookings, tracks client records, and computes billing for funeral services.",
+      "objectives": "To develop a service package booking module for funeral homes. To digitize client and deceased record management. To automate billing computation based on selected service packages.",
+      "batch": "2023-2024",
+      "id": 70
+    },
+    {
+      "title": "Auto Repair Shop Job Order and Parts Inventory System",
+      "abstract": "Auto repair shops that track job orders and spare parts inventory manually often experience delays in service completion. This project develops a system that logs vehicle job orders, tracks parts inventory usage, and computes service billing based on labor and parts used.",
+      "objectives": "To develop a job order logging module for auto repair services. To implement a parts inventory tracking feature linked to job orders. To automate billing computation based on labor and parts costs.",
+      "batch": "2023-2024",
+      "id": 71
+    },
+    {
+      "title": "Municipal Business Permit Application and Tracking System",
+      "abstract": "Business owners applying for municipal permits often experience delays due to manual routing of applications between departments. This study develops a system that allows business owners to submit permit applications online and tracks the application's status across departments.",
+      "objectives": "To develop an online business permit application submission module. To implement an inter-department application routing and tracking feature. To generate permit processing status reports for the municipal office.",
+      "batch": "2023-2024",
+      "id": 72
+    },
+    {
+      "title": "Daycare-to-Parent Mobile Notification and Billing System",
+      "abstract": "Parents of daycare enrollees often have limited visibility into their child's daily activities and billing status. This project develops a mobile application that sends parents daily activity updates and provides an online view of billing statements and payment history.",
+      "objectives": "To develop a daily activity notification feature for parents. To implement an online billing statement and payment history view. To provide a direct messaging feature between parents and daycare staff.",
+      "batch": "2023-2024",
+      "id": 73
+    },
+    {
+      "title": "Motorpool Vehicle Dispatch and Maintenance Tracking System",
+      "abstract": "Institutional motorpools that manage vehicle dispatch requests and maintenance schedules manually often experience vehicle downtime due to missed maintenance. This study develops a system that manages vehicle dispatch requests, tracks maintenance schedules, and logs fuel consumption.",
+      "objectives": "To develop a vehicle dispatch request and approval module. To implement a preventive maintenance scheduling and tracking feature. To log fuel consumption and generate vehicle utilization reports.",
+      "batch": "2023-2024",
+      "id": 74
+    },
+    {
+      "title": "Feed Store Inventory and Sales Management System",
+      "abstract": "Agricultural feed stores that track feed inventory and sales manually often experience stock discrepancies during peak farming seasons. This project develops a system that manages feed inventory, tracks sales transactions, and generates restocking alerts.",
+      "objectives": "To develop a feed inventory tracking module for agricultural supply stores. To implement a point-of-sale feature for daily sales transactions. To generate low-stock restocking alerts for store management.",
+      "batch": "2023-2024",
+      "id": 75
+    },
+    {
+      "title": "Online Voter Information and Precinct Finder System",
+      "abstract": "Voters often have difficulty locating their assigned precinct and verifying their voter registration status ahead of elections. This study develops a system that allows voters to search for their precinct location and check their registration status using their voter details.",
+      "objectives": "To develop a precinct search feature based on voter registration details. To implement a registration status verification lookup. To provide precinct location mapping for voters.",
+      "batch": "2023-2024",
+      "id": 76
+    },
+    {
+      "title": "Barangay Curfew and Peace and Order Incident Logging System",
+      "abstract": "Barangay tanods that log curfew violations and peace and order incidents on paper often experience difficulty consolidating reports for the barangay council. This project develops a system that logs incident reports digitally and generates consolidated peace and order reports.",
+      "objectives": "To develop a digital incident logging module for barangay tanods. To implement categorization of incidents by type and severity. To generate consolidated peace and order reports for the barangay council.",
+      "batch": "2023-2024",
+      "id": 77
+    },
+    {
+      "title": "Online Uniform and School Supply Ordering System for Private Schools",
+      "abstract": "Private schools that sell uniforms and school supplies through a single physical counter often experience long queues at the start of the school year. This study develops a system that allows parents to order uniforms and supplies online for pickup or delivery.",
+      "objectives": "To develop an online catalog and ordering module for school uniforms and supplies. To implement order status tracking for parents. To provide inventory tracking for the school supply office.",
+      "batch": "2023-2024",
+      "id": 78
+    },
+    {
+      "title": "Cooperative Member Savings and Loan Management System",
+      "abstract": "Small cooperatives that track member savings and loan payments manually often experience computation errors in interest and amortization. This project develops a system that manages member savings accounts, tracks loan applications, and automates interest and amortization computation.",
+      "objectives": "To digitize member savings account management for cooperatives. To develop a loan application and approval tracking module. To automate interest and amortization computation for member loans.",
+      "batch": "2023-2024",
+      "id": 79
+    },
+    {
+      "title": "Online Extracurricular Club Membership and Event Management System",
+      "abstract": "University student organizations that track club membership and event attendance manually often lose records between officer transitions. This study develops a system that manages club membership registration, tracks event attendance, and archives organizational records.",
+      "objectives": "To develop an online club membership registration module. To implement an event attendance tracking feature. To archive organizational records for continuity across officer transitions.",
+      "batch": "2023-2024",
+      "id": 80
+    },
+    {
+      "title": "Rice Retailer Price Monitoring and Inventory System",
+      "abstract": "Rice retailers that monitor prevailing market prices and their own stock manually often struggle to adjust pricing promptly. This project develops a system that tracks rice stock inventory and allows retailers to log and compare prevailing market prices for pricing decisions.",
+      "objectives": "To develop a rice stock inventory tracking module for retailers. To implement a market price logging and comparison feature. To generate stock and pricing summary reports for retailer decision-making.",
+      "batch": "2023-2024",
+      "id": 81
+    },
+    {
+      "title": "Barangay Sports Tournament Bracket and Scheduling System",
+      "abstract": "Barangay sports event organizers that manage tournament brackets and game schedules manually often experience scheduling conflicts and disputes. This study develops a system that generates tournament brackets automatically and manages game schedules and results.",
+      "objectives": "To develop an automated tournament bracket generation feature. To implement a game scheduling module that avoids venue and team conflicts. To track and display game results and team standings.",
+      "batch": "2023-2024",
+      "id": 82
+    },
+    {
+      "title": "Online Consultation Booking System for Legal Aid Clinics",
+      "abstract": "Legal aid clinics that serve indigent clients often manage consultation requests through a single phone line, causing long waiting periods. This project develops a system that allows clients to request legal consultations online and helps clinic staff manage case scheduling and referrals.",
+      "objectives": "To develop an online consultation request module for legal aid clients. To implement a case scheduling and referral tracking feature for clinic staff. To generate client case status reports for the legal aid office.",
+      "batch": "2023-2024",
+      "id": 83
+    },
+    {
+      "title": "Home Service Technician Booking and Dispatch System",
+      "abstract": "Homeowners seeking appliance repair or plumbing services often rely on informal referrals with no way to verify technician availability. This study develops a platform that allows homeowners to book verified home service technicians online, with a dispatch system for service providers.",
+      "objectives": "To develop an online technician booking module for home service requests. To implement a technician dispatch and availability tracking feature. To provide a rating and review system for completed service jobs.",
+      "batch": "2023-2024",
+      "id": 84
+    },
+    {
+      "title": "School Canteen Concessionaire Sales and Inventory System",
+      "abstract": "School canteen concessionaires that track daily sales and food inventory manually often experience discrepancies at the end of each day. This project develops a point-of-sale system integrated with ingredient inventory tracking for school canteen operations.",
+      "objectives": "To develop a point-of-sale module for school canteen daily transactions. To implement ingredient inventory tracking linked to menu items sold. To generate daily sales and inventory consumption reports.",
+      "batch": "2023-2024",
+      "id": 85
+    },
+    {
+      "title": "Barangay Emergency Hotline and Dispatch Coordination System",
+      "abstract": "Barangay emergency response teams that receive reports via informal phone calls often experience delays in dispatching appropriate responders. This study develops a system that logs emergency reports, categorizes incident type, and coordinates responder dispatch.",
+      "objectives": "To develop an emergency report logging module for barangay response teams. To implement incident categorization for appropriate responder assignment. To track responder dispatch status and response times.",
+      "batch": "2023-2024",
+      "id": 86
+    },
+    {
+      "title": "Online Pre-Owned Gadget Marketplace for Students",
+      "abstract": "Students looking to buy or sell secondhand gadgets often rely on unmoderated social media groups with no transaction safeguards. This project develops a campus-restricted marketplace platform where students can list, browse, and arrange safe transactions for pre-owned gadgets.",
+      "objectives": "To develop a listing and browsing module for pre-owned gadgets restricted to verified students. To implement a messaging feature for arranging transactions. To provide a reporting mechanism for suspicious listings.",
+      "batch": "2023-2024",
+      "id": 87
+    },
+    {
+      "title": "Municipal Agricultural Office Farmer Registry System",
+      "abstract": "Municipal agricultural offices that maintain farmer registration records manually often struggle to consolidate data for subsidy distribution programs. This study develops a system that digitizes farmer registration, tracks land and crop information, and generates reports for subsidy program eligibility.",
+      "objectives": "To digitize farmer registration records for the municipal agricultural office. To track land area and crop type information per registered farmer. To generate eligibility reports for agricultural subsidy programs.",
+      "batch": "2023-2024",
+      "id": 88
+    },
+    {
+      "title": "Online Piano and Music Lesson Booking System",
+      "abstract": "Independent music instructors often manage lesson bookings and student progress notes using disconnected messaging apps and notebooks. This project develops a system that allows students to book music lessons online and lets instructors track student progress and payment records.",
+      "objectives": "To develop an online lesson booking module for music students. To implement a student progress tracking feature for instructors. To manage lesson payment records and generate billing summaries.",
+      "batch": "2023-2024",
+      "id": 89
+    },
+    {
+      "title": "Barangay Daycare Feeding Program Monitoring System",
+      "abstract": "Barangay-run feeding programs that track child nutrition status and attendance manually often struggle to report outcomes to higher government units. This project develops a system that logs child attendance and nutritional status for feeding program monitoring and reporting.",
+      "objectives": "To digitize child attendance logging for barangay feeding programs. To track nutritional status indicators over the program duration. To generate consolidated feeding program reports for government submission.",
+      "batch": "2023-2024",
+      "id": 90
+    },
+    {
+      "title": "Municipal Tricycle Franchise and Route Management System",
+      "abstract": "Municipal offices that manage tricycle franchise applications and route assignments manually often experience record inconsistencies. This project develops a system that manages franchise applications, tracks assigned routes, and monitors franchise renewal schedules.",
+      "objectives": "To develop an online tricycle franchise application module. To implement a route assignment tracking feature. To monitor franchise renewal schedules and generate compliance reports.",
+      "batch": "2023-2024",
+      "id": 91
+    },
+    {
+      "title": "Online Costume and Event Rental Booking System",
+      "abstract": "Costume and event supply rental shops that manage bookings using a physical logbook often experience overlapping reservations. This project develops a system that allows customers to check item availability and book rentals online, while shop staff manage inventory and rental schedules.",
+      "objectives": "To develop an online item availability and booking module for rental customers. To implement a rental schedule conflict-checking feature. To manage rental inventory and generate return tracking reports.",
+      "batch": "2023-2024",
+      "id": 92
+    },
+    {
+      "title": "Barangay Solid Waste Collection Schedule Notification System",
+      "abstract": "Residents often miss garbage collection schedules due to inconsistent barangay announcements. This study develops a system that sends residents SMS or app notifications of upcoming waste collection schedules per zone, along with segregation reminders.",
+      "objectives": "To develop a zone-based waste collection schedule management module. To implement SMS or app notification features for upcoming collection dates. To provide segregation reminder content within notifications.",
+      "batch": "2023-2024",
+      "id": 93
+    },
+    {
+      "title": "Private School Tuition Fee Assessment and Payment System",
+      "abstract": "Private schools that compute tuition assessments and track payments manually often experience delays during enrollment periods. This project develops a system that automates tuition fee assessment based on enrolled subjects and tracks partial payment records per student.",
+      "objectives": "To automate tuition fee assessment computation based on enrollment details. To implement a partial payment tracking feature per student account. To generate billing statements and payment history reports.",
+      "batch": "2023-2024",
+      "id": 94
+    },
+    {
+      "title": "Online Barangay Certificate Request and E-Payment System",
+      "abstract": "Residents requesting barangay certificates often need to visit the office multiple times to request, pay for, and claim documents. This study develops a system that allows residents to request certificates online, pay applicable fees electronically, and receive notification when documents are ready for claiming.",
+      "objectives": "To develop an online certificate request submission module. To integrate an electronic payment feature for certificate fees. To implement a claim-ready notification feature for residents.",
+      "batch": "2023-2024",
+      "id": 95
+    },
+    {
+      "title": "Motor Pool Fuel Consumption Monitoring System",
+      "abstract": "Institutions that monitor vehicle fuel consumption using handwritten logs often struggle to detect irregular fuel usage. This project develops a system that logs fuel dispensed per vehicle trip and flags unusual consumption patterns for review.",
+      "objectives": "To develop a fuel dispensing log module linked to vehicle trip records. To implement an anomaly detection feature for irregular fuel consumption. To generate fuel usage reports per vehicle for institutional review.",
+      "batch": "2023-2024",
+      "id": 96
+    },
+    {
+      "title": "Barangay Youth Council Program and Activity Management System",
+      "abstract": "Barangay youth councils that plan and document youth programs manually often struggle to track participation and generate accomplishment reports. This project develops a system that manages program scheduling, logs youth participant attendance, and generates accomplishment reports.",
+      "objectives": "To develop a youth program scheduling and activity management module. To implement a participant attendance logging feature. To generate accomplishment reports for barangay youth council submissions.",
+      "batch": "2023-2024",
+      "id": 97
+    },
+    {
+      "title": "Online Loan Application and Credit Scoring System for Microfinance",
+      "abstract": "Microfinance institutions that assess loan applications manually often experience inconsistent evaluation criteria between loan officers. This study develops a system that allows applicants to submit loan applications online and applies a standardized scoring model to assist loan officer evaluation.",
+      "objectives": "To develop an online loan application submission module for microfinance clients. To implement a standardized credit scoring model to support evaluation. To generate applicant risk assessment reports for loan officers.",
+      "batch": "2023-2024",
+      "id": 98
+    },
+    {
+      "title": "Public High School Guidance Counseling Case Management System",
+      "abstract": "Guidance counselors in public high schools that track student counseling cases on paper often find it difficult to monitor recurring concerns over time. This project develops a system that logs counseling sessions, tracks case categories, and generates summary reports for guidance offices.",
+      "objectives": "To digitize counseling session records for guidance offices. To implement case categorization and recurring concern tracking. To generate summary reports for guidance office monitoring.",
+      "batch": "2023-2024",
+      "id": 99
+    },
+    {
+      "title": "Municipal Tax Assessment and Real Property Tracking System",
+      "abstract": "Municipal treasury offices that track real property tax assessments manually often experience delays in generating tax bills and receipts. This study develops a system that manages property records, computes tax assessments, and generates tax bills and official receipts.",
+      "objectives": "To digitize real property records for the municipal treasury office. To automate real property tax assessment computation. To generate tax bills and official receipts for property owners.",
+      "batch": "2023-2024",
+      "id": 100
+    },
+    {
+      "title": "Church Choir and Liturgical Schedule Management System",
+      "abstract": "Parish coordinators that assign choir groups and liturgical ministers to mass schedules manually often experience assignment conflicts. This project develops a system that manages choir and liturgical minister schedules and detects assignment conflicts across mass schedules.",
+      "objectives": "To develop a schedule assignment module for choir groups and liturgical ministers. To implement conflict detection across mass schedules. To generate a published schedule view for parish ministry members.",
+      "batch": "2023-2024",
+      "id": 101
+    },
+    {
+      "title": "Barangay Senior Citizen and PWD Benefits Tracking System",
+      "abstract": "Barangay offices that track senior citizen and PWD benefit disbursements manually often experience difficulty verifying claim eligibility and history. This study develops a system that manages beneficiary records and tracks benefit disbursement history for seniors and persons with disabilities.",
+      "objectives": "To digitize senior citizen and PWD beneficiary records. To implement a benefit disbursement logging and history tracking feature. To generate eligibility verification reports for barangay social welfare staff.",
+      "batch": "2023-2024",
+      "id": 102
+    },
+    {
+      "title": "Online Bakeshop Pre-Order and Custom Cake Booking System",
+      "abstract": "Local bakeshops that accept custom cake orders through informal messaging often lose track of order specifications and deadlines. This project develops a system that allows customers to place custom cake orders online with design specifications and pickup scheduling.",
+      "objectives": "To develop an online custom order submission module with design specification fields. To implement an order deadline and pickup scheduling feature. To provide order status tracking for customers and bakeshop staff.",
+      "batch": "2023-2024",
+      "id": 103
+    },
+    {
+      "title": "Barangay Disaster Risk Reduction Evacuation Management System",
+      "abstract": "Barangay disaster response teams that track evacuee headcounts and relief distribution manually during calamities often experience reporting delays. This study develops a system that logs evacuee registration, tracks relief goods distribution, and generates situational reports during emergencies.",
+      "objectives": "To develop an evacuee registration and headcount logging module. To implement a relief goods distribution tracking feature. To generate real-time situational reports for disaster response coordination.",
+      "batch": "2023-2024",
+      "id": 104
+    },
+    {
+      "title": "Online Vehicle Emission Testing Appointment System",
+      "abstract": "Emission testing centers that manage walk-in-only vehicle testing appointments often experience long queues, especially near registration deadlines. This project develops a system that allows vehicle owners to book emission testing appointments online and receive test result notifications.",
+      "objectives": "To develop an online appointment booking module for emission testing centers. To implement a testing queue and slot management feature. To provide digital notification of test results to vehicle owners.",
+      "batch": "2023-2024",
+      "id": 105
+    },
+    {
+      "title": "Community-Based Recycling Center Collection and Credit System",
+      "abstract": "Community recycling centers that track recyclable material drop-offs and issue credits manually often experience inconsistent record-keeping. This study develops a system that logs recyclable material drop-offs by weight and type, and automatically computes and tracks credits owed to depositors.",
+      "objectives": "To develop a recyclable material drop-off logging module by type and weight. To automate credit computation based on material type and quantity. To track accumulated depositor credits and redemption history.",
+      "batch": "2023-2024",
+      "id": 106
+    },
+    {
+      "title": "Barangay Livelihood Program Beneficiary Monitoring System",
+      "abstract": "Barangay livelihood program coordinators that monitor beneficiary participation and outcomes manually often struggle to report program impact. This project develops a system that tracks beneficiary enrollment, monitors livelihood assistance disbursed, and generates program impact reports.",
+      "objectives": "To develop a beneficiary enrollment tracking module for livelihood programs. To log livelihood assistance and resource disbursement per beneficiary. To generate program impact and outcome reports for local government reporting.",
+      "batch": "2023-2024",
+      "id": 107
+    },
+    {
+      "title": "Private Tutorial Center Enrollment and Class Scheduling System",
+      "abstract": "Tutorial centers offering after-school academic support often manage student enrollment and class scheduling manually, leading to overlapping class assignments. This study develops a system that manages student enrollment, tutor assignments, and class scheduling to avoid conflicts.",
+      "objectives": "To develop a student enrollment and subject assignment module for tutorial centers. To implement a class scheduling feature with tutor availability conflict checks. To generate attendance and progress reports per enrolled student.",
+      "batch": "2023-2024",
+      "id": 108
+    },
+    {
+      "title": "Online Used Book and School Supply Donation Coordination System",
+      "abstract": "Nonprofit groups that coordinate donation drives for used books and school supplies often manage inventory and distribution using spreadsheets shared informally. This project develops a system that logs donated item inventory and coordinates distribution to partner schools.",
+      "objectives": "To develop a donation inventory logging module for used books and supplies. To implement a distribution coordination feature for partner schools or beneficiaries. To generate donation and distribution summary reports for organizers.",
+      "batch": "2023-2024",
+      "id": 109
+    },
+    {
+      "title": "Barangay Public Address and Announcement Broadcast Logging System",
+      "abstract": "Barangay officials that make public announcements via loudspeaker often have no digital record of what was announced and when. This study develops a system that logs scheduled and ad hoc public announcements, archiving them for reference and accountability.",
+      "objectives": "To develop an announcement scheduling and logging module for barangay officials. To implement an archive feature for past public announcements. To generate announcement frequency reports by category.",
+      "batch": "2023-2024",
+      "id": 110
+    },
+    {
+      "title": "Micro-Insurance Enrollment and Claims Processing System",
+      "abstract": "Micro-insurance providers serving low-income clients often process enrollment and claims manually, resulting in slow claim turnaround. This project develops a system that manages policy enrollment, logs claim submissions, and tracks claim processing status.",
+      "objectives": "To develop an online policy enrollment module for micro-insurance clients. To implement a claims submission and document upload feature. To track claim processing status and generate turnaround time reports.",
+      "batch": "2023-2024",
+      "id": 111
+    },
+    {
+      "title": "Homeowners Association Dues Collection and Complaint System",
+      "abstract": "Homeowners associations that track member dues and resident complaints manually often experience disputes over payment records. This study develops a system that tracks association dues payments and logs resident complaints for association officers to address.",
+      "objectives": "To develop an association dues tracking and receipt generation module. To implement a resident complaint logging and status tracking feature. To generate financial and complaint summary reports for association officers.",
+      "batch": "2023-2024",
+      "id": 112
+    },
+    {
+      "title": "Online Talent Booking System for Event Entertainers",
+      "abstract": "Event organizers seeking performers such as bands or hosts often rely on scattered social media contacts with no centralized booking record. This project develops a platform where entertainers list their availability and services, and organizers can search, compare, and book talent online.",
+      "objectives": "To develop a talent profile and availability listing module for entertainers. To implement a search and comparison feature for event organizers. To provide an online booking and confirmation feature between organizers and entertainers.",
+      "batch": "2023-2024",
+      "id": 113
+    },
+    {
+      "title": "Barangay Population and Household Census Management System",
+      "abstract": "Barangay officials that conduct household census surveys using paper forms often experience delays consolidating population statistics. This project develops a system that digitizes household census data collection and automatically generates population statistics for the barangay.",
+      "objectives": "To develop a digital household census data collection module. To implement automatic population statistic computation from collected data. To generate demographic reports for barangay planning purposes.",
+      "batch": "2023-2024",
+      "id": 114
+    },
+    {
+      "title": "Motorcycle Taxi Cooperative Dispatch and Fare Management System",
+      "abstract": "Motorcycle taxi cooperatives operating in areas without ride-hailing apps often coordinate rides through radio calls with no fare standardization. This study develops a system that manages rider dispatch requests and standardizes fare computation based on distance.",
+      "objectives": "To develop a ride dispatch request and driver assignment module. To implement a standardized, distance-based fare computation feature. To generate trip and earnings reports for cooperative members.",
+      "batch": "2023-2024",
+      "id": 115
+    },
+    {
+      "title": "Online Appliance Warranty Registration and Service Request System",
+      "abstract": "Appliance retailers that manage warranty registration and repair requests manually often lose track of warranty validity and service history. This project develops a system that allows customers to register product warranties online and submit service requests for warranty claims.",
+      "objectives": "To develop an online warranty registration module for purchased appliances. To implement a service request submission feature for warranty claims. To track warranty validity and service history per product.",
+      "batch": "2023-2024",
+      "id": 116
+    },
+    {
+      "title": "Barangay Micro-Enterprise Registration and Monitoring System",
+      "abstract": "Barangays that register and monitor home-based micro-enterprises manually often lack consolidated data for local economic planning. This study develops a system that registers micro-enterprises operating within the barangay and monitors their business activity for local planning purposes.",
+      "objectives": "To develop a micro-enterprise registration module for barangay-based businesses. To implement business activity monitoring and categorization features. To generate consolidated economic activity reports for barangay planning.",
+      "batch": "2023-2024",
+      "id": 117
+    },
+    {
+      "title": "Private Van Terminal Passenger Booking and Dispatch System",
+      "abstract": "Private van terminals serving intercity routes that manage passenger boarding manually often experience overbooking and long queues. This project develops a system that allows passengers to reserve van seats online and helps terminal staff manage dispatch and boarding.",
+      "objectives": "To develop an online seat reservation module for van terminal passengers. To implement a dispatch and boarding management feature for terminal staff. To generate passenger volume and trip reports for terminal operators.",
+      "batch": "2023-2024",
+      "id": 118
+    },
+    {
+      "title": "Barangay Sports Complex Facility Rental Management System",
+      "abstract": "Barangay-owned sports complexes that manage facility rentals for private events manually often experience scheduling conflicts. This study develops a system that manages facility rental bookings, checks schedule conflicts, and tracks rental fee payments.",
+      "objectives": "To develop an online facility rental booking module for sports complex use. To implement conflict-checking for overlapping rental schedules. To track rental fee payments and generate utilization reports.",
+      "batch": "2023-2024",
+      "id": 119
+    },
+    {
+      "title": "Online Uniform Tailoring Order and Measurement Tracking System",
+      "abstract": "Tailoring shops that produce school and work uniforms often track customer measurements and order status using handwritten tickets that are easily misplaced. This project develops a system that digitizes customer measurements, tracks order production status, and manages pickup scheduling.",
+      "objectives": "To digitize customer measurement records for tailoring orders. To implement an order production status tracking feature. To manage pickup scheduling and customer order notifications.",
+      "batch": "2023-2024",
+      "id": 120
+    },
+    {
+      "title": "Community Water System Consumption Billing and Monitoring System",
+      "abstract": "Community-managed water systems that read meters and compute billing manually often experience billing disputes and delayed collection. This study develops a system that logs water meter readings, computes consumption-based billing, and tracks payment collection.",
+      "objectives": "To develop a water meter reading logging module per household connection. To automate consumption-based billing computation. To track payment collection and generate delinquency reports.",
+      "batch": "2023-2024",
+      "id": 121
+    }
+  ],
+  "positive_pairs": [
+    [
+      1,
+      2,
+      "QR Code Attendance"
+    ],
+    [
+      3,
+      4,
+      "Online Voting System"
+    ],
+    [
+      5,
+      6,
+      "Inventory Management"
+    ],
+    [
+      7,
+      8,
+      "Hospital Appointment System"
+    ],
+    [
+      9,
+      10,
+      "IoT Fire Detection"
+    ],
+    [
+      11,
+      12,
+      "E-Learning Platform"
+    ],
+    [
+      13,
+      14,
+      "Waste Segregation IoT Bin"
+    ],
+    [
+      15,
+      16,
+      "Chatbot Customer Support"
+    ],
+    [
+      17,
+      18,
+      "Farm Monitoring IoT"
+    ],
+    [
+      19,
+      20,
+      "Tourism Mobile App"
+    ],
+    [
+      21,
+      22,
+      "Hotel Reservation System"
+    ],
+    [
+      23,
+      24,
+      "Barangay Information System"
+    ],
+    [
+      25,
+      26,
+      "Parking Management System"
+    ],
+    [
+      27,
+      28,
+      "Blood Donation Matching"
+    ],
+    [
+      29,
+      30,
+      "Employee Payroll System"
+    ]
+  ]
+}
