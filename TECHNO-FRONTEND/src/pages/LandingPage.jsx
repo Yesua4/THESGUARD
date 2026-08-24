@@ -111,6 +111,7 @@ export default function LandingPage() {
             {[['about','About'],['features','Features'],['howitworks','How It Works'],['roles','Roles'],['team','Team']].map(([id,label]) => (
             <button key={id} className="cg-nav-link" onClick={() => scrollTo(id)}>{label}</button>
             ))}
+            <button className="cg-nav-link" onClick={() => navigate('/login')}>Log In</button>
             <button className="cg-nav-cta" onClick={() => navigate('/register-school')}>Get Started</button>
         </div>
         <button className="cg-nav-toggle" onClick={() => setNavOpen(o => !o)}>
