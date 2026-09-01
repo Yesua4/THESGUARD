@@ -89,8 +89,8 @@ const createUser = async e => {
 
   const downloadTemplate = () => {
   const csv = user?.role === 'admin'
-  ? 'name,email,student_id,section,password,role\nJuan dela Cruz,juan@school.edu.ph,2023-00001,BSIT 3A,CapGuard2025!,student\n...'
-  : 'name,email,student_id,section,password\nJuan dela Cruz,juan@school.edu.ph,2023-00001,BSIT 3A,CapGuard2025!\n...'
+  ? 'name,email,student_id,section,password,role\nJuan dela Cruz,juan@school.edu.ph,2023-00001,BSIT 3A,ThesisGuard2025!,student\n...'
+  : 'name,email,student_id,section,password\nJuan dela Cruz,juan@school.edu.ph,2023-00001,BSIT 3A,ThesisGuard2025!\n...'
   const blob = new Blob([csv], { type: 'text/csv' })
   const a = Object.assign(document.createElement('a'), {
     href: URL.createObjectURL(blob),
@@ -224,7 +224,7 @@ const createUser = async e => {
                 • <strong>name</strong> and <strong>email</strong> are required per row<br/>
                 • <strong>student_id</strong> — optional<br/>
                 • <strong>section</strong> — e.g. BSIT 3A (optional)<br/>
-                • <strong>password</strong> — leave blank to use default: <code style={{ fontSize:'11px' }}>CapGuard2025!</code>
+                • <strong>password</strong> — leave blank to use default: <code style={{ fontSize:'11px' }}>ThesisGuard2025!</code>
                 
                 {user?.role === 'admin' && (
                   <div>• <strong>role</strong> — student, adviser, instructor, panelist (default: student)</div>

@@ -74,7 +74,7 @@ export default function RegisterSchool() {
         <div style={S.successBox}>
           <div style={S.successIcon}>✓</div>
           <h2 style={S.successTitle}>School Registered!</h2>
-          <p style={S.successSub}>Welcome to CapGuard. Redirecting to your dashboard...</p>
+          <p style={S.successSub}>Welcome to ThesisGuard. Redirecting to your dashboard...</p>
         </div>
       </div>
     )
@@ -100,7 +100,7 @@ export default function RegisterSchool() {
 
           <div style={S.leftBody}>
             <h2 style={S.leftTitle}>Start managing capstone projects the smart way.</h2>
-            <p style={S.leftSub}>Join schools across the Philippines already using CapGuard to streamline their research programs.</p>
+            <p style={S.leftSub}>Join schools across the Philippines already using ThesisGuard to streamline their research programs.</p>
 
             <div style={S.leftFeatures}>
               {[
