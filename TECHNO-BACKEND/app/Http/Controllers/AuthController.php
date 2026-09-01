@@ -281,6 +281,7 @@ class AuthController extends Controller {
     $records = collect($csv->getRecords());
     $created = 0;
     $skipped = [];
+    $roleCounts = [];
 
     foreach ($records as $index => $row) {
         $name       = trim($row['name']       ?? $row['Name']       ?? '');
@@ -314,27 +315,41 @@ class AuthController extends Controller {
             continue;
         }
 
+        $role = $admin->role === 'admin'
+            ? (in_array(strtolower($row['role'] ?? ''), ['student','adviser','instructor','panelist','admin'])
+                ? strtolower($row['role'])
+                : 'student')
+            : 'student';
+
         User::create([
             'name'       => $name,
             'email'      => $email,
             'student_id' => $student_id ?: null,
             'section'    => $section ?: null,
-            'role' => $admin->role === 'admin'
-    ? (in_array(strtolower($row['role'] ?? ''), ['student','adviser','instructor','panelist','admin'])
-        ? strtolower($row['role'])
-        : 'student')
-        : 'student',
+            'role'       => $role,
             'school_id'  => $admin->school_id,
             'password'   => \Illuminate\Support\Facades\Hash::make($password . $this->pepper()),
         ]);
 
+        $roleCounts[$role] = ($roleCounts[$role] ?? 0) + 1;
         $created++;
+    }
+
+    // Build a message that reflects what was actually imported instead of
+    // always saying "student(s)", since admins can import a mix of roles.
+    if ($created === 0) {
+        $message = 'No users were imported.';
+    } else {
+        $breakdown = collect($roleCounts)
+            ->map(fn ($count, $role) => "{$count} " . \Illuminate\Support\Str::plural($role, $count))
+            ->implode(', ');
+        $message = "{$created} user(s) imported successfully ({$breakdown}).";
     }
 
     return response()->json([
         'created' => $created,
         'skipped' => $skipped,
-        'message' => "{$created} student(s) imported successfully.",
+        'message' => $message,
     ]);
     }
 }

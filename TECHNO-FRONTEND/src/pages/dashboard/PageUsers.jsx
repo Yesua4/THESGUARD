@@ -210,7 +210,7 @@ const createUser = async e => {
   <div style={{ position:'fixed', inset:0, background:'rgba(10,31,68,0.4)', zIndex:60, display:'flex', alignItems:'center', justifyContent:'center' }}>
     <div style={{ width:'min(480px, 92vw)', maxHeight:'90vh', overflowY:'auto', background:'#fff', borderRadius:'16px', boxShadow:'0 20px 60px rgba(0,0,0,0.2)' }}>
       <div style={{ background:'linear-gradient(135deg,#0a1f44,#1040a0)', padding:'18px 20px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-        <div style={{ fontSize:'14px', fontWeight:'700', color:'#fff' }}>Import Students from CSV</div>
+        <div style={{ fontSize:'14px', fontWeight:'700', color:'#fff' }}>{user?.role === 'instructor' ? 'Import Students from CSV' : 'Import Users from CSV'}</div>
         <button onClick={() => { setShowImport(false); setImportResult(null); setImportFile(null) }} style={{ background:'rgba(255,255,255,0.15)', border:'none', color:'#fff', width:'26px', height:'26px', borderRadius:'6px', cursor:'pointer', fontSize:'14px' }}>✕</button>
       </div>
       <div style={{ padding:'20px', display:'flex', flexDirection:'column', gap:'14px' }}>
@@ -289,7 +289,7 @@ const createUser = async e => {
                 disabled={importing || !importFile}
                 style={{ flex:1, padding:'10px', background: importing || !importFile ? '#cbd5e1' : 'linear-gradient(135deg,#059669,#047857)', color:'#fff', border:'none', borderRadius:'8px', fontSize:'13px', fontWeight:'700', cursor: importing || !importFile ? 'not-allowed' : 'pointer' }}
               >
-                {importing ? 'Importing...' : '📂 Import Students'}
+                {importing ? 'Importing...' : (user?.role === 'instructor' ? '📂 Import Students' : '📂 Import Users')}
               </button>
               <button type="button" onClick={() => { setShowImport(false); setImportResult(null); setImportFile(null) }} style={{ flex:1, padding:'10px', background:'#f8fafc', color:'#475569', border:'1.5px solid #e2e8f0', borderRadius:'8px', fontSize:'13px', cursor:'pointer' }}>
                 Cancel
