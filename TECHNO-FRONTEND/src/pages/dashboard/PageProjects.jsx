@@ -5,6 +5,7 @@ import api from '../../api/axios'
 import GroupAwareProposalForm from './GroupAwareProposalForm'
 import ProjectTasks from './ProjectTasks'
 import { similarityScoreColor, similarityBadgeStyle } from '../../utils/similarityColors'
+import { useProjectsChannel } from '../../hooks/useProjectChannel'
 
 function PageProjects() {
   const { user } = useAuth()
@@ -27,6 +28,11 @@ function PageProjects() {
   }
 
   useEffect(() => { load(); api.get('/users').then(res => setUsers(res.data)) }, [])
+
+  // Live updates: a status/title change, new document, or evaluation on any
+  // project currently in this list refreshes it, instead of needing a
+  // manual reload to see what a collaborator just did.
+  useProjectsChannel(projects.map(p => p.id), () => load())
 
   const submit = async (e, childForm) => {
     e.preventDefault(); setSaving(true); setLast(null)

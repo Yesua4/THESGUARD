@@ -6,6 +6,7 @@ use App\Models\DefenseSchedule;
 use App\Models\Document;
 use App\Models\Project;
 use App\Models\ProjectMember;
+use App\Services\ActivityBroadcastService;
 use App\Services\DocumentPreviewService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -14,7 +15,10 @@ use Illuminate\Support\Facades\Storage;
 class DocumentController extends Controller {
     use AuthorizesDocumentAccess;
 
-    public function __construct(private NotificationService $notifications) {}
+    public function __construct(
+        private NotificationService $notifications,
+        private ActivityBroadcastService $activity,
+    ) {}
 
     public function index(Request $request) {
         $user  = $request->user();
@@ -127,7 +131,11 @@ class DocumentController extends Controller {
             );
         }
 
-        return response()->json($document->load('uploader'), 201);
+        $this->activity->broadcast($project->id, 'document_uploaded', [
+            'document' => $document->load('uploader'),
+        ]);
+
+        return response()->json($document, 201);
     }
 
     // Converts an already-uploaded Word document (.docx/.doc) to HTML so it
@@ -201,7 +209,10 @@ class DocumentController extends Controller {
             'description' => "Edited {$typeLabels[$data['type']]} (v{$document->version}) in-app",
         ]);
 
-        return response()->json($document->load('uploader'), 201);
+        $document->load('uploader');
+        $this->activity->broadcast($project->id, 'document_uploaded', ['document' => $document]);
+
+        return response()->json($document, 201);
     }
 
     public function show(Request $request, $id) {
@@ -300,6 +311,11 @@ class DocumentController extends Controller {
             'needs_revision' => ['📄 Document Needs Revision',  "Your {$typeLabels[$document->type]} (v{$document->version}) needs revision. Check the comments."],
             'under_review'   => ['📄 Document Under Review',    "Your {$typeLabels[$document->type]} (v{$document->version}) is now under review."],
         ];
+
+        $this->activity->broadcast($document->project_id, 'document_status_changed', [
+            'document_id' => $document->id,
+            'status'      => $newStatus,
+        ]);
 
         if (!isset($statusMessages[$newStatus])) return;
 

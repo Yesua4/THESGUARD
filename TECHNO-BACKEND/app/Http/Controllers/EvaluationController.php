@@ -6,12 +6,16 @@ use App\Models\Evaluation;
 use App\Models\Project;
 use App\Models\ProjectMember;
 use App\Models\User;
+use App\Services\ActivityBroadcastService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class EvaluationController extends Controller {
 
-    public function __construct(private NotificationService $notifications) {}
+    public function __construct(
+        private NotificationService $notifications,
+        private ActivityBroadcastService $activity,
+    ) {}
 
     public function index(Request $request) {
         $user = $request->user();
@@ -75,7 +79,10 @@ class EvaluationController extends Controller {
 
         $this->updateDefenseVerdict($data['project_id']);
 
-        return response()->json($eval->load('panelist'), $existing ? 200 : 201);
+        $eval->load('panelist');
+        $this->activity->broadcast($data['project_id'], 'evaluation_submitted', ['evaluation' => $eval]);
+
+        return response()->json($eval, $existing ? 200 : 201);
     }
 
     public function show($projectId) {
@@ -119,6 +126,7 @@ class EvaluationController extends Controller {
 
         if ($project->defense_verdict === $verdict) return;
         $project->update(['defense_verdict' => $verdict]);
+        $this->activity->broadcast($projectId, 'project_updated', ['project' => $project]);
 
         $labels = ['passed' => 'Passed', 'failed' => 'Failed', 'revision' => 'Needs Revision'];
         $memberIds = ProjectMember::where('project_id', $projectId)->pluck('user_id');

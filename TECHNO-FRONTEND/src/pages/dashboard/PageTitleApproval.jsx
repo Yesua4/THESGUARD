@@ -4,6 +4,7 @@ import api from '../../api/axios'
 import SimilarityBreakdown from './SimilarityBreakdown'
 import { similarityBadgeStyle } from '../../utils/similarityColors'
 import { useToast } from '../../context/ToastContext'
+import { useProjectsChannel } from '../../hooks/useProjectChannel'
 
 function PageTitleApproval() {
   const { user } = useAuth()
@@ -21,6 +22,10 @@ function PageTitleApproval() {
   }
 
   useEffect(() => { load() }, [])
+
+  // Live updates: a title edit or another reviewer's decision on any listed
+  // project refreshes it without a manual reload.
+  useProjectsChannel(projects.map(p => p.id), () => load())
 
   const approve = async (id) => {
     setSaving(true)

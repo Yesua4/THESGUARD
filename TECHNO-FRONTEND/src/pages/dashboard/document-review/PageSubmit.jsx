@@ -4,6 +4,7 @@ import api from '../../../api/axios'
 import { typeLabel, statusStyle, fileIcon, fileStyle } from '../../../utils/documentDisplay'
 import DocumentReviewViewer from './DocumentReviewViewer'
 import RichTextEditor from './RichTextEditor'
+import { useProjectChannel } from '../../../hooks/useProjectChannel'
 
 function PageSubmit({ initialDocumentId, onConsumeInitialDocument }) {
   const { user } = useAuth()
@@ -53,9 +54,22 @@ function PageSubmit({ initialDocumentId, onConsumeInitialDocument }) {
     onConsumeInitialDocument?.()
   }, [initialDocumentId, documents])
 
+  // Keep an already-open viewer's status badge in sync with a live refresh.
+  useEffect(() => {
+    if (!selectedDoc) return
+    const fresh = documents.find(d => d.id === selectedDoc.id)
+    if (fresh && fresh.status !== selectedDoc.status) setSelectedDoc(fresh)
+  }, [documents])
+
   const loadDocs = () => api.get('/documents').then(res => {
     const myDocs = res.data.filter(d => d.project_id === approvedProject?.id)
     setDocuments(myDocs)
+  })
+
+  // Live updates: see the status badge flip the instant an adviser/instructor
+  // approves/revises a submission, without needing to reload the page.
+  useProjectChannel(approvedProject?.id, (type) => {
+    if (type === 'document_status_changed' || type === 'document_uploaded') loadDocs()
   })
   const handle = e => setForm({ ...form, [e.target.name]: e.target.value })
 

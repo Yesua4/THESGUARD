@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useAuth } from '../../../context/AuthContext'
 import { useDocumentComments } from '../../../hooks/useDocumentComments'
+import { useProjectChannel } from '../../../hooks/useProjectChannel'
 import api from '../../../api/axios'
 import PdfViewer from './PdfViewer'
 import CommentSidebar from './CommentSidebar'
@@ -54,7 +55,15 @@ function NonPdfFallback({ documentId, fileName, previewStatus }) {
 // / instructor review) and PageSubmit (student's own document view).
 export default function DocumentReviewViewer({ document, onClose, canResolve = false, statusActions = null }) {
   const { user } = useAuth()
-  const { comments, error: commentsError, addComment, deleteComment, setResolved } = useDocumentComments(document.id)
+  const { comments, error: commentsError, addComment, deleteComment, setResolved, reload: reloadComments } = useDocumentComments(document.id)
+  // Live updates: another reviewer's comment (or resolve/delete) on THIS
+  // document shows up immediately instead of only on next open/refresh.
+  useProjectChannel(document.project_id, (type, payload) => {
+    if (payload?.document_id !== document.id) return
+    if (type === 'comment_created' || type === 'comment_resolved' || type === 'comment_deleted') {
+      reloadComments()
+    }
+  })
   // deleteComment/setResolved already record failures into commentsError
   // for the banner below to show -- these wrappers just stop that same
   // failure from also surfacing as an unhandled promise rejection, since

@@ -6,13 +6,17 @@ use App\Models\Document;
 use App\Models\DocumentComment;
 use App\Models\Project;
 use App\Models\ProjectMember;
+use App\Services\ActivityBroadcastService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class DocumentCommentController extends Controller {
     use AuthorizesDocumentAccess;
 
-    public function __construct(private NotificationService $notifications) {}
+    public function __construct(
+        private NotificationService $notifications,
+        private ActivityBroadcastService $activity,
+    ) {}
 
     public function index(Request $request, $documentId) {
         $document = Document::findOrFail($documentId);
@@ -52,7 +56,13 @@ class DocumentCommentController extends Controller {
 
         $this->notifyOnComment($document, $commenter, $data['page_number']);
 
-        return response()->json($comment->load('user'), 201);
+        $comment->load('user');
+        $this->activity->broadcast($document->project_id, 'comment_created', [
+            'document_id' => (int) $documentId,
+            'comment'     => $comment,
+        ]);
+
+        return response()->json($comment, 201);
     }
 
     /**
@@ -96,8 +106,14 @@ class DocumentCommentController extends Controller {
         $comment->resolved_at = $data['status'] === 'resolved' ? now() : null;
         $comment->resolved_by = $data['status'] === 'resolved' ? $user->id : null;
         $comment->save();
+        $comment->load('user', 'resolver');
 
-        return response()->json($comment->load('user', 'resolver'));
+        $this->activity->broadcast($document->project_id, 'comment_resolved', [
+            'document_id' => (int) $documentId,
+            'comment'     => $comment,
+        ]);
+
+        return response()->json($comment);
     }
 
     public function destroy($documentId, $commentId) {
@@ -105,7 +121,14 @@ class DocumentCommentController extends Controller {
             ->where('id', $commentId)
             ->where('user_id', auth()->id())
             ->firstOrFail();
+        $document = Document::findOrFail($documentId);
         $comment->delete();
+
+        $this->activity->broadcast($document->project_id, 'comment_deleted', [
+            'document_id' => (int) $documentId,
+            'comment_id'  => (int) $commentId,
+        ]);
+
         return response()->json(['message' => 'Deleted']);
     }
 }

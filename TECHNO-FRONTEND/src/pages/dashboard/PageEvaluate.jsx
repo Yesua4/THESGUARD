@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import api from '../../api/axios'
+import { useProjectChannel } from '../../hooks/useProjectChannel'
 
 function PageEvaluate() {
   const { user } = useAuth()
@@ -21,6 +22,15 @@ function PageEvaluate() {
       setProjects(res.data.filter(p => p.status === 'for_defense' || p.status === 'approved'))
     }).finally(() => setLoading(false))
   }, [])
+
+  // Live updates while a project is open: see other panelists' evaluations
+  // land in real time, so it's clear when everyone's submitted without
+  // needing to reopen the project.
+  useProjectChannel(selected?.id, type => {
+    if (type === 'evaluation_submitted') {
+      api.get(`/evaluations/project/${selected.id}`).then(res => setEvaluations(res.data))
+    }
+  })
 
   const openProject = async p => {
     setSelected(p); setSuccess('')

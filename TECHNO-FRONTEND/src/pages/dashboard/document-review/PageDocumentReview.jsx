@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../../context/AuthContext'
 import { useToast } from '../../../context/ToastContext'
 import api from '../../../api/axios'
 import { typeLabel, statusStyle, statusLabel, fileIcon, fileStyle } from '../../../utils/documentDisplay'
 import DocumentReviewViewer from './DocumentReviewViewer'
+import { useProjectsChannel } from '../../../hooks/useProjectChannel'
 
 function PageDocumentReview({ initialDocumentId, onConsumeInitialDocument }) {
   const { user } = useAuth()
@@ -14,7 +15,7 @@ function PageDocumentReview({ initialDocumentId, onConsumeInitialDocument }) {
   const [selectedDoc, setSelectedDoc] = useState(null)
   const [docTab, setDocTab]           = useState('all') // 'all' | 'class' | 'advisory'
 
-  useEffect(() => {
+  const load = useCallback(() => {
     // Panelists are matched to projects server-side (by name, against the
     // defense schedule) rather than by adviser_id/instructor_id, so /documents
     // already comes back correctly scoped — no /projects prefilter needed.
@@ -51,7 +52,14 @@ function PageDocumentReview({ initialDocumentId, onConsumeInitialDocument }) {
         setDocuments(dRes.data.filter(d => projectIds.includes(d.project_id)))
       }).finally(() => setLoading(false))
     }).catch(() => setLoading(false))
-  }, [user.id, user?.role])
+  }, [user.id, user.role])
+
+  useEffect(() => { load() }, [load])
+
+  // Live updates: a new document version or a status change on any project
+  // in this list refreshes it, so a fresh submission shows up (and an
+  // approve/revise decision reflects) without a manual reload.
+  useProjectsChannel(projects.map(p => p.id), () => load())
 
   // Arrived here via a notification click — open the specific document it pointed to.
   useEffect(() => {
@@ -60,6 +68,14 @@ function PageDocumentReview({ initialDocumentId, onConsumeInitialDocument }) {
     if (doc) setSelectedDoc(doc)
     onConsumeInitialDocument?.()
   }, [initialDocumentId, documents])
+
+  // Keep an already-open viewer's status badge in sync if a live refresh
+  // (e.g. someone else changed the status) updated this document's row.
+  useEffect(() => {
+    if (!selectedDoc) return
+    const fresh = documents.find(d => d.id === selectedDoc.id)
+    if (fresh && fresh.status !== selectedDoc.status) setSelectedDoc(fresh)
+  }, [documents])
 
   const updateStatus = async status => {
     try {

@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 use App\Models\Contribution;
 use App\Models\Project;
 use App\Models\ProjectMember;
+use App\Services\ActivityBroadcastService;
 use App\Services\NotificationService;
 use App\Services\SimilarityService;
 use Illuminate\Http\Request;
@@ -173,7 +174,7 @@ class ProjectController extends Controller {
         );
     }
 
-    public function update(Request $request, $id, NotificationService $notifications) {
+    public function update(Request $request, $id, NotificationService $notifications, ActivityBroadcastService $activity) {
         $project = Project::findOrFail($id);
         $user    = $request->user();
 
@@ -212,6 +213,8 @@ class ProjectController extends Controller {
 
         $oldTitleStatus = $project->title_status;
         $project->update($data);
+
+        $activity->broadcast($project->id, 'project_updated', ['project' => $project]);
 
         if (isset($data['title_status']) && $data['title_status'] !== $oldTitleStatus) {
             $members = ProjectMember::where('project_id', $id)->get();
@@ -264,7 +267,7 @@ class ProjectController extends Controller {
     // any other approved sibling proposals under the same group so there's
     // never more than one active title, and tells the adviser/instructor which
     // title was picked.
-    public function chooseFinal($id, Request $request, NotificationService $notifications) {
+    public function chooseFinal($id, Request $request, NotificationService $notifications, ActivityBroadcastService $activity) {
         $project = Project::findOrFail($id);
         $user = $request->user();
 
@@ -301,6 +304,8 @@ class ProjectController extends Controller {
                 $project->id
             );
         }
+
+        $activity->broadcast($project->id, 'project_updated', ['project' => $project]);
 
         return response()->json($project->load('adviser', 'instructor', 'members'));
     }
