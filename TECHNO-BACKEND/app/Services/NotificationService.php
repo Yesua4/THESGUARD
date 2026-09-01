@@ -1,6 +1,7 @@
 <?php
 namespace App\Services;
 
+use App\Events\NotificationCreated;
 use App\Mail\NotificationMail;
 use App\Models\Notification;
 use App\Models\User;
@@ -26,6 +27,12 @@ class NotificationService {
         ]);
 
         $this->emailUser($userId, $title, $message);
+
+        try {
+            broadcast(new NotificationCreated($notification));
+        } catch (Throwable $e) {
+            Log::warning("Failed to broadcast notification to user {$userId}: {$e->getMessage()}");
+        }
 
         return $notification;
     }

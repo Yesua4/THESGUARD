@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../../api/axios'
+import echo from '../../echo'
 
 // Maps a notification to where clicking it should take the viewer, based on
 // the notification's type and the viewer's own role.
@@ -39,6 +40,13 @@ function PageNotifications({ onRead, user, onNavigate }) {
   }
 
   useEffect(() => { load() }, [])
+
+  useEffect(() => {
+    if (!user?.id) return
+    const channel = echo.private(`App.Models.User.${user.id}`)
+    channel.listen('.notification.created', load)
+    return () => echo.leave(`App.Models.User.${user.id}`)
+  }, [user?.id])
 
   const markRead = async id => {
     await api.put(`/notifications/${id}/read`)

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import api from '../../api/axios'
+import echo from '../../echo'
 import logo from '../../assets/capstoneguard1.png'
 import { NAV, NAV_GROUPS, NAV_ICONS } from '../../config/nav'
 import { ROLE_META } from '../../constants/roles'
@@ -44,9 +45,19 @@ function DashboardShell() {
 
   useEffect(() => {
     fetchUnread()
+    // 30s poll stays as a fallback in case the WebSocket connection ever
+    // drops silently -- the live listener below is what makes this
+    // effectively instant in the normal case.
     const interval = setInterval(fetchUnread, 30_000)
     return () => clearInterval(interval)
   }, [fetchUnread])
+
+  useEffect(() => {
+    if (!user?.id) return
+    const channel = echo.private(`App.Models.User.${user.id}`)
+    channel.listen('.notification.created', fetchUnread)
+    return () => echo.leave(`App.Models.User.${user.id}`)
+  }, [user?.id, fetchUnread])
 
   const handleLogout = async () => {
     setLoggingOut(true)
