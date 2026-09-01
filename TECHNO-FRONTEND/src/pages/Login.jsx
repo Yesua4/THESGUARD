@@ -368,7 +368,7 @@ export default function Login() {
                           </label>
                           <span
                             style={{ fontSize: '10px', color: '#1040a0', fontWeight: '600', cursor: 'pointer' }}
-                            onClick={() => {/* TODO: forgot password */}}
+                            onClick={() => navigate('/forgot-password')}
                           >
                             Forgot password?
                           </span>

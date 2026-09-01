@@ -221,6 +221,52 @@ class AuthController extends Controller {
         return response()->json(['message' => 'Password changed successfully.']);
     }
 
+    // Sends a reset link (via User::sendPasswordResetNotification, overridden
+    // on the model to point at the SPA's own /reset-password page instead of
+    // Laravel's default backend route). Always returns the same generic
+    // message regardless of whether the email exists, so this can't be used
+    // to enumerate registered accounts.
+    public function forgotPassword(Request $request) {
+        $request->validate(['email' => 'required|email']);
+
+        \Illuminate\Support\Facades\Password::sendResetLink(
+            $request->only('email')
+        );
+
+        return response()->json([
+            'message' => 'If an account exists for that email, a password reset link has been sent.',
+        ]);
+    }
+
+    // Laravel's password broker validates the token/email pair against the
+    // password_reset_tokens table itself -- this only needs to supply the
+    // callback that actually writes the new password, and it must apply the
+    // same pepper as every other password write in this app (login,
+    // register, changePassword) or the user would be locked out of their
+    // own newly-reset password.
+    public function resetPassword(Request $request) {
+        $data = $request->validate([
+            'email'    => 'required|email',
+            'token'    => 'required',
+            'password' => 'required|min:12|confirmed',
+        ]);
+
+        $status = \Illuminate\Support\Facades\Password::reset(
+            $data,
+            function ($user, $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password . $this->pepper()),
+                ])->save();
+            }
+        );
+
+        if ($status !== \Illuminate\Support\Facades\Password::PASSWORD_RESET) {
+            return response()->json(['message' => __($status)], 422);
+        }
+
+        return response()->json(['message' => 'Password has been reset successfully.']);
+    }
+
     public function importUsers(Request $request) {
     abort_unless(in_array($request->user()->role, ['admin', 'instructor']), 403, 'Only administrators and instructors can manage user accounts.');
     $request->validate([

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import api from '../../api/axios'
+import { useToast } from '../../context/ToastContext'
 
 function PageSettings() {
+  const { showToast } = useToast()
   const [panelists, setPanelists] = useState([])
   const [rooms, setRooms]         = useState([])
   const [rForm, setRForm]         = useState({ room_name:'', building:'', capacity:'' })
@@ -20,7 +22,7 @@ function PageSettings() {
     try {
       editingR ? await api.put(`/rooms/${editingR}`, rForm) : await api.post('/rooms', rForm)
       setEditingR(null); setRForm({ room_name:'', building:'', capacity:'' }); loadAll()
-    } catch { alert('Error saving room.') }
+    } catch { showToast('Error saving room.') }
     finally { setSavingR(false) }
   }
 

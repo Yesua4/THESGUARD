@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import api from '../../api/axios'
+import { similarityBadgeStyle } from '../../utils/similarityColors'
+import { useToast } from '../../context/ToastContext'
 
 function PageReports() {
+  const { showToast } = useToast()
   const [reportType, setReportType] = useState('projects')
   const [batch, setBatch]           = useState('')
   const [threshold, setThreshold]   = useState('30')
@@ -19,7 +22,7 @@ function PageReports() {
         : `/reports/document-revisions${batch?`?batch=${batch}`:''}`
       const res = await api.get(url)
       setData(res.data); setGenerated(true)
-    } catch { alert('Error generating report.') }
+    } catch { showToast('Error generating report.') }
     finally { setLoading(false) }
   }
 
@@ -71,7 +74,7 @@ const exportPDF = () => {
   setTimeout(() => { win.print(); win.close() }, 500)
 }
 
-  const scoreBadge  = s => ({ background: s>=60?'#fee2e2':s>=30?'#fef3c7':'#d1fae5', color: s>=60?'#9f1239':s>=30?'#92400e':'#065f46' })
+  const scoreBadge  = similarityBadgeStyle
   const statusBadge = s => ({ approved:'#d1fae5,#065f46', flagged:'#fee2e2,#9f1239', for_defense:'#ede9fe,#6d28d9', archived:'#f1f5f9,#475569', ongoing:'#dbeafe,#1e40af' }[s]?.split(',') || ['#f1f5f9','#475569'])
 
   const inputStyle = { border:'1.5px solid #e2e8f0', borderRadius:'8px', padding:'9px 12px', fontSize:'13px', outline:'none', background:'#f8fafc', fontFamily:'inherit', width:'100%', boxSizing:'border-box' }

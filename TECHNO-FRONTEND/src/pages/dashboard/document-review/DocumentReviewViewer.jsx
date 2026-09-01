@@ -54,7 +54,14 @@ function NonPdfFallback({ documentId, fileName, previewStatus }) {
 // / instructor review) and PageSubmit (student's own document view).
 export default function DocumentReviewViewer({ document, onClose, canResolve = false, statusActions = null }) {
   const { user } = useAuth()
-  const { comments, addComment, deleteComment, setResolved } = useDocumentComments(document.id)
+  const { comments, error: commentsError, addComment, deleteComment, setResolved } = useDocumentComments(document.id)
+  // deleteComment/setResolved already record failures into commentsError
+  // for the banner below to show -- these wrappers just stop that same
+  // failure from also surfacing as an unhandled promise rejection, since
+  // CommentSidebar's buttons call them fire-and-forget (no try/catch of
+  // their own).
+  const handleDelete = id => deleteComment(id).catch(() => {})
+  const handleSetResolved = (id, resolved) => setResolved(id, resolved).catch(() => {})
   const isInAppDraft = !document.file_path && !!document.content
   const canPreviewFile = !!document.file_path && document.file_path.toLowerCase().endsWith('.pdf')
   const canPreview = canPreviewFile || document.preview_status === 'ready'
@@ -173,13 +180,16 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
             <div style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '10px' }}>
               Comments ({comments.length})
             </div>
+            {commentsError && (
+              <div style={{ fontSize: '11px', color: '#dc2626', background: '#fee2e2', borderRadius: '6px', padding: '6px 8px', marginBottom: '10px' }}>{commentsError}</div>
+            )}
             <CommentSidebar
               comments={comments}
               currentUserId={user.id}
               canResolve={canResolve}
               onSelect={handleSelectComment}
-              onDelete={deleteComment}
-              onSetResolved={setResolved}
+              onDelete={handleDelete}
+              onSetResolved={handleSetResolved}
               activeCommentId={activeCommentId}
             />
           </div>

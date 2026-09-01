@@ -14,13 +14,16 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\EvaluationController;
 use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\TaskController;
-
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Broadcast;
 
 
 Route::middleware('throttle:10,1')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/schools/register', [SchoolController::class, 'register']);
+    Route::post('/password/forgot', [AuthController::class, 'forgotPassword']);
+    Route::post('/password/reset', [AuthController::class, 'resetPassword']);
 });
 // Google Sign-In (link-only — see AuthController::handleGoogleCallback).
 // Not behind the login throttle: this is a redirect flow through Google,
@@ -75,10 +78,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('evaluations/project/{projectId}', [EvaluationController::class, 'show']);
     Route::put('profile/change-password', [AuthController::class, 'changePassword']);
     Route::put('documents/{document}/status', [DocumentController::class, 'updateStatus']);
-    Route::get('/evaluations', [EvaluationController::class, 'index']);
-    Route::post('/evaluations', [EvaluationController::class, 'store']);
-    Route::get('/evaluations/project/{projectId}', [EvaluationController::class, 'show']);
     Route::get('/school/plan', [SchoolController::class, 'plan']);
     Route::get('/schools', [SchoolController::class, 'index']);
     Route::post('/users/import', [AuthController::class, 'importUsers']);
+
+    // Private/presence channel authorization for Reverb. This app is
+    // API-only with Bearer-token Sanctum auth (no session cookies), so the
+    // default Broadcast::routes() helper (which assumes session auth via
+    // the 'web' middleware) isn't used -- this route sits in the same
+    // auth:sanctum group as everything else instead.
+    Route::post('/broadcasting/auth', function (Request $request) {
+        return Broadcast::auth($request);
+    });
 });

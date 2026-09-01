@@ -12,6 +12,7 @@ import { useState } from 'react'
 export default function CommentComposer({ draft, onSubmit, onCancel }) {
   const [comment, setComment] = useState('')
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   if (!draft) return null
 
@@ -19,9 +20,12 @@ export default function CommentComposer({ draft, onSubmit, onCancel }) {
     e.preventDefault()
     if (!comment.trim()) return
     setSaving(true)
+    setError('')
     try {
       await onSubmit({ ...draft, comment: comment.trim() })
       setComment('')
+    } catch (err) {
+      setError(err.response?.data?.message || 'Could not add comment. Please try again.')
     } finally {
       setSaving(false)
     }
@@ -68,6 +72,9 @@ export default function CommentComposer({ draft, onSubmit, onCancel }) {
           required
           style={{ border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', fontSize: '12px', outline: 'none', background: '#f8fafc', fontFamily: 'inherit', minHeight: '70px', resize: 'vertical' }}
         />
+        {error && (
+          <div style={{ fontSize: '11px', color: '#dc2626', background: '#fee2e2', borderRadius: '6px', padding: '6px 8px' }}>{error}</div>
+        )}
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
           <button type="button" onClick={onCancel} style={{ padding: '6px 14px', borderRadius: '8px', border: '1.5px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
             Cancel

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import api from '../../api/axios'
 import { highlightOverlap } from '../../utils/textOverlap'
+import { similarityBarColor, similarityScoreColor, similarityBadgeStyle } from '../../utils/similarityColors'
 
 function SemanticMatches({ ownText, otherText, label }) {
   const [segments, setSegments] = useState(null)
@@ -67,17 +68,14 @@ function SimilarityBreakdown({ projectId, overallScore }) {
 
   const scores = details ?? { title_score:null, abstract_score:null, objectives_score:null, matched_title:null }
 
-  const bar = (score) => {
-    const color = score >= 60 ? '#ef4444' : score >= 30 ? '#f59e0b' : '#10b981'
-    return (
-      <div style={{ flex:1, height:'8px', background:'#f1f5f9', borderRadius:'8px', overflow:'hidden' }}>
-        <div style={{ height:'100%', borderRadius:'8px', background:color, width:`${score}%`, transition:'width 0.5s ease' }} />
-      </div>
-    )
-  }
+  const bar = (score) => (
+    <div style={{ flex:1, height:'8px', background:'#f1f5f9', borderRadius:'8px', overflow:'hidden' }}>
+      <div style={{ height:'100%', borderRadius:'8px', background:similarityBarColor(score), width:`${score}%`, transition:'width 0.5s ease' }} />
+    </div>
+  )
 
-  const scoreStyle = s => ({ color: s>=60?'#dc2626':s>=30?'#d97706':'#059669', fontWeight:'700' })
-  const badgeStyle = s => ({ background: s>=60?'#fee2e2':s>=30?'#fef3c7':'#d1fae5', color: s>=60?'#9f1239':s>=30?'#92400e':'#065f46' })
+  const scoreStyle = s => ({ color: similarityScoreColor(s), fontWeight:'700' })
+  const badgeStyle = similarityBadgeStyle
 
   return (
     <div>

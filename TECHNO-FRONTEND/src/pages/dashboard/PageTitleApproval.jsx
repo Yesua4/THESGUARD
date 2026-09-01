@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../api/axios'
 import SimilarityBreakdown from './SimilarityBreakdown'
+import { similarityBadgeStyle } from '../../utils/similarityColors'
+import { useToast } from '../../context/ToastContext'
 
 function PageTitleApproval() {
   const { user } = useAuth()
+  const { showToast } = useToast()
   const [projects, setProjects] = useState([])
   const [loading, setLoading]   = useState(true)
   const [selected, setSelected] = useState(null)
@@ -27,12 +30,12 @@ function PageTitleApproval() {
       if (user.role === 'adviser') payload.adviser_id = user.id
       await api.put(`/projects/${id}`, payload)
       setSelected(null); setFeedback(''); load()
-    } catch { alert('Error approving title.') }
+    } catch { showToast('Error approving title.') }
     finally { setSaving(false) }
   }
 
   const reject = async (id) => {
-    if (!feedback) { alert('Please provide feedback explaining why the title is rejected.'); return }
+    if (!feedback) { showToast('Please provide feedback explaining why the title is rejected.'); return }
     setSaving(true)
     try {
       const payload = { title_status: 'rejected', title_feedback: feedback }
@@ -40,11 +43,11 @@ function PageTitleApproval() {
       if (user.role === 'adviser') payload.adviser_id = user.id
       await api.put(`/projects/${id}`, payload)
       setSelected(null); setFeedback(''); load()
-    } catch { alert('Error rejecting title.') }
+    } catch { showToast('Error rejecting title.') }
     finally { setSaving(false) }
   }
 
-  const scoreBadge = s => ({ background: s>=60?'#fee2e2':s>=30?'#fef3c7':'#d1fae5', color: s>=60?'#9f1239':s>=30?'#92400e':'#065f46' })
+  const scoreBadge = similarityBadgeStyle
   const filtered = projects.filter(p => p.title_status === filter)
 
   const panelLabelStyle = { fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'6px', display:'block' }
@@ -75,7 +78,7 @@ function PageTitleApproval() {
                 <button
                   onClick={async () => {
                     try { await api.post(`/projects/${selected.id}/recheck-similarity`); load() }
-                    catch { alert('Error rechecking.') }
+                    catch { showToast('Error rechecking similarity.') }
                   }}
                   style={{ fontSize:'11px', color:'#1d4ed8', border:'1.5px solid #bfdbfe', background:'#eff6ff', padding:'4px 10px', borderRadius:'6px', cursor:'pointer', fontWeight:'600' }}>
                   ↻ Recheck

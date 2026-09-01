@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../context/ToastContext'
 import api from '../../api/axios'
 
 function PageSchedule() {
   const { user } = useAuth()
+  const { showToast } = useToast()
   const [schedules, setSchedules]       = useState([])
   const [groups, setGroups]             = useState([])
   const [loading, setLoading]           = useState(true)
@@ -47,7 +49,7 @@ function PageSchedule() {
       load()
     } catch (err) {
       if (err.response?.status === 409) setConflicts(err.response.data.conflicts)
-      else alert('Error saving schedule.')
+      else showToast('Error saving schedule.')
     }
     finally { setSaving(false) }
   }
@@ -55,7 +57,7 @@ function PageSchedule() {
   const deleteSchedule = async id => {
     if (!confirm('Cancel this defense schedule?')) return
     try { await api.delete(`/schedules/${id}`); load() }
-    catch { alert('Error.') }
+    catch { showToast('Error deleting schedule.') }
   }
 
   const formatTime = t => {

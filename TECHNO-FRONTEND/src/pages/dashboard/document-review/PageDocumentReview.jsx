@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../../context/AuthContext'
+import { useToast } from '../../../context/ToastContext'
 import api from '../../../api/axios'
 import { typeLabel, statusStyle, statusLabel, fileIcon, fileStyle } from '../../../utils/documentDisplay'
 import DocumentReviewViewer from './DocumentReviewViewer'
 
 function PageDocumentReview({ initialDocumentId, onConsumeInitialDocument }) {
   const { user } = useAuth()
+  const { showToast } = useToast()
   const [documents, setDocuments]     = useState([])
   const [projects, setProjects]       = useState([])
   const [loading, setLoading]         = useState(true)
@@ -60,9 +62,13 @@ function PageDocumentReview({ initialDocumentId, onConsumeInitialDocument }) {
   }, [initialDocumentId, documents])
 
   const updateStatus = async status => {
-    await api.put(`/documents/${selectedDoc.id}/status`, { status })
-    setSelectedDoc(d => ({ ...d, status }))
-    setDocuments(ds => ds.map(d => d.id === selectedDoc.id ? { ...d, status } : d))
+    try {
+      await api.put(`/documents/${selectedDoc.id}/status`, { status })
+      setSelectedDoc(d => ({ ...d, status }))
+      setDocuments(ds => ds.map(d => d.id === selectedDoc.id ? { ...d, status } : d))
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Error updating document status. Please try again.')
+    }
   }
 
   return (

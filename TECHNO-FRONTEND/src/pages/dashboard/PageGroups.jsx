@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../context/ToastContext'
 import api from '../../api/axios'
 
 function PageGroups() {
   const { user } = useAuth()
+  const { showToast } = useToast()
   const [groups, setGroups]             = useState([])
   const [students, setStudents]         = useState([])
   const [advisers, setAdvisers]         = useState([])
@@ -40,8 +42,8 @@ function PageGroups() {
 
   const submit = async e => {
     e.preventDefault()
-    if (form.members.length < 1) { alert('Please select at least 1 member.'); return }
-    if (!form.leader_id) { alert('Please select a group leader.'); return }
+    if (form.members.length < 1) { showToast('Please select at least 1 member.'); return }
+    if (!form.leader_id) { showToast('Please select a group leader.'); return }
     setSaving(true)
     try {
       await api.post('/groups', form)
@@ -52,21 +54,21 @@ function PageGroups() {
     } catch (err) {
       const errors = err.response?.data?.errors
       const message = err.response?.data?.message
-      if (errors?.group_name) alert('❌ Group name already exists.')
-      else if (errors?.members || message?.includes('already')) alert('⚠️ ' + (message || 'Some students already belong to a group.'))
-      else alert('Error creating group: ' + (message || 'Unknown error.'))
+      if (errors?.group_name) showToast('Group name already exists.')
+      else if (errors?.members || message?.includes('already')) showToast(message || 'Some students already belong to a group.')
+      else showToast('Error creating group: ' + (message || 'Unknown error.'))
     } finally { setSaving(false) }
   }
 
   const deleteGroup = async id => {
     if (!confirm('Delete this group?')) return
     try { await api.delete(`/groups/${id}`); load() }
-    catch { alert('Error deleting group.') }
+    catch { showToast('Error deleting group.') }
   }
 
   const updateAdviser = async (groupId, adviserId) => {
     try { await api.put(`/groups/${groupId}`, { adviser_id: adviserId }); load() }
-    catch { alert('Error updating adviser.') }
+    catch { showToast('Error updating adviser.') }
   }
 
   const inputStyle = { border:'1.5px solid #e2e8f0', borderRadius:'8px', padding:'8px 12px', fontSize:'13px', outline:'none', background:'#f8fafc', fontFamily:'inherit', width:'100%', boxSizing:'border-box' }

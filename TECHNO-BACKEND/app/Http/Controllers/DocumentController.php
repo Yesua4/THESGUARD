@@ -254,38 +254,10 @@ class DocumentController extends Controller {
         }
 
         $oldStatus = $document->status;
-
         $document->update($data);
 
         if (isset($data['status']) && $data['status'] !== $oldStatus) {
-            $project = Project::find($document->project_id);
-            $members = ProjectMember::where('project_id', $document->project_id)->get();
-
-            $typeLabels = [
-                'proposal'         => 'Proposal',
-                'chapter1'         => 'Chapter 1',
-                'chapter2'         => 'Chapter 2',
-                'chapter3'         => 'Chapter 3',
-                'chapter4'         => 'Chapter 4',
-                'chapter5'         => 'Chapter 5',
-                'final_manuscript' => 'Final Manuscript',
-            ];
-
-            $statusMessages = [
-                'approved'       => ['📄 Document Approved',        "Your {$typeLabels[$document->type]} (v{$document->version}) has been approved."],
-                'needs_revision' => ['📄 Document Needs Revision',   "Your {$typeLabels[$document->type]} (v{$document->version}) needs revision. Check the comments."],
-                'under_review'   => ['📄 Document Under Review',     "Your {$typeLabels[$document->type]} (v{$document->version}) is now under review."],
-            ];
-
-            if (isset($statusMessages[$data['status']])) {
-                [$title, $message] = $statusMessages[$data['status']];
-                foreach ($members as $member) {
-                    $this->notifications->send(
-                        $member->user_id, 'document_status', $title, $message,
-                        $document->project_id, $document->id
-                    );
-                }
-            }
+            $this->notifyStatusChange($document, $data['status']);
         }
 
         return response()->json($document);
@@ -303,30 +275,42 @@ class DocumentController extends Controller {
         $document->update($data);
 
         if ($data['status'] !== $oldStatus) {
-            $members = ProjectMember::where('project_id', $document->project_id)->get();
-            $typeLabels = [
-                'proposal' => 'Proposal', 'chapter1' => 'Chapter 1',
-                'chapter2' => 'Chapter 2', 'chapter3' => 'Chapter 3',
-                'chapter4' => 'Chapter 4', 'chapter5' => 'Chapter 5',
-                'final_manuscript' => 'Final Manuscript',
-            ];
-            $statusMessages = [
-                'approved'       => ['📄 Document Approved',       "Your {$typeLabels[$document->type]} has been approved."],
-                'needs_revision' => ['📄 Document Needs Revision',  "Your {$typeLabels[$document->type]} needs revision."],
-                'under_review'   => ['📄 Document Under Review',    "Your {$typeLabels[$document->type]} is under review."],
-            ];
-            if (isset($statusMessages[$data['status']])) {
-                [$title, $message] = $statusMessages[$data['status']];
-                foreach ($members as $member) {
-                    $this->notifications->send(
-                        $member->user_id, 'document_status', $title, $message,
-                        $document->project_id, $document->id
-                    );
-                }
-            }
+            $this->notifyStatusChange($document, $data['status']);
         }
 
         return response()->json($document);
+    }
+
+    // Shared by update() and updateStatus() -- both used to carry their own
+    // copy of this (with the message wording quietly drifting apart between
+    // them), so a fix to one silently missed the other.
+    private function notifyStatusChange(Document $document, string $newStatus): void {
+        $typeLabels = [
+            'proposal'         => 'Proposal',
+            'chapter1'         => 'Chapter 1',
+            'chapter2'         => 'Chapter 2',
+            'chapter3'         => 'Chapter 3',
+            'chapter4'         => 'Chapter 4',
+            'chapter5'         => 'Chapter 5',
+            'final_manuscript' => 'Final Manuscript',
+        ];
+
+        $statusMessages = [
+            'approved'       => ['📄 Document Approved',       "Your {$typeLabels[$document->type]} (v{$document->version}) has been approved."],
+            'needs_revision' => ['📄 Document Needs Revision',  "Your {$typeLabels[$document->type]} (v{$document->version}) needs revision. Check the comments."],
+            'under_review'   => ['📄 Document Under Review',    "Your {$typeLabels[$document->type]} (v{$document->version}) is now under review."],
+        ];
+
+        if (!isset($statusMessages[$newStatus])) return;
+
+        [$title, $message] = $statusMessages[$newStatus];
+        $members = ProjectMember::where('project_id', $document->project_id)->get();
+        foreach ($members as $member) {
+            $this->notifications->send(
+                $member->user_id, 'document_status', $title, $message,
+                $document->project_id, $document->id
+            );
+        }
     }
 
     public function destroy(Request $request, $id) {

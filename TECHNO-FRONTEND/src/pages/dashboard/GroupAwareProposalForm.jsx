@@ -16,7 +16,7 @@ useEffect(() => {
         ...f,
         group_id: mine.id,
         batch: mine.batch || '',
-        adviser_id: mine.adviser_id || '',  // ← ADD THIS
+        adviser_id: mine.adviser_id || '',
       }))
     }
   })
@@ -80,6 +80,10 @@ useEffect(() => {
       <div>
         <label style={labelStyle}>Program</label>
         <input name="program" value={form.program} onChange={handle} style={inputStyle} placeholder="e.g. BS Information Technology" />
+      </div>
+      <div>
+        <label style={labelStyle}>GitHub Repository <span style={{ color:'#94a3b8', fontWeight:'400' }}>(optional)</span></label>
+        <input name="github_url" value={form.github_url} onChange={handle} style={inputStyle} placeholder="e.g. https://github.com/your-team/project-repo" />
       </div>
       <div>
         <label style={labelStyle}>Abstract</label>

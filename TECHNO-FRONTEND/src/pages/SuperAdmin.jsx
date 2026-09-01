@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
+import { useToast } from '../context/ToastContext'
 
 // ── Super Admin — read-only directory of registered schools ───────────────────
 // This page is only accessible at /thesisguard-admin
 
 export default function SuperAdmin() {
   const navigate = useNavigate()
+  const { showToast } = useToast()
   const [authed, setAuthed]   = useState(false)
   const [pin, setPin]         = useState('')
   const [pinError, setPinError] = useState('')
@@ -37,7 +39,7 @@ export default function SuperAdmin() {
       const res = await api.get('/schools')
       setSchools(res.data)
     } catch {
-      alert('Error loading schools. Make sure you are logged in as admin.')
+      showToast('Error loading schools. Make sure you are logged in as admin.')
     } finally {
       setLoading(false)
     }

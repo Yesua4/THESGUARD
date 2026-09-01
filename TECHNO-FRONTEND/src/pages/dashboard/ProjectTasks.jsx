@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import api from '../../api/axios'
+import { useToast } from '../../context/ToastContext'
 
 const panelLabelStyle = { fontSize: '10px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '6px', display: 'block' }
 const inputStyle = { border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', outline: 'none', background: '#f8fafc', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' }
 
 function ProjectTasks({ project, user, canAssign }) {
+  const { showToast } = useToast()
   const [tasks, setTasks]     = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -25,19 +27,19 @@ function ProjectTasks({ project, user, canAssign }) {
     try {
       await api.post('/tasks', { project_id: project.id, ...form, assigned_to: form.assigned_to || null, due_date: form.due_date || null })
       setForm({ title: '', assigned_to: '', due_date: '' }); setShowForm(false); load()
-    } catch { alert('Error creating task.') }
+    } catch { showToast('Error creating task.') }
     finally { setSaving(false) }
   }
 
   const toggle = async (task) => {
     try { await api.put(`/tasks/${task.id}`, { is_completed: !task.is_completed }); load() }
-    catch { alert('Error updating task.') }
+    catch { showToast('Error updating task.') }
   }
 
   const remove = async (id) => {
     if (!confirm('Delete this task?')) return
     try { await api.delete(`/tasks/${id}`); load() }
-    catch { alert('Error deleting task.') }
+    catch { showToast('Error deleting task.') }
   }
 
   const members = project.members?.map(m => m.user).filter(Boolean) || []

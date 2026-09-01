@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../context/ToastContext'
 import api from '../../api/axios'
 
 function PageUsers() {
   const { user } = useAuth()
+  const { showToast } = useToast()
   const [users, setUsers]           = useState([])
   const [loading, setLoading]       = useState(true)
   const [editingId, setEditing]     = useState(null)
@@ -45,9 +47,9 @@ const createUser = async e => {
         if (field === 'student_id') return '• Student ID is already registered.'
         return `• ${msgs[0]}`
       }).join('\n')
-      alert('Please fix the following:\n\n' + messages)
+      showToast('Please fix the following:\n' + messages, 'error', 8000)
     } else {
-      alert(err.response?.data?.message || 'Error creating user.')
+      showToast(err.response?.data?.message || 'Error creating user.')
     }
   } finally { setAddingUser(false) }
 }
@@ -59,14 +61,14 @@ const createUser = async e => {
   const saveEdit = async id => {
     setSaving(true)
     try { await api.put(`/users/${id}`, editForm); setEditing(null); load() }
-    catch { alert('Error updating user.') }
+    catch { showToast('Error updating user.') }
     finally { setSaving(false) }
   }
 
   const deleteUser = async (id, name) => {
     if (!confirm(`Delete account for ${name}?`)) return
     try { await api.delete(`/users/${id}`); load() }
-    catch { alert('Error deleting user.') }
+    catch { showToast('Error deleting user.') }
   }
 
   const importCSV = async e => {
@@ -99,11 +101,11 @@ const createUser = async e => {
   }
 
   const bulkAssign = async () => {
-    if (!bulkSection || selectedIds.length === 0) { alert('Select students and enter a section first.'); return }
+    if (!bulkSection || selectedIds.length === 0) { showToast('Select students and enter a section first.'); return }
     try {
       await Promise.all(selectedIds.map(id => api.put(`/users/${id}`, { section: bulkSection })))
       setSelectedIds([]); setBulkSection(''); load()
-    } catch { alert('Error assigning section.') }
+    } catch { showToast('Error assigning section.') }
   }
 
   const toggleSelect = id => setSelectedIds(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id])
@@ -254,7 +256,7 @@ const createUser = async e => {
                   e.currentTarget.style.background='#f8fafc'
                   const file = e.dataTransfer.files[0]
                   if (file && (file.name.endsWith('.csv') || file.name.endsWith('.txt'))) setImportFile(file)
-                  else alert('Please drop a .csv file only.')
+                  else showToast('Please drop a .csv file only.')
                 }}
                 style={{ border:'2px dashed #e2e8f0', borderRadius:'10px', padding:'28px 20px', textAlign:'center', background:'#f8fafc', transition:'all 0.15s', cursor:'pointer' }}
               >

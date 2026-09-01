@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../context/ToastContext'
 import api from '../../api/axios'
 import GroupAwareProposalForm from './GroupAwareProposalForm'
 import ProjectTasks from './ProjectTasks'
+import { similarityScoreColor, similarityBadgeStyle } from '../../utils/similarityColors'
 
 function PageProjects() {
   const { user } = useAuth()
+  const { showToast } = useToast()
   const [projects, setProjects]         = useState([])
   const [loading, setLoading]           = useState(true)
   const [showForm, setShowForm]         = useState(false)
@@ -16,7 +19,7 @@ function PageProjects() {
   const [saving, setSaving]             = useState(false)
   const [lastResult, setLast]           = useState(null)
   const [editingProject, setEditingProject] = useState(null)
-  const [editForm, setEditForm] = useState({ title:'', abstract:'', objectives:'', keywords:'', batch:'' })
+  const [editForm, setEditForm] = useState({ title:'', abstract:'', objectives:'', keywords:'', batch:'', github_url:'' })
 
   const load = () => {
     setLoading(true)
@@ -31,19 +34,19 @@ function PageProjects() {
       const payload = childForm ? { ...childForm, members: [user.id] } : { members: [user.id] }
       const res = await api.post('/projects', payload)
       setLast(res.data); setShowForm(false); load()
-    } catch { alert('Error saving project.') }
+    } catch { showToast('Error saving project.') }
     finally { setSaving(false) }
   }
 
   const updateStatus = async (id, status) => {
     try { await api.put(`/projects/${id}`, { status }); load(); if (selectedProject?.id === id) setSelected(p => ({ ...p, status })) }
-    catch { alert('Error updating status.') }
+    catch { showToast('Error updating status.') }
   }
 
   const chooseFinal = async (id) => {
     if (!confirm('Choose this as your final title? Any other approved titles from your group will be archived.')) return
     try { await api.post(`/projects/${id}/choose-final`); load(); setSelected(null) }
-    catch (err) { alert(err.response?.data?.message || 'Error choosing final title.') }
+    catch (err) { showToast(err.response?.data?.message || 'Error choosing final title.') }
   }
 
   const isProjectLeader = p => p.members?.some(m => m.user_id === user.id && m.is_leader)
@@ -51,36 +54,32 @@ function PageProjects() {
   const deleteProjectAdmin = async (id) => {
     if (!confirm('Permanently delete this project?')) return
     try { await api.delete(`/projects/${id}`); setSelected(null); load() }
-    catch { alert('Error deleting project.') }
+    catch { showToast('Error deleting project.') }
   }
 
   const openProject = async id => {
     try { const res = await api.get(`/projects/${id}`); setSelected(res.data) }
-    catch { alert('Error loading project.') }
+    catch { showToast('Error loading project.') }
   }
 
   const startEditProject = (p) => {
     setEditingProject(p)
-    setEditForm({ title: p.title||'', abstract: p.abstract||'', objectives: p.objectives||'', keywords: p.keywords||'', batch: p.batch||'' })
+    setEditForm({ title: p.title||'', abstract: p.abstract||'', objectives: p.objectives||'', keywords: p.keywords||'', batch: p.batch||'', github_url: p.github_url||'' })
   }
 
   const deleteProject = async (id) => {
     if (!confirm('Withdraw this proposal?')) return
     try { await api.delete(`/projects/${id}`); load() }
-    catch { alert('Error deleting proposal.') }
+    catch { showToast('Error deleting proposal.') }
   }
 
   const saveEditProject = async (e) => {
     e.preventDefault()
     try { await api.put(`/projects/${editingProject.id}`, editForm); setEditingProject(null); load() }
-    catch { alert('Error updating proposal.') }
+    catch { showToast('Error updating proposal.') }
   }
 
-  const scoreBadge = s => s >= 60
-    ? { background: '#fee2e2', color: '#9f1239' }
-    : s >= 30
-    ? { background: '#fef3c7', color: '#92400e' }
-    : { background: '#d1fae5', color: '#065f46' }
+  const scoreBadge = similarityBadgeStyle
 
   const statusBadge = s => ({
     flagged:     { background: '#fee2e2', color: '#9f1239' },
@@ -131,6 +130,10 @@ function PageProjects() {
                   <label style={panelLabelStyle}>Keywords</label>
                   <input value={editForm.keywords} onChange={e => setEditForm({...editForm, keywords:e.target.value})} style={{ ...inputStyle, width:'100%', boxSizing:'border-box' }} />
                 </div>
+              </div>
+              <div>
+                <label style={panelLabelStyle}>GitHub Repository</label>
+                <input value={editForm.github_url} onChange={e => setEditForm({...editForm, github_url:e.target.value})} placeholder="e.g. https://github.com/your-team/project-repo" style={{ ...inputStyle, width:'100%', boxSizing:'border-box' }} />
               </div>
               <div>
                 <label style={panelLabelStyle}>Abstract</label>
@@ -277,7 +280,7 @@ function PageProjects() {
             {lastResult.status==='flagged' ? '🚩 Proposal flagged — high similarity detected' : '✅ Proposal submitted! Awaiting instructor title approval.'}
           </div>
           <div style={{ fontSize:'12px', color:'#64748b' }}>
-            Similarity score: <span style={{ fontWeight:'700', color: lastResult.similarity_score>=60?'#dc2626':lastResult.similarity_score>=30?'#d97706':'#059669' }}>{lastResult.similarity_score}%</span>
+            Similarity score: <span style={{ fontWeight:'700', color: similarityScoreColor(lastResult.similarity_score) }}>{lastResult.similarity_score}%</span>
           </div>
         </div>
       )}

@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import api from '../../api/axios'
+import { similarityBarColor as barColor, similarityScoreColor as scoreColor, similarityBadgeStyle } from '../../utils/similarityColors'
+import { useToast } from '../../context/ToastContext'
 
 function PageSimilarity() {
+  const { showToast } = useToast()
   const [title, setTitle]           = useState('')
   const [abstract, setAbstract]     = useState('')
   const [objectives, setObjectives] = useState('')
@@ -13,15 +16,13 @@ function PageSimilarity() {
     try {
       const res = await api.post('/similarity/check', { title, abstract, objectives })
       setResult(res.data)
-    } catch { alert('Error running similarity check.') }
+    } catch { showToast('Error running similarity check.') }
     finally { setLoading(false) }
   }
 
   const inputStyle = { border:'1.5px solid #e2e8f0', borderRadius:'8px', padding:'9px 12px', fontSize:'13px', outline:'none', background:'#f8fafc', fontFamily:'inherit', width:'100%', boxSizing:'border-box' }
   const labelStyle = { fontSize:'11px', fontWeight:'700', color:'#64748b', letterSpacing:'0.06em', textTransform:'uppercase', display:'block', marginBottom:'5px' }
 
-  const barColor = v => v >= 60 ? '#ef4444' : v >= 30 ? '#f59e0b' : '#10b981'
-  const scoreColor = v => v >= 60 ? '#dc2626' : v >= 30 ? '#d97706' : '#059669'
 
   return (
     <div>
@@ -55,7 +56,7 @@ function PageSimilarity() {
               <div style={{ background:'#f8fafc', borderRadius:'10px', padding:'14px', border:'1px solid #e8ecf2' }}>
                 <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'12px' }}>
                   <div style={{ fontSize:'28px', fontWeight:'800', color:scoreColor(result.overall_score) }}>{result.overall_score}%</div>
-                  <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'700', background: result.overall_score>=60?'#fee2e2':result.overall_score>=30?'#fef3c7':'#d1fae5', color: result.overall_score>=60?'#9f1239':result.overall_score>=30?'#92400e':'#065f46' }}>
+                  <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'700', ...similarityBadgeStyle(result.overall_score) }}>
                     {result.overall_score>=60?'High similarity':result.overall_score>=30?'Moderate':'Low similarity'}
                   </span>
                 </div>

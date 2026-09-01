@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../context/ToastContext'
 import api from '../../api/axios'
 
 function PageEvaluate() {
   const { user } = useAuth()
+  const { showToast } = useToast()
   const [projects, setProjects] = useState([])
   const [loading, setLoading]   = useState(true)
   const [selected, setSelected] = useState(null)
@@ -39,7 +41,7 @@ function PageEvaluate() {
       setSuccess('Evaluation submitted successfully!')
       const res = await api.get(`/evaluations/project/${selected.id}`)
       setEvaluations(res.data)
-    } catch { alert('Error submitting evaluation.') }
+    } catch { showToast('Error submitting evaluation.') }
     finally { setSaving(false) }
   }
 

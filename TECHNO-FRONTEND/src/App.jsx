@@ -6,6 +6,8 @@ import LandingPage from './pages/LandingPage'
 import RegisterSchool from './pages/RegisterSchool'
 import SuperAdmin from './pages/SuperAdmin'
 import OAuthCallback from './pages/OAuthCallback'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 
 function PrivateRoute({ children }) {
   const { user } = useAuth()
@@ -17,6 +19,8 @@ export default function App() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/register-school" element={<RegisterSchool />} />
       <Route path="/oauth-callback" element={<OAuthCallback />} />
       <Route path="/thesisguard-admin" element={<SuperAdmin />} />
