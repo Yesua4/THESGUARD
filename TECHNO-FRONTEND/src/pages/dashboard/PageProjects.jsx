@@ -17,6 +17,7 @@ function PageProjects() {
   const [selectedProject, setSelected] = useState(null)
   const [search, setSearch]             = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [sortDir, setSortDir]           = useState(null) // null | 'asc' | 'desc'
   const [saving, setSaving]             = useState(false)
   const [lastResult, setLast]           = useState(null)
   const [editingProject, setEditingProject] = useState(null)
@@ -105,6 +106,11 @@ function PageProjects() {
     return (!q || p.title?.toLowerCase().includes(q) || p.keywords?.toLowerCase().includes(q)) &&
            (!statusFilter || p.status === statusFilter)
   })
+  if (sortDir) {
+    filteredProjects.sort((a, b) => (sortDir === 'asc' ? 1 : -1) * ((a.similarity_score ?? 0) - (b.similarity_score ?? 0)))
+  }
+
+  const toggleSimilaritySort = () => setSortDir(d => d === 'asc' ? 'desc' : d === 'desc' ? null : 'asc')
 
   const inputStyle = { border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', outline: 'none', background: '#f8fafc', fontFamily: 'inherit' }
   const panelLabelStyle = { fontSize: '10px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '6px', display: 'block' }
@@ -321,7 +327,12 @@ function PageProjects() {
               <thead>
                 <tr style={{ background:'#f8fafc' }}>
                   {['Title','Batch','Title Status','Status','Similarity'].map(h => (
-                    <th key={h} style={{ textAlign:'left', padding:'10px 14px', fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', borderBottom:'1px solid #f1f5f9' }}>{h}</th>
+                    <th key={h}
+                      onClick={h === 'Similarity' ? toggleSimilaritySort : undefined}
+                      title={h === 'Similarity' ? 'Click to sort by similarity score' : undefined}
+                      style={{ textAlign:'left', padding:'10px 14px', fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', borderBottom:'1px solid #f1f5f9', userSelect:'none', cursor: h === 'Similarity' ? 'pointer' : 'default' }}>
+                      {h}{h === 'Similarity' && sortDir && (sortDir === 'asc' ? ' ▲' : ' ▼')}
+                    </th>
                   ))}
                   {user?.role === 'student' && <th style={{ padding:'10px 14px', borderBottom:'1px solid #f1f5f9' }} />}
                 </tr>
