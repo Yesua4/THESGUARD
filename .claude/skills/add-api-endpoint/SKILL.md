@@ -1,6 +1,6 @@
 ---
 name: add-api-endpoint
-description: Add a new ThesisGuard API endpoint end to end: Laravel route, controller method with role and school scoping, feature test covering the allowed and 403 cases, and the frontend call through src/api/axios.js. Use when the user asks for a new backend route, API, or feature that needs one.
+description: "Add a new ThesisGuard API endpoint end to end: Laravel route, controller method with role and school scoping, feature test covering the allowed and 403 cases, and the frontend call through src/api/axios.js. Use when the user asks for a new backend route, API, or feature that needs one."
 ---
 
 # Add an API endpoint to ThesisGuard
