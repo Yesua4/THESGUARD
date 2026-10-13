@@ -5,8 +5,8 @@
 
 FROM composer:2 AS vendor
 WORKDIR /app
-COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --ignore-platform-reqs
+COPY . .
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-reqs
 
 FROM php:8.2-cli-bookworm
 
@@ -16,10 +16,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY --from=vendor /app/vendor ./vendor
-COPY . .
-RUN composer dump-autoload --optimize --no-dev \
-    && chmod +x docker-entrypoint.sh \
+COPY --from=vendor /app ./
+RUN chmod +x docker-entrypoint.sh \
     && mkdir -p storage/framework/{cache,sessions,testing,views} storage/logs bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
