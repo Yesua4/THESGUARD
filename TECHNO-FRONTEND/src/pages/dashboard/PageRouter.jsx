@@ -18,6 +18,7 @@ import PageDocumentReview from './document-review/PageDocumentReview'
 import PageEvaluate from './PageEvaluate'
 import PageChangePassword from './PageChangePassword'
 import PageEditProfile from './PageEditProfile'
+import PageMinutes from './PageMinutes'
 
 function PageRouter({ page, setPage, setUnreadCount, user, navTarget, clearNavTarget, onNotificationNavigate }) {
   const handleNotificationsRead = () => setUnreadCount(0)
@@ -40,6 +41,7 @@ function PageRouter({ page, setPage, setUnreadCount, user, navTarget, clearNavTa
     case 'mycontrib':     return <PageContributions />
     case 'users':         return <PageUsers />
     case 'archive':       return <PageArchive />
+    case 'minutes':       return <PageMinutes />
     case 'reports':       return <PageReports />
     case 'settings':      return <PageSettings />
     case 'mygroup':       return <PageMyGroup />

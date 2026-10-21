@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../api/axios'
+import SimilarityBreakdown from './SimilarityBreakdown'
 
 function PageProgress() {
   const { user } = useAuth()
@@ -200,21 +201,14 @@ function PageProgress() {
         </div>
       </div>
 
-      {/* Similarity card */}
+      {/* Similarity report */}
       {project && (
         <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8ecf2', padding: '16px 20px', marginBottom: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <div style={{ fontSize: '13px', fontWeight: '700', color: '#0a1f44' }}>Similarity Score</div>
-            <div style={{ fontSize: '20px', fontWeight: '800', color: project.similarity_score >= 60 ? '#dc2626' : project.similarity_score >= 30 ? '#d97706' : '#059669' }}>
-              {project.similarity_score}%
-            </div>
-          </div>
-          <div style={{ height: '8px', background: '#f1f5f9', borderRadius: '8px', overflow: 'hidden', marginBottom: '6px' }}>
-            <div style={{ height: '100%', borderRadius: '8px', background: project.similarity_score >= 60 ? '#ef4444' : project.similarity_score >= 30 ? '#f59e0b' : '#10b981', width: `${project.similarity_score}%` }} />
-          </div>
-          <div style={{ fontSize: '12px', color: '#64748b' }}>
+          <div style={{ fontSize: '13px', fontWeight: '700', color: '#0a1f44', marginBottom: '4px' }}>Similarity Report</div>
+          <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '12px' }}>
             {project.similarity_score >= 60 ? 'High similarity — please review your proposal carefully.' : project.similarity_score >= 30 ? 'Moderate similarity — your adviser may ask for revision.' : 'Low similarity — your proposal looks original.'}
           </div>
+          <SimilarityBreakdown projectId={project.id} overallScore={project.similarity_score} forStudent />
         </div>
       )}
 
