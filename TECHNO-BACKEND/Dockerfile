@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 COPY --from=vendor /app ./
+COPY docker-php-uploads.ini /usr/local/etc/php/conf.d/uploads.ini
 RUN chmod +x docker-entrypoint.sh \
     && mkdir -p storage/framework/{cache,sessions,testing,views} storage/logs bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
