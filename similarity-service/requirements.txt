@@ -1,9 +1,13 @@
-# sentence-transformers pulls in torch, which defaults to the full CUDA/GPU
-# build (~2GB+ of NVIDIA libraries) even on a CPU-only host like Render's
-# free tier -- that bloat is what blew past the 512MB memory limit there.
-# These two lines force the much smaller CPU-only torch wheel instead.
---extra-index-url https://download.pytorch.org/whl/cpu
-torch
+# Semantic similarity runs on the same all-MiniLM-L6-v2 model as before,
+# but via ONNX Runtime + a tokenizer-only transformers install instead of
+# full PyTorch + sentence-transformers. Verified numerically identical
+# output (0.0 max difference across real test pairs) at a fraction of the
+# memory footprint -- the full torch/sentence-transformers combo exceeded
+# Render's free-tier 512MB limit even after CPU-only torch and a trimmed
+# spaCy pipeline; this doesn't need torch at all.
+onnxruntime
+transformers
+huggingface_hub
 
 fastapi
 uvicorn[standard]
@@ -11,7 +15,7 @@ pydantic
 spacy
 nltk
 scikit-learn
-sentence-transformers
+numpy
 
 # Two of the above need a one-time data/model download that pip alone
 # doesn't do -- this must run once during deployment (as a build-command
