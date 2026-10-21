@@ -5,8 +5,6 @@ import re
 
 import numpy as np
 import spacy
-import nltk
-from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity as sklearn_cosine
 import onnxruntime as ort
@@ -18,8 +16,33 @@ from huggingface_hub import hf_hub_download
 # pipeline components are never used, and are the two heaviest parts of
 # en_core_web_sm by far, so disabling them cuts real memory without
 # changing preprocess()'s output at all.
-nlp        = spacy.load("en_core_web_sm", disable=["parser", "ner"])
-stop_words = set(stopwords.words("english"))
+nlp = spacy.load("en_core_web_sm", disable=["parser", "ner"])
+
+# NLTK's English stopword list (corpora/stopwords/english), baked in as a
+# plain Python set instead of downloaded at runtime via nltk.corpus --
+# that download landed in a different directory than NLTK's runtime search
+# path on Render, crashing startup even though the build step "succeeded".
+# This is the exact, unmodified list (verified via stopwords.words('english')
+# locally), so preprocess() behaves identically -- just without a fragile
+# cross-environment file lookup.
+stop_words = {
+    'a', 'about', 'above', 'after', 'again', 'against', 'ain', 'all', 'am', 'an', 'and', 'any', 'are', 'aren',
+    "aren't", 'as', 'at', 'be', 'because', 'been', 'before', 'being', 'below', 'between', 'both', 'but', 'by',
+    'can', 'couldn', "couldn't", 'd', 'did', 'didn', "didn't", 'do', 'does', 'doesn', "doesn't", 'doing', 'don',
+    "don't", 'down', 'during', 'each', 'few', 'for', 'from', 'further', 'had', 'hadn', "hadn't", 'has', 'hasn',
+    "hasn't", 'have', 'haven', "haven't", 'having', 'he', "he'd", "he'll", "he's", 'her', 'here', 'hers',
+    'herself', 'him', 'himself', 'his', 'how', 'i', "i'd", "i'll", "i'm", "i've", 'if', 'in', 'into', 'is', 'isn',
+    "isn't", 'it', "it'd", "it'll", "it's", 'its', 'itself', 'just', 'll', 'm', 'ma', 'me', 'mightn', "mightn't",
+    'more', 'most', 'mustn', "mustn't", 'my', 'myself', 'needn', "needn't", 'no', 'nor', 'not', 'now', 'o', 'of',
+    'off', 'on', 'once', 'only', 'or', 'other', 'our', 'ours', 'ourselves', 'out', 'over', 'own', 're', 's',
+    'same', 'shan', "shan't", 'she', "she'd", "she'll", "she's", 'should', "should've", 'shouldn', "shouldn't",
+    'so', 'some', 'such', 't', 'than', 'that', "that'll", 'the', 'their', 'theirs', 'them', 'themselves', 'then',
+    'there', 'these', 'they', "they'd", "they'll", "they're", "they've", 'this', 'those', 'through', 'to', 'too',
+    'under', 'until', 'up', 've', 'very', 'was', 'wasn', "wasn't", 'we', "we'd", "we'll", "we're", "we've",
+    'were', 'weren', "weren't", 'what', 'when', 'where', 'which', 'while', 'who', 'whom', 'why', 'will', 'with',
+    'won', "won't", 'wouldn', "wouldn't", 'y', 'you', "you'd", "you'll", "you're", "you've", 'your', 'yours',
+    'yourself', 'yourselves',
+}
 
 # Same all-MiniLM-L6-v2 model as before, run via ONNX Runtime instead of
 # PyTorch + sentence-transformers -- verified to produce numerically

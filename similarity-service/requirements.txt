@@ -13,12 +13,15 @@ fastapi
 uvicorn[standard]
 pydantic
 spacy
-nltk
 scikit-learn
 numpy
 
-# Two of the above need a one-time data/model download that pip alone
-# doesn't do -- this must run once during deployment (as a build-command
-# step, not baked into this file):
+# spaCy needs a one-time model download that pip alone doesn't do -- this
+# must run once during deployment (as a build-command step, not baked
+# into this file):
 #   python -m spacy download en_core_web_sm
-#   python -m nltk.downloader stopwords
+#
+# (NLTK's English stopword list is no longer downloaded at build time --
+# it's baked directly into main.py as a plain Python set instead, since
+# its download path and runtime search path didn't line up on Render,
+# crashing startup even though the build step reported success.)
