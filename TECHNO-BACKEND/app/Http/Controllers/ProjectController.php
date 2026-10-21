@@ -35,6 +35,91 @@ class ProjectController extends Controller {
         return response()->json($query->get());
     }
 
+    // Approved capstones from previous batches, readable by every role in the
+    // school (students included) so they can check what has already been done.
+    // Alternate titles a group dropped via chooseFinal() are also stored as
+    // 'archived', but they were never completed, so they're left out here.
+    public function archive(Request $request) {
+        $user = $request->user();
+
+        $projects = Project::with('adviser:id,name')
+            ->where('status', 'archived')
+            ->where(fn($q) => $q->whereNull('group_id')->orWhere('is_final_title', true))
+            ->when($user->school_id, fn($q) => $q->where('school_id', $user->school_id))
+            ->orderByDesc('batch')
+            ->orderBy('title')
+            ->get(['id', 'title', 'abstract', 'objectives', 'keywords', 'batch', 'program', 'adviser_id', 'status']);
+
+        return response()->json($projects);
+    }
+
+    public function importArchived(Request $request) {
+        $user = $request->user();
+        abort_unless(in_array($user->role, ['admin', 'instructor']), 403, 'Only administrators and instructors can import archived projects.');
+
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:5120',
+        ]);
+
+        $csv = \League\Csv\Reader::createFromPath($request->file('file')->getPathname(), 'r');
+        $csv->setHeaderOffset(0);
+
+        $records = collect($csv->getRecords());
+        $created = 0;
+        $skipped = [];
+
+        foreach ($records as $index => $row) {
+            $title      = trim($row['title']      ?? $row['Title']      ?? '');
+            $abstract   = trim($row['abstract']   ?? $row['Abstract']   ?? '');
+            $objectives = trim($row['objectives'] ?? $row['Objectives'] ?? '');
+            $keywords   = trim($row['keywords']   ?? $row['Keywords']   ?? '');
+            $batch      = trim($row['batch']      ?? $row['Batch']      ?? $row['year'] ?? $row['Year'] ?? '');
+            $program    = trim($row['program']    ?? $row['Program']    ?? '');
+            $adviserName = trim($row['adviser']   ?? $row['Adviser']    ?? '');
+
+            if (!$title) {
+                $skipped[] = "Row " . ($index + 2) . ": Missing title.";
+                continue;
+            }
+
+            $adviserId = null;
+            if ($adviserName) {
+                $adviser = \App\Models\User::where('role', 'adviser')
+                    ->where('school_id', $user->school_id)
+                    ->whereRaw('LOWER(name) = ?', [strtolower($adviserName)])
+                    ->first();
+                $adviserId = $adviser?->id;
+            }
+
+            Project::create([
+                'group_id'      => null,
+                'title'         => substr($title, 0, 500),
+                'abstract'      => $abstract ?: null,
+                'objectives'    => $objectives ?: null,
+                'keywords'      => $keywords ? substr($keywords, 0, 500) : null,
+                'batch'         => $batch ? substr($batch, 0, 20) : null,
+                'program'       => $program ?: null,
+                'adviser_id'    => $adviserId,
+                'instructor_id' => null,
+                'status'        => 'archived',
+                'title_status'  => 'approved',
+                'school_id'     => $user->school_id,
+            ]);
+
+            $created++;
+        }
+
+        $message = $created > 0
+            ? "{$created} archived project(s) imported successfully."
+            : 'No projects were imported.';
+
+        return response()->json([
+            'created' => $created,
+            'skipped' => $skipped,
+            'message' => $message,
+        ]);
+    }
+
     public function store(Request $request, SimilarityService $svc, NotificationService $notifications) {
         $data = $request->validate([
             'title'         => 'required|string|max:500',
@@ -168,10 +253,40 @@ class ProjectController extends Controller {
         return response()->json($project->load('members'), 201);
     }
 
-    public function show($id) {
-        return response()->json(
-            Project::with('adviser', 'instructor', 'members', 'documents', 'schedule')->findOrFail($id)
+    public function show(Request $request, $id) {
+        $user    = $request->user();
+        $project = Project::findOrFail($id);
+        $this->authorizeProjectView($user, $project);
+
+        // A student opening someone else's archived capstone (from the archive
+        // or a similarity match) gets the public record only, not that
+        // group's documents or schedule.
+        if ($user->role === 'student' && !$this->isMember($user, $project)) {
+            return response()->json($project->load('adviser:id,name')->only([
+                'id', 'title', 'abstract', 'objectives', 'keywords', 'batch', 'program', 'status', 'adviser',
+            ]));
+        }
+
+        return response()->json($project->load('adviser', 'instructor', 'members', 'documents', 'schedule'));
+    }
+
+    // School isolation for every role, and students may only open their own
+    // projects or archived (completed) capstones.
+    private function authorizeProjectView($user, Project $project): void {
+        abort_if(
+            $user->school_id && $project->school_id && $user->school_id !== $project->school_id,
+            403, 'You do not have access to this project.'
         );
+        if ($user->role === 'student') {
+            abort_unless(
+                $this->isMember($user, $project) || $project->status === 'archived',
+                403, 'You do not have access to this project.'
+            );
+        }
+    }
+
+    private function isMember($user, Project $project): bool {
+        return ProjectMember::where('project_id', $project->id)->where('user_id', $user->id)->exists();
     }
 
     public function update(Request $request, $id, NotificationService $notifications, ActivityBroadcastService $activity) {
@@ -326,11 +441,32 @@ class ProjectController extends Controller {
         return response()->json(['message' => 'Deleted']);
     }
 
-    public function similarityDetail($id) {
-        $project = Project::find($id);
-        $result = \App\Models\SimilarityResult::where('project_id', $id)
+    public function similarityDetail(Request $request, $id) {
+        $user    = $request->user();
+        $project = Project::findOrFail($id);
+        $this->authorizeProjectView($user, $project);
+        abort_if($user->role === 'student' && !$this->isMember($user, $project), 403, 'You can only view the similarity report of your own project.');
+        $allResults = \App\Models\SimilarityResult::where('project_id', $id)
             ->orderBy('overall_score', 'desc')
-            ->first();
+            ->limit(25)
+            ->get();
+        $result = $allResults->first();
+
+        // The full ranked list, so a reviewer can see everything a proposal
+        // is similar to -- not just the single top match. Titles only (no
+        // abstract/objectives text here, to keep this payload light); the
+        // frontend fetches a match's full text on demand via GET /projects/{id}
+        // only when a reviewer actually expands that specific row.
+        $comparedIds = $allResults->pluck('compared_to_project_id');
+        $comparedTitles = Project::whereIn('id', $comparedIds)->pluck('title', 'id');
+        $allMatches = $allResults->map(fn ($r) => [
+            'compared_to_id'    => $r->compared_to_project_id,
+            'matched_title'     => $comparedTitles[$r->compared_to_project_id] ?? null,
+            'title_score'       => $r->title_score,
+            'abstract_score'    => $r->abstract_score,
+            'objectives_score'  => $r->objectives_score,
+            'overall_score'     => $r->overall_score,
+        ])->values();
 
         if (!$result) {
             return response()->json([
@@ -343,10 +479,18 @@ class ProjectController extends Controller {
                 'own_objectives'     => $project?->objectives,
                 'matched_abstract'   => null,
                 'matched_objectives' => null,
+                'all_matches'        => [],
             ]);
         }
 
         $matchedProject = \App\Models\Project::find($result->compared_to_project_id);
+
+        // Students see the full text of a matched capstone only once it's
+        // archived; another group's in-progress proposal stays title-only.
+        if ($user->role === 'student' && $matchedProject?->status !== 'archived') {
+            $matchedProject?->setAttribute('abstract', null);
+            $matchedProject?->setAttribute('objectives', null);
+        }
 
         return response()->json([
             'title_score'      => $result->title_score,
@@ -360,6 +504,7 @@ class ProjectController extends Controller {
             'own_objectives'     => $project?->objectives,
             'matched_abstract'   => $matchedProject?->abstract,
             'matched_objectives' => $matchedProject?->objectives,
+            'all_matches'        => $allMatches,
         ]);
     }
 

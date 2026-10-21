@@ -8,6 +8,7 @@ const NAV = {
     { id: 'similarity',    label: 'Similarity Detection' },
     { id: 'contributions', label: 'Contribution Analytics' },
     { id: 'reports',       label: 'Reports' },
+    { id: 'minutes',       label: 'Minutes & Checklists' },
     { id: 'settings',      label: 'Rooms & Panelists' },
   ],
   instructor: [
@@ -18,17 +19,21 @@ const NAV = {
     { id: 'titleapproval', label: 'Title Approval' },
     { id: 'docreview',     label: 'Documents Review' },
     { id: 'schedule',      label: 'Defense Schedule' },
+    { id: 'minutes',       label: 'Minutes & Checklists' },
     { id: 'settings',      label: 'Rooms & Panelists' },
     { id: 'contributions', label: 'Contribution Analytics' },
     { id: 'reports',       label: 'Reports' },
+    { id: 'archive',       label: 'Archive' },
   ],
   adviser: [
     { id: 'dashboard',     label: 'Dashboard' },
     { id: 'groups',        label: 'My Groups' },
     { id: 'titleapproval', label: 'Title Approval' },
     { id: 'docreview',     label: 'Documents Review' },
+    { id: 'minutes',       label: 'Minutes & Checklists' },
     { id: 'similarity',    label: 'Similarity Detection' },
     { id: 'contributions', label: 'Contribution Analytics' },
+    { id: 'archive',       label: 'Archive' },
   ],
   student: [
     { id: 'dashboard',     label: 'Dashboard' },
@@ -37,14 +42,18 @@ const NAV = {
     { id: 'projects',      label: 'My Project' },
     { id: 'submit',        label: 'Submit Document' },
     { id: 'myschedule',    label: 'My Defense Schedule' },
+    { id: 'minutes',       label: 'Minutes & Checklists' },
     { id: 'mycontrib',     label: 'My Contributions' },
+    { id: 'archive',       label: 'Capstone Archive' },
   ],
   panelist: [
     { id: 'dashboard',     label: 'Dashboard' },
     { id: 'projects',      label: 'For Review' },
     { id: 'docreview',     label: 'Documents Review' },
     { id: 'evaluate',      label: 'Evaluate Projects' },
+    { id: 'minutes',       label: 'Minutes & Checklists' },
     { id: 'similarity',    label: 'Similarity Detection' },
+    { id: 'archive',       label: 'Archive' },
   ],
 }
 
@@ -52,28 +61,28 @@ const NAV_GROUPS = {
   admin: [
     { heading: 'Overview',   ids: ['dashboard'] },
     { heading: 'Management', ids: ['projects', 'users', 'archive'] },
-    { heading: 'Tools',      ids: ['similarity', 'contributions', 'reports', 'settings'] },
+    { heading: 'Tools',      ids: ['similarity', 'contributions', 'reports', 'minutes', 'settings'] },
   ],
   instructor: [
     { heading: 'Overview',   ids: ['dashboard'] },
     { heading: 'Management', ids: ['groups', 'users', 'projects'] },
-    { heading: 'Academic',   ids: ['titleapproval', 'docreview', 'schedule', 'settings'] },
-    { heading: 'Analytics',  ids: ['contributions', 'reports'] },
+    { heading: 'Academic',   ids: ['titleapproval', 'docreview', 'schedule', 'minutes', 'settings'] },
+    { heading: 'Analytics',  ids: ['contributions', 'reports', 'archive'] },
   ],
   adviser: [
     { heading: 'Overview',   ids: ['dashboard'] },
-    { heading: 'My Work',    ids: ['groups', 'titleapproval', 'docreview'] },
-    { heading: 'Tools',      ids: ['similarity', 'contributions'] },
+    { heading: 'My Work',    ids: ['groups', 'titleapproval', 'docreview', 'minutes'] },
+    { heading: 'Tools',      ids: ['similarity', 'contributions', 'archive'] },
   ],
   student: [
     { heading: 'Overview',   ids: ['dashboard', 'progress'] },
     { heading: 'My Capstone',ids: ['mygroup', 'projects', 'submit'] },
-    { heading: 'Schedule',   ids: ['myschedule'] },
-    { heading: 'Analytics',  ids: ['mycontrib'] },
+    { heading: 'Schedule',   ids: ['myschedule', 'minutes'] },
+    { heading: 'Analytics',  ids: ['mycontrib', 'archive'] },
   ],
   panelist: [
     { heading: 'Overview',   ids: ['dashboard'] },
-    { heading: 'Projects',   ids: ['projects', 'docreview', 'evaluate', 'similarity'] },
+    { heading: 'Projects',   ids: ['projects', 'docreview', 'evaluate', 'minutes', 'similarity', 'archive'] },
   ],
 }
 
@@ -98,6 +107,7 @@ const NAV_ICONS = {
   progress:      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
   evaluate:      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
   changepassword:<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+  minutes:       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>,
   notifications: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
 }
 

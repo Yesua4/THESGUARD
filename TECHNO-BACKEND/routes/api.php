@@ -14,6 +14,8 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\EvaluationController;
 use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\DefenseMinutesController;
+use App\Http\Controllers\ProjectChecklistController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
 
@@ -61,6 +63,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('students', [GroupController::class, 'students']);
     Route::get('advisers', [GroupController::class, 'advisers']);
     Route::apiResource('rooms', RoomController::class);
+    Route::post('/projects/import', [ProjectController::class, 'importArchived']);
+    Route::get('/archive', [ProjectController::class, 'archive']);
+    Route::get('/projects/{project}/minutes', [DefenseMinutesController::class, 'index']);
+    Route::post('/projects/{project}/minutes', [DefenseMinutesController::class, 'store']);
+    Route::delete('/minutes/{id}', [DefenseMinutesController::class, 'destroy']);
+    Route::post('/minutes/{id}/items', [DefenseMinutesController::class, 'storeItem']);
+    Route::put('/minute-items/{id}', [DefenseMinutesController::class, 'updateItem']);
+    Route::delete('/minute-items/{id}', [DefenseMinutesController::class, 'destroyItem']);
+    Route::get('/projects/{project}/checklists', [ProjectChecklistController::class, 'index']);
+    Route::post('/projects/{project}/checklists', [ProjectChecklistController::class, 'store']);
+    Route::put('/checklist-items/{id}', [ProjectChecklistController::class, 'update']);
+    Route::delete('/checklist-items/{id}', [ProjectChecklistController::class, 'destroy']);
     Route::get('/projects/{id}/similarity', [ProjectController::class, 'similarityDetail']);
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::put('/notifications/{id}/read', [NotificationController::class, 'markRead']);

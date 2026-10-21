@@ -51,7 +51,99 @@ function HighlightedText({ ownText, otherText }) {
   )
 }
 
-function SimilarityBreakdown({ projectId, overallScore }) {
+function MatchRow({ match, rank }) {
+  const [expanded, setExpanded] = useState(false)
+  const [matchedProject, setMatchedProject] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  const toggle = () => {
+    if (!expanded && !matchedProject) {
+      setLoading(true)
+      api.get(`/projects/${match.compared_to_id}`)
+        .then(res => setMatchedProject(res.data))
+        .catch(() => setMatchedProject({}))
+        .finally(() => setLoading(false))
+    }
+    setExpanded(v => !v)
+  }
+
+  return (
+    <div style={{ border: '1px solid #f1f5f9', borderRadius: '8px', padding: '8px 10px', marginBottom: '6px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={toggle}>
+        <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '700', width: '18px', flexShrink: 0 }}>#{rank}</span>
+        <span style={{ fontSize: '12px', color: '#334155', flex: 1, fontWeight: '600' }}>{match.matched_title || `Project #${match.compared_to_id}`}</span>
+        <span style={{ fontSize: '11px', padding: '3px 9px', borderRadius: '20px', fontWeight: '700', ...similarityBadgeStyle(match.overall_score) }}>
+          {match.overall_score}%
+        </span>
+        <span style={{ fontSize: '11px', color: '#1d4ed8', fontWeight: '600' }}>{expanded ? '▲' : '▼'}</span>
+      </div>
+
+      {expanded && (
+        <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #f1f5f9' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '8px' }}>
+            {[['Title', match.title_score], ['Abstract', match.abstract_score], ['Objectives', match.objectives_score]].map(([label, val]) => (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '10px', color: '#94a3b8', width: '60px', flexShrink: 0, fontWeight: '600' }}>{label}</span>
+                <div style={{ flex: 1, height: '6px', background: '#f1f5f9', borderRadius: '8px', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', borderRadius: '8px', background: similarityBarColor(val), width: `${val}%` }} />
+                </div>
+                <span style={{ fontSize: '11px', width: '34px', textAlign: 'right', flexShrink: 0, color: similarityScoreColor(val), fontWeight: '700' }}>{val}%</span>
+              </div>
+            ))}
+          </div>
+
+          {loading ? (
+            <div style={{ fontSize: '11px', color: '#94a3b8' }}>Loading matched text...</div>
+          ) : matchedProject && (matchedProject.abstract || matchedProject.objectives) ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {matchedProject.abstract && (
+                <div>
+                  <div style={{ fontSize: '10px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>Abstract</div>
+                  <HighlightedText ownText={match.ownAbstract} otherText={matchedProject.abstract} />
+                  <SemanticMatches ownText={match.ownAbstract} otherText={matchedProject.abstract} label="Sentences" />
+                </div>
+              )}
+              {matchedProject.objectives && (
+                <div>
+                  <div style={{ fontSize: '10px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>Objectives</div>
+                  <HighlightedText ownText={match.ownObjectives} otherText={matchedProject.objectives} />
+                  <SemanticMatches ownText={match.ownObjectives} otherText={matchedProject.objectives} label="Objectives" />
+                </div>
+              )}
+              <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                <mark style={{ background: 'rgba(239,68,68,0.22)', color: '#9f1239', borderRadius: '3px', padding: '0 2px' }}>Highlighted</mark> phrases are verbatim matches; <span style={{ color: '#3b82f6', fontWeight: '600' }}>blue boxes</span> below are semantically similar phrasing detected by SBERT.
+              </div>
+            </div>
+          ) : (
+            <div style={{ fontSize: '11px', color: '#94a3b8' }}>No matched text available.</div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AllMatches({ matches, ownAbstract, ownObjectives }) {
+  const [open, setOpen] = useState(false)
+  if (!matches || matches.length === 0) return null
+
+  return (
+    <div style={{ marginBottom: '10px' }}>
+      <button onClick={() => setOpen(v => !v)} style={{ fontSize: '12px', color: '#1d4ed8', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700', padding: 0 }}>
+        {open ? '▲ Hide' : '▼ View'} all {matches.length} match{matches.length !== 1 ? 'es' : ''} (ranked)
+      </button>
+      {open && (
+        <div style={{ marginTop: '8px' }}>
+          {matches.map((m, i) => (
+            <MatchRow key={m.compared_to_id} rank={i + 1} match={{ ...m, ownAbstract, ownObjectives }} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SimilarityBreakdown({ projectId, overallScore, forStudent = false }) {
   const [details, setDetails] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showText, setShowText] = useState(false)
@@ -136,9 +228,13 @@ function SimilarityBreakdown({ projectId, overallScore }) {
         </div>
       )}
 
+      <AllMatches matches={scores.all_matches} ownAbstract={scores.own_abstract} ownObjectives={scores.own_objectives} />
+
       {overallScore >= 30 && (
         <div style={{ background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'8px', padding:'8px 12px', fontSize:'12px', color:'#92400e' }}>
-          ⚠ Review the abstract and objectives carefully before approving.
+          {forStudent
+            ? '⚠ Compare your abstract and objectives with the matches above. Your adviser may ask you to revise overlapping parts.'
+            : '⚠ Review the abstract and objectives carefully before approving.'}
         </div>
       )}
     </div>
