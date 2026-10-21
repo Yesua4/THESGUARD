@@ -10,8 +10,12 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity as sklearn_cosine
 from sentence_transformers import SentenceTransformer, util
 
-# Load models
-nlp        = spacy.load("en_core_web_sm")
+# Load models. preprocess() below only needs tokenization + lemmatization
+# (token.lemma_, token.is_punct, token.is_space) -- the parser and NER
+# pipeline components are never used, and are the two heaviest parts of
+# en_core_web_sm by far, so disabling them cuts real memory without
+# changing preprocess()'s output at all.
+nlp        = spacy.load("en_core_web_sm", disable=["parser", "ner"])
 sbert      = SentenceTransformer("all-MiniLM-L6-v2")
 stop_words = set(stopwords.words("english"))
 
