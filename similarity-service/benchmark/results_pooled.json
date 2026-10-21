@@ -1,0 +1,1176 @@
+{
+  "n_pairs": 47,
+  "threshold": 60.0,
+  "methods": {
+    "tfidf": {
+      "tp": 0,
+      "fp": 0,
+      "tn": 32,
+      "fn": 15,
+      "precision": {
+        "value": null,
+        "k": 0,
+        "n": 0,
+        "ci95": null
+      },
+      "recall": {
+        "value": 0.0,
+        "k": 0,
+        "n": 15,
+        "ci95": [
+          0.0,
+          20.4
+        ]
+      },
+      "specificity": {
+        "value": 100.0,
+        "k": 32,
+        "n": 32,
+        "ci95": [
+          89.3,
+          100.0
+        ]
+      },
+      "accuracy": {
+        "value": 68.1,
+        "k": 32,
+        "n": 47,
+        "ci95": [
+          53.8,
+          79.6
+        ]
+      },
+      "f1": 0.0,
+      "by_pair_type": {
+        "duplicate": {
+          "n": 15,
+          "correct": 0,
+          "flagged": 0
+        },
+        "easy_negative": {
+          "n": 16,
+          "correct": 16,
+          "flagged": 0
+        },
+        "hard_negative": {
+          "n": 16,
+          "correct": 16,
+          "flagged": 0
+        }
+      },
+      "rows": [
+        {
+          "a_id": 1,
+          "b_id": 2,
+          "label": "duplicate",
+          "score": 27.1,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 3,
+          "b_id": 4,
+          "label": "duplicate",
+          "score": 23.76,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 5,
+          "b_id": 6,
+          "label": "duplicate",
+          "score": 28.46,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 7,
+          "b_id": 8,
+          "label": "duplicate",
+          "score": 30.58,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 9,
+          "b_id": 10,
+          "label": "duplicate",
+          "score": 29.47,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 11,
+          "b_id": 12,
+          "label": "duplicate",
+          "score": 40.89,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 13,
+          "b_id": 14,
+          "label": "duplicate",
+          "score": 31.24,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 15,
+          "b_id": 16,
+          "label": "duplicate",
+          "score": 31.46,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 17,
+          "b_id": 18,
+          "label": "duplicate",
+          "score": 46.43,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 19,
+          "b_id": 20,
+          "label": "duplicate",
+          "score": 43.87,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 21,
+          "b_id": 22,
+          "label": "duplicate",
+          "score": 47.06,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 23,
+          "b_id": 24,
+          "label": "duplicate",
+          "score": 40.75,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 25,
+          "b_id": 26,
+          "label": "duplicate",
+          "score": 54.04,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 27,
+          "b_id": 28,
+          "label": "duplicate",
+          "score": 45.38,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 29,
+          "b_id": 30,
+          "label": "duplicate",
+          "score": 43.31,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 70,
+          "b_id": 48,
+          "label": "easy_negative",
+          "score": 9.87,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 63,
+          "b_id": 31,
+          "label": "easy_negative",
+          "score": 7.43,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 121,
+          "b_id": 76,
+          "label": "easy_negative",
+          "score": 9.29,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 64,
+          "b_id": 55,
+          "label": "easy_negative",
+          "score": 10.85,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 52,
+          "b_id": 79,
+          "label": "easy_negative",
+          "score": 9.41,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 88,
+          "b_id": 73,
+          "label": "easy_negative",
+          "score": 5.06,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 32,
+          "b_id": 110,
+          "label": "easy_negative",
+          "score": 9.39,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 69,
+          "b_id": 97,
+          "label": "easy_negative",
+          "score": 11.99,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 41,
+          "b_id": 98,
+          "label": "easy_negative",
+          "score": 6.18,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 47,
+          "b_id": 106,
+          "label": "easy_negative",
+          "score": 6.56,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 103,
+          "b_id": 91,
+          "label": "easy_negative",
+          "score": 8.8,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 56,
+          "b_id": 53,
+          "label": "easy_negative",
+          "score": 12.04,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 36,
+          "b_id": 83,
+          "label": "easy_negative",
+          "score": 9.36,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 89,
+          "b_id": 78,
+          "label": "easy_negative",
+          "score": 11.21,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 92,
+          "b_id": 112,
+          "label": "easy_negative",
+          "score": 8.7,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 87,
+          "b_id": 60,
+          "label": "easy_negative",
+          "score": 4.3,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R1",
+          "b_id": "R2",
+          "label": "hard_negative",
+          "score": 15.75,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R1",
+          "b_id": "R3",
+          "label": "hard_negative",
+          "score": 18.36,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R2",
+          "b_id": "R4",
+          "label": "hard_negative",
+          "score": 17.42,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R5",
+          "b_id": "R7",
+          "label": "hard_negative",
+          "score": 11.25,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R5",
+          "b_id": "R6",
+          "label": "hard_negative",
+          "score": 13.33,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R8",
+          "b_id": "R9",
+          "label": "hard_negative",
+          "score": 18.73,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R9",
+          "b_id": "R10",
+          "label": "hard_negative",
+          "score": 20.67,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R11",
+          "b_id": "R12",
+          "label": "hard_negative",
+          "score": 12.42,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R12",
+          "b_id": "R13",
+          "label": "hard_negative",
+          "score": 12.37,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R14",
+          "b_id": "R15",
+          "label": "hard_negative",
+          "score": 10.13,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R15",
+          "b_id": "R16",
+          "label": "hard_negative",
+          "score": 11.08,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R17",
+          "b_id": "R18",
+          "label": "hard_negative",
+          "score": 3.52,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R19",
+          "b_id": "R20",
+          "label": "hard_negative",
+          "score": 14.4,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R20",
+          "b_id": "R21",
+          "label": "hard_negative",
+          "score": 11.58,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R22",
+          "b_id": "R23",
+          "label": "hard_negative",
+          "score": 7.21,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R23",
+          "b_id": "R24",
+          "label": "hard_negative",
+          "score": 9.88,
+          "predicted_similar": false
+        }
+      ]
+    },
+    "sbert": {
+      "tp": 15,
+      "fp": 3,
+      "tn": 29,
+      "fn": 0,
+      "precision": {
+        "value": 83.3,
+        "k": 15,
+        "n": 18,
+        "ci95": [
+          60.8,
+          94.2
+        ]
+      },
+      "recall": {
+        "value": 100.0,
+        "k": 15,
+        "n": 15,
+        "ci95": [
+          79.6,
+          100.0
+        ]
+      },
+      "specificity": {
+        "value": 90.6,
+        "k": 29,
+        "n": 32,
+        "ci95": [
+          75.8,
+          96.8
+        ]
+      },
+      "accuracy": {
+        "value": 93.6,
+        "k": 44,
+        "n": 47,
+        "ci95": [
+          82.8,
+          97.8
+        ]
+      },
+      "f1": 90.9,
+      "by_pair_type": {
+        "duplicate": {
+          "n": 15,
+          "correct": 15,
+          "flagged": 15
+        },
+        "easy_negative": {
+          "n": 16,
+          "correct": 16,
+          "flagged": 0
+        },
+        "hard_negative": {
+          "n": 16,
+          "correct": 13,
+          "flagged": 3
+        }
+      },
+      "rows": [
+        {
+          "a_id": 1,
+          "b_id": 2,
+          "label": "duplicate",
+          "score": 84.06,
+          "predicted_similar": true
+        },
+        {
+          "a_id": 3,
+          "b_id": 4,
+          "label": "duplicate",
+          "score": 81.88,
+          "predicted_similar": true
+        },
+        {
+          "a_id": 5,
+          "b_id": 6,
+          "label": "duplicate",
+          "score": 80.97,
+          "predicted_similar": true
+        },
+        {
+          "a_id": 7,
+          "b_id": 8,
+          "label": "duplicate",
+          "score": 79.5,
+          "predicted_similar": true
+        },
+        {
+          "a_id": 9,
+          "b_id": 10,
+          "label": "duplicate",
+          "score": 88.87,
+          "predicted_similar": true
+        },
+        {
+          "a_id": 11,
+          "b_id": 12,
+          "label": "duplicate",
+          "score": 75.66,
+          "predicted_similar": true
+        },
+        {
+          "a_id": 13,
+          "b_id": 14,
+          "label": "duplicate",
+          "score": 82.51,
+          "predicted_similar": true
+        },
+        {
+          "a_id": 15,
+          "b_id": 16,
+          "label": "duplicate",
+          "score": 88.3,
+          "predicted_similar": true
+        },
+        {
+          "a_id": 17,
+          "b_id": 18,
+          "label": "duplicate",
+          "score": 85.32,
+          "predicted_similar": true
+        },
+        {
+          "a_id": 19,
+          "b_id": 20,
+          "label": "duplicate",
+          "score": 87.86,
+          "predicted_similar": true
+        },
+        {
+          "a_id": 21,
+          "b_id": 22,
+          "label": "duplicate",
+          "score": 90.06,
+          "predicted_similar": true
+        },
+        {
+          "a_id": 23,
+          "b_id": 24,
+          "label": "duplicate",
+          "score": 87.77,
+          "predicted_similar": true
+        },
+        {
+          "a_id": 25,
+          "b_id": 26,
+          "label": "duplicate",
+          "score": 90.44,
+          "predicted_similar": true
+        },
+        {
+          "a_id": 27,
+          "b_id": 28,
+          "label": "duplicate",
+          "score": 89.68,
+          "predicted_similar": true
+        },
+        {
+          "a_id": 29,
+          "b_id": 30,
+          "label": "duplicate",
+          "score": 76.17,
+          "predicted_similar": true
+        },
+        {
+          "a_id": 70,
+          "b_id": 48,
+          "label": "easy_negative",
+          "score": 30.72,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 63,
+          "b_id": 31,
+          "label": "easy_negative",
+          "score": 23.27,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 121,
+          "b_id": 76,
+          "label": "easy_negative",
+          "score": 20.0,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 64,
+          "b_id": 55,
+          "label": "easy_negative",
+          "score": 27.52,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 52,
+          "b_id": 79,
+          "label": "easy_negative",
+          "score": 34.45,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 88,
+          "b_id": 73,
+          "label": "easy_negative",
+          "score": 23.85,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 32,
+          "b_id": 110,
+          "label": "easy_negative",
+          "score": 22.56,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 69,
+          "b_id": 97,
+          "label": "easy_negative",
+          "score": 39.85,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 41,
+          "b_id": 98,
+          "label": "easy_negative",
+          "score": 20.73,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 47,
+          "b_id": 106,
+          "label": "easy_negative",
+          "score": 16.62,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 103,
+          "b_id": 91,
+          "label": "easy_negative",
+          "score": 31.7,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 56,
+          "b_id": 53,
+          "label": "easy_negative",
+          "score": 36.28,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 36,
+          "b_id": 83,
+          "label": "easy_negative",
+          "score": 33.35,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 89,
+          "b_id": 78,
+          "label": "easy_negative",
+          "score": 39.08,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 92,
+          "b_id": 112,
+          "label": "easy_negative",
+          "score": 26.89,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 87,
+          "b_id": 60,
+          "label": "easy_negative",
+          "score": 22.45,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R1",
+          "b_id": "R2",
+          "label": "hard_negative",
+          "score": 49.23,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R1",
+          "b_id": "R3",
+          "label": "hard_negative",
+          "score": 49.61,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R2",
+          "b_id": "R4",
+          "label": "hard_negative",
+          "score": 49.7,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R5",
+          "b_id": "R7",
+          "label": "hard_negative",
+          "score": 37.53,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R5",
+          "b_id": "R6",
+          "label": "hard_negative",
+          "score": 33.16,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R8",
+          "b_id": "R9",
+          "label": "hard_negative",
+          "score": 60.27,
+          "predicted_similar": true
+        },
+        {
+          "a_id": "R9",
+          "b_id": "R10",
+          "label": "hard_negative",
+          "score": 63.98,
+          "predicted_similar": true
+        },
+        {
+          "a_id": "R11",
+          "b_id": "R12",
+          "label": "hard_negative",
+          "score": 72.8,
+          "predicted_similar": true
+        },
+        {
+          "a_id": "R12",
+          "b_id": "R13",
+          "label": "hard_negative",
+          "score": 57.37,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R14",
+          "b_id": "R15",
+          "label": "hard_negative",
+          "score": 59.26,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R15",
+          "b_id": "R16",
+          "label": "hard_negative",
+          "score": 48.77,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R17",
+          "b_id": "R18",
+          "label": "hard_negative",
+          "score": 19.48,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R19",
+          "b_id": "R20",
+          "label": "hard_negative",
+          "score": 57.95,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R20",
+          "b_id": "R21",
+          "label": "hard_negative",
+          "score": 42.21,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R22",
+          "b_id": "R23",
+          "label": "hard_negative",
+          "score": 49.11,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R23",
+          "b_id": "R24",
+          "label": "hard_negative",
+          "score": 49.27,
+          "predicted_similar": false
+        }
+      ]
+    },
+    "hybrid": {
+      "tp": 6,
+      "fp": 0,
+      "tn": 32,
+      "fn": 9,
+      "precision": {
+        "value": 100.0,
+        "k": 6,
+        "n": 6,
+        "ci95": [
+          61.0,
+          100.0
+        ]
+      },
+      "recall": {
+        "value": 40.0,
+        "k": 6,
+        "n": 15,
+        "ci95": [
+          19.8,
+          64.3
+        ]
+      },
+      "specificity": {
+        "value": 100.0,
+        "k": 32,
+        "n": 32,
+        "ci95": [
+          89.3,
+          100.0
+        ]
+      },
+      "accuracy": {
+        "value": 80.9,
+        "k": 38,
+        "n": 47,
+        "ci95": [
+          67.5,
+          89.6
+        ]
+      },
+      "f1": 57.1,
+      "by_pair_type": {
+        "duplicate": {
+          "n": 15,
+          "correct": 6,
+          "flagged": 6
+        },
+        "easy_negative": {
+          "n": 16,
+          "correct": 16,
+          "flagged": 0
+        },
+        "hard_negative": {
+          "n": 16,
+          "correct": 16,
+          "flagged": 0
+        }
+      },
+      "rows": [
+        {
+          "a_id": 1,
+          "b_id": 2,
+          "label": "duplicate",
+          "score": 55.58,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 3,
+          "b_id": 4,
+          "label": "duplicate",
+          "score": 52.82,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 5,
+          "b_id": 6,
+          "label": "duplicate",
+          "score": 54.72,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 7,
+          "b_id": 8,
+          "label": "duplicate",
+          "score": 55.04,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 9,
+          "b_id": 10,
+          "label": "duplicate",
+          "score": 59.18,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 11,
+          "b_id": 12,
+          "label": "duplicate",
+          "score": 58.27,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 13,
+          "b_id": 14,
+          "label": "duplicate",
+          "score": 56.88,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 15,
+          "b_id": 16,
+          "label": "duplicate",
+          "score": 59.88,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 17,
+          "b_id": 18,
+          "label": "duplicate",
+          "score": 65.87,
+          "predicted_similar": true
+        },
+        {
+          "a_id": 19,
+          "b_id": 20,
+          "label": "duplicate",
+          "score": 65.87,
+          "predicted_similar": true
+        },
+        {
+          "a_id": 21,
+          "b_id": 22,
+          "label": "duplicate",
+          "score": 68.56,
+          "predicted_similar": true
+        },
+        {
+          "a_id": 23,
+          "b_id": 24,
+          "label": "duplicate",
+          "score": 64.26,
+          "predicted_similar": true
+        },
+        {
+          "a_id": 25,
+          "b_id": 26,
+          "label": "duplicate",
+          "score": 72.24,
+          "predicted_similar": true
+        },
+        {
+          "a_id": 27,
+          "b_id": 28,
+          "label": "duplicate",
+          "score": 67.53,
+          "predicted_similar": true
+        },
+        {
+          "a_id": 29,
+          "b_id": 30,
+          "label": "duplicate",
+          "score": 59.74,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 70,
+          "b_id": 48,
+          "label": "easy_negative",
+          "score": 20.29,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 63,
+          "b_id": 31,
+          "label": "easy_negative",
+          "score": 15.35,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 121,
+          "b_id": 76,
+          "label": "easy_negative",
+          "score": 14.65,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 64,
+          "b_id": 55,
+          "label": "easy_negative",
+          "score": 19.19,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 52,
+          "b_id": 79,
+          "label": "easy_negative",
+          "score": 21.93,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 88,
+          "b_id": 73,
+          "label": "easy_negative",
+          "score": 14.45,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 32,
+          "b_id": 110,
+          "label": "easy_negative",
+          "score": 15.97,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 69,
+          "b_id": 97,
+          "label": "easy_negative",
+          "score": 25.92,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 41,
+          "b_id": 98,
+          "label": "easy_negative",
+          "score": 13.45,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 47,
+          "b_id": 106,
+          "label": "easy_negative",
+          "score": 11.6,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 103,
+          "b_id": 91,
+          "label": "easy_negative",
+          "score": 20.25,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 56,
+          "b_id": 53,
+          "label": "easy_negative",
+          "score": 24.16,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 36,
+          "b_id": 83,
+          "label": "easy_negative",
+          "score": 21.35,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 89,
+          "b_id": 78,
+          "label": "easy_negative",
+          "score": 25.14,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 92,
+          "b_id": 112,
+          "label": "easy_negative",
+          "score": 17.79,
+          "predicted_similar": false
+        },
+        {
+          "a_id": 87,
+          "b_id": 60,
+          "label": "easy_negative",
+          "score": 13.38,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R1",
+          "b_id": "R2",
+          "label": "hard_negative",
+          "score": 32.49,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R1",
+          "b_id": "R3",
+          "label": "hard_negative",
+          "score": 33.98,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R2",
+          "b_id": "R4",
+          "label": "hard_negative",
+          "score": 33.56,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R5",
+          "b_id": "R7",
+          "label": "hard_negative",
+          "score": 24.4,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R5",
+          "b_id": "R6",
+          "label": "hard_negative",
+          "score": 23.25,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R8",
+          "b_id": "R9",
+          "label": "hard_negative",
+          "score": 39.5,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R9",
+          "b_id": "R10",
+          "label": "hard_negative",
+          "score": 42.33,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R11",
+          "b_id": "R12",
+          "label": "hard_negative",
+          "score": 42.61,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R12",
+          "b_id": "R13",
+          "label": "hard_negative",
+          "score": 34.87,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R14",
+          "b_id": "R15",
+          "label": "hard_negative",
+          "score": 34.69,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R15",
+          "b_id": "R16",
+          "label": "hard_negative",
+          "score": 29.93,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R17",
+          "b_id": "R18",
+          "label": "hard_negative",
+          "score": 11.5,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R19",
+          "b_id": "R20",
+          "label": "hard_negative",
+          "score": 36.17,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R20",
+          "b_id": "R21",
+          "label": "hard_negative",
+          "score": 26.89,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R22",
+          "b_id": "R23",
+          "label": "hard_negative",
+          "score": 28.16,
+          "predicted_similar": false
+        },
+        {
+          "a_id": "R23",
+          "b_id": "R24",
+          "label": "hard_negative",
+          "score": 29.58,
+          "predicted_similar": false
+        }
+      ]
+    }
+  }
+}
