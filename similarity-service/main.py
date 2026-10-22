@@ -150,14 +150,63 @@ def combined_similarity(text_a: str, text_b: str, use_sbert: bool = True) -> flo
 def root():
     return {"status": "ThesisGuard similarity service running"}
 
+def _batch_field_scores(new_text: str, old_texts: List[str], use_sbert: bool) -> List[float]:
+    """
+    Scores new_text against every text in old_texts for one field (title,
+    abstract, or objectives). Previously, combined_similarity() was called
+    once per archived entry, which re-ran SBERT on new_text from scratch
+    every single time -- for N archived entries that's N redundant encodes
+    of the exact same text. This batches new_text + all old_texts into ONE
+    SBERT call (embeddings for new_text computed exactly once, reused for
+    every comparison) and reuses preprocess() output, instead of recomputing
+    spaCy lemmatization per pair too. Same math as combined_similarity(),
+    just computed once per field per request instead of once per pair.
+    """
+    n = len(old_texts)
+    all_texts = [new_text] + old_texts
+
+    if use_sbert:
+        valid_idx = [i for i, t in enumerate(all_texts) if t.strip()]
+        embs = None
+        if len(valid_idx) >= 2 or (new_text.strip() and valid_idx):
+            embs_valid = sbert_embed([all_texts[i] for i in valid_idx]) if valid_idx else None
+            embs = np.zeros((len(all_texts), embs_valid.shape[1]), dtype=np.float32) if embs_valid is not None else None
+            if embs is not None:
+                for row, i in enumerate(valid_idx):
+                    embs[i] = embs_valid[row]
+
+    pre = [preprocess(t) for t in all_texts]
+
+    scores = []
+    for i in range(1, n + 1):
+        if not all_texts[0].strip() or not all_texts[i].strip():
+            scores.append(0.0)
+            continue
+        t_score = 0.0
+        if use_sbert and embs is not None:
+            t_score = round(max(0.0, float(np.dot(embs[0], embs[i]))) * 100, 2)
+        a, b = pre[0], pre[i]
+        f_score = 0.0
+        if a.strip() and b.strip():
+            try:
+                vec = TfidfVectorizer()
+                matrix = vec.fit_transform([a, b])
+                f_score = round(float(sklearn_cosine(matrix[0], matrix[1])[0][0]) * 100, 2)
+            except Exception:
+                f_score = 0.0
+        scores.append(round((t_score * 0.5) + (f_score * 0.5), 2) if use_sbert else f_score)
+    return scores
+
 @app.post("/check")
 def check_similarity(req: CheckRequest):
     results = []
 
-    for old in req.archived:
-        title_score      = combined_similarity(req.new_project.title,      old.title,      req.use_sbert)
-        abstract_score   = combined_similarity(req.new_project.abstract,   old.abstract,   req.use_sbert)
-        objectives_score = combined_similarity(req.new_project.objectives, old.objectives, req.use_sbert)
+    title_scores      = _batch_field_scores(req.new_project.title,      [o.title or "" for o in req.archived],      req.use_sbert)
+    abstract_scores   = _batch_field_scores(req.new_project.abstract or "",   [o.abstract or "" for o in req.archived],   req.use_sbert)
+    objectives_scores = _batch_field_scores(req.new_project.objectives or "", [o.objectives or "" for o in req.archived], req.use_sbert)
+
+    for i, old in enumerate(req.archived):
+        title_score, abstract_score, objectives_score = title_scores[i], abstract_scores[i], objectives_scores[i]
 
         # Weighted overall: title 40%, abstract 35%, objectives 25%
         overall = round(
