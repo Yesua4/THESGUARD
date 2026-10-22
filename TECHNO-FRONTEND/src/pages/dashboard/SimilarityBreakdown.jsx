@@ -3,50 +3,71 @@ import api from '../../api/axios'
 import { highlightOverlap } from '../../utils/textOverlap'
 import { similarityBarColor, similarityScoreColor, similarityBadgeStyle } from '../../utils/similarityColors'
 
-function SemanticMatches({ ownText, otherText, label }) {
-  const [segments, setSegments] = useState(null)
+// Shows verbatim-overlap highlighting + SBERT semantic-match boxes for one
+// field (abstract or objectives). Critically, when BOTH come back empty --
+// a real, common case for genuinely different projects that still land in
+// the Moderate tier on generic structural/vocabulary similarity -- this
+// says so explicitly instead of silently rendering nothing, which read as
+// "the feature is broken" rather than "we checked, there's nothing specific."
+function FieldComparison({ ownText, otherText, label }) {
+  const [semanticSegments, setSemanticSegments] = useState(null) // null = still loading
+
+  const highlightSegments = useMemo(() => highlightOverlap(ownText, otherText), [ownText, otherText])
+  const hasHighlight = highlightSegments.some(s => s.matched)
 
   useEffect(() => {
-    if (!ownText || !otherText) { setSegments(null); return }
+    if (!ownText || !otherText) { setSemanticSegments([]); return }
     let cancelled = false
     api.post('/similarity/explain', { own_text: ownText, other_text: otherText })
-      .then(res => { if (!cancelled) setSegments(res.data.segments || []) })
-      .catch(() => { if (!cancelled) setSegments([]) })
+      .then(res => { if (!cancelled) setSemanticSegments(res.data.segments || []) })
+      .catch(() => { if (!cancelled) setSemanticSegments([]) })
     return () => { cancelled = true }
   }, [ownText, otherText])
 
-  const matched = (segments || []).filter(s => s.matched)
-  if (!segments || matched.length === 0) return null
+  if (!ownText) return null
+
+  const semanticMatched = (semanticSegments || []).filter(s => s.matched)
+  const stillLoading = semanticSegments === null
+  const foundNothing = !stillLoading && !hasHighlight && semanticMatched.length === 0
 
   return (
-    <div style={{ marginTop: '8px' }}>
-      <div style={{ fontSize: '10px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>
-        Semantically Similar {label} (different wording, same meaning)
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        {matched.map((s, i) => (
-          <div key={i} style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '8px 10px' }}>
-            <div style={{ fontSize: '12px', color: '#1e3a8a', marginBottom: '4px' }}>"{s.text}"</div>
-            <div style={{ fontSize: '11px', color: '#3b82f6' }}>≈ "{s.matched_with}" <span style={{ fontWeight: '700' }}>({s.score}% semantic match)</span></div>
-          </div>
+    <div>
+      <div style={{ fontSize: '10px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>{label}</div>
+      <div style={{ fontSize: '12px', lineHeight: '1.7', color: '#334155' }}>
+        {highlightSegments.map((s, i) => s.matched ? (
+          <mark key={i} title="This phrase also appears in the matched proposal" style={{ background: 'rgba(239,68,68,0.22)', color: '#9f1239', borderRadius: '3px', padding: '0 2px' }}>
+            {s.text}
+          </mark>
+        ) : (
+          <span key={i}>{s.text}</span>
         ))}
       </div>
-    </div>
-  )
-}
 
-function HighlightedText({ ownText, otherText }) {
-  const segments = useMemo(() => highlightOverlap(ownText, otherText), [ownText, otherText])
-  if (!ownText) return null
-  return (
-    <div style={{ fontSize: '12px', lineHeight: '1.7', color: '#334155' }}>
-      {segments.map((s, i) => s.matched ? (
-        <mark key={i} title="This phrase also appears in the matched proposal" style={{ background: 'rgba(239,68,68,0.22)', color: '#9f1239', borderRadius: '3px', padding: '0 2px' }}>
-          {s.text}
-        </mark>
-      ) : (
-        <span key={i}>{s.text}</span>
-      ))}
+      {semanticMatched.length > 0 && (
+        <div style={{ marginTop: '8px' }}>
+          <div style={{ fontSize: '10px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>
+            Semantically Similar {label} (different wording, same meaning)
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {semanticMatched.map((s, i) => (
+              <div key={i} style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '8px 10px' }}>
+                <div style={{ fontSize: '12px', color: '#1e3a8a', marginBottom: '4px' }}>"{s.text}"</div>
+                <div style={{ fontSize: '11px', color: '#3b82f6' }}>≈ "{s.matched_with}" <span style={{ fontWeight: '700' }}>({s.score}% semantic match)</span></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {stillLoading && (
+        <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>Checking for semantically similar phrasing...</div>
+      )}
+
+      {foundNothing && (
+        <div style={{ fontSize: '11px', color: '#64748b', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 10px', marginTop: '6px' }}>
+          ℹ No specific overlapping phrases or sentences found in this field. This part of the score likely reflects general structural or vocabulary similarity rather than identifiable shared content.
+        </div>
+      )}
     </div>
   )
 }
@@ -97,18 +118,10 @@ function MatchRow({ match, rank }) {
           ) : matchedProject && (matchedProject.abstract || matchedProject.objectives) ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {matchedProject.abstract && (
-                <div>
-                  <div style={{ fontSize: '10px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>Abstract</div>
-                  <HighlightedText ownText={match.ownAbstract} otherText={matchedProject.abstract} />
-                  <SemanticMatches ownText={match.ownAbstract} otherText={matchedProject.abstract} label="Sentences" />
-                </div>
+                <FieldComparison ownText={match.ownAbstract} otherText={matchedProject.abstract} label="Abstract" />
               )}
               {matchedProject.objectives && (
-                <div>
-                  <div style={{ fontSize: '10px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>Objectives</div>
-                  <HighlightedText ownText={match.ownObjectives} otherText={matchedProject.objectives} />
-                  <SemanticMatches ownText={match.ownObjectives} otherText={matchedProject.objectives} label="Objectives" />
-                </div>
+                <FieldComparison ownText={match.ownObjectives} otherText={matchedProject.objectives} label="Objectives" />
               )}
               <div style={{ fontSize: '11px', color: '#94a3b8' }}>
                 <mark style={{ background: 'rgba(239,68,68,0.22)', color: '#9f1239', borderRadius: '3px', padding: '0 2px' }}>Highlighted</mark> phrases are verbatim matches; <span style={{ color: '#3b82f6', fontWeight: '600' }}>blue boxes</span> below are semantically similar phrasing detected by SBERT.
@@ -207,18 +220,10 @@ function SimilarityBreakdown({ projectId, overallScore, forStudent = false }) {
           {showText && (
             <div style={{ marginTop:'10px', display:'flex', flexDirection:'column', gap:'10px' }}>
               {scores.own_abstract && (
-                <div>
-                  <div style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', textTransform:'uppercase', marginBottom:'4px' }}>Abstract</div>
-                  <HighlightedText ownText={scores.own_abstract} otherText={scores.matched_abstract} />
-                  <SemanticMatches ownText={scores.own_abstract} otherText={scores.matched_abstract} label="Sentences" />
-                </div>
+                <FieldComparison ownText={scores.own_abstract} otherText={scores.matched_abstract} label="Abstract" />
               )}
               {scores.own_objectives && (
-                <div>
-                  <div style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', textTransform:'uppercase', marginBottom:'4px' }}>Objectives</div>
-                  <HighlightedText ownText={scores.own_objectives} otherText={scores.matched_objectives} />
-                  <SemanticMatches ownText={scores.own_objectives} otherText={scores.matched_objectives} label="Objectives" />
-                </div>
+                <FieldComparison ownText={scores.own_objectives} otherText={scores.matched_objectives} label="Objectives" />
               )}
               <div style={{ fontSize:'11px', color:'#94a3b8' }}>
                 <mark style={{ background:'rgba(239,68,68,0.22)', color:'#9f1239', borderRadius:'3px', padding:'0 2px' }}>Highlighted</mark> phrases are verbatim matches; <span style={{ color:'#3b82f6', fontWeight:'600' }}>blue boxes</span> below are semantically similar phrasing detected by SBERT.
