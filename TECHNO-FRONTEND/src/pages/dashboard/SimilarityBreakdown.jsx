@@ -9,10 +9,12 @@ import { similarityBarColor, similarityScoreColor, similarityBadgeStyle } from '
 // the Moderate tier on generic structural/vocabulary similarity -- this
 // says so explicitly instead of silently rendering nothing, which read as
 // "the feature is broken" rather than "we checked, there's nothing specific."
-function FieldComparison({ ownText, otherText, label }) {
+function FieldComparison({ ownText, otherText, label, otherLabel }) {
   const [semanticSegments, setSemanticSegments] = useState(null) // null = still loading
+  const [showOther, setShowOther] = useState(false)
 
   const highlightSegments = useMemo(() => highlightOverlap(ownText, otherText), [ownText, otherText])
+  const otherHighlightSegments = useMemo(() => highlightOverlap(otherText, ownText), [ownText, otherText])
   const hasHighlight = highlightSegments.some(s => s.matched)
 
   useEffect(() => {
@@ -42,6 +44,25 @@ function FieldComparison({ ownText, otherText, label }) {
           <span key={i}>{s.text}</span>
         ))}
       </div>
+
+      {otherText && (
+        <div style={{ marginTop: '6px' }}>
+          <button onClick={() => setShowOther(v => !v)} style={{ fontSize: '11px', color: '#1d4ed8', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600', padding: 0 }}>
+            {showOther ? '▲ Hide' : '▼ Show'} {otherLabel ? `"${otherLabel}"'s` : "the matched project's"} {label.toLowerCase()}
+          </button>
+          {showOther && (
+            <div style={{ marginTop: '6px', padding: '8px 10px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '12px', lineHeight: '1.7', color: '#334155' }}>
+              {otherHighlightSegments.map((s, i) => s.matched ? (
+                <mark key={i} title="This phrase also appears in your proposal" style={{ background: 'rgba(239,68,68,0.22)', color: '#9f1239', borderRadius: '3px', padding: '0 2px' }}>
+                  {s.text}
+                </mark>
+              ) : (
+                <span key={i}>{s.text}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {semanticMatched.length > 0 && (
         <div style={{ marginTop: '8px' }}>
@@ -118,10 +139,10 @@ function MatchRow({ match, rank }) {
           ) : matchedProject && (matchedProject.abstract || matchedProject.objectives) ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {matchedProject.abstract && (
-                <FieldComparison ownText={match.ownAbstract} otherText={matchedProject.abstract} label="Abstract" />
+                <FieldComparison ownText={match.ownAbstract} otherText={matchedProject.abstract} label="Abstract" otherLabel={match.matched_title} />
               )}
               {matchedProject.objectives && (
-                <FieldComparison ownText={match.ownObjectives} otherText={matchedProject.objectives} label="Objectives" />
+                <FieldComparison ownText={match.ownObjectives} otherText={matchedProject.objectives} label="Objectives" otherLabel={match.matched_title} />
               )}
               <div style={{ fontSize: '11px', color: '#94a3b8' }}>
                 <mark style={{ background: 'rgba(239,68,68,0.22)', color: '#9f1239', borderRadius: '3px', padding: '0 2px' }}>Highlighted</mark> phrases are verbatim matches; <span style={{ color: '#3b82f6', fontWeight: '600' }}>blue boxes</span> below are semantically similar phrasing detected by SBERT.
@@ -220,10 +241,10 @@ function SimilarityBreakdown({ projectId, overallScore, forStudent = false }) {
           {showText && (
             <div style={{ marginTop:'10px', display:'flex', flexDirection:'column', gap:'10px' }}>
               {scores.own_abstract && (
-                <FieldComparison ownText={scores.own_abstract} otherText={scores.matched_abstract} label="Abstract" />
+                <FieldComparison ownText={scores.own_abstract} otherText={scores.matched_abstract} label="Abstract" otherLabel={scores.matched_title} />
               )}
               {scores.own_objectives && (
-                <FieldComparison ownText={scores.own_objectives} otherText={scores.matched_objectives} label="Objectives" />
+                <FieldComparison ownText={scores.own_objectives} otherText={scores.matched_objectives} label="Objectives" otherLabel={scores.matched_title} />
               )}
               <div style={{ fontSize:'11px', color:'#94a3b8' }}>
                 <mark style={{ background:'rgba(239,68,68,0.22)', color:'#9f1239', borderRadius:'3px', padding:'0 2px' }}>Highlighted</mark> phrases are verbatim matches; <span style={{ color:'#3b82f6', fontWeight:'600' }}>blue boxes</span> below are semantically similar phrasing detected by SBERT.
