@@ -159,7 +159,7 @@ class ProjectController extends Controller {
                 'objectives_embedding' => $p->objectives_embedding,
             ])->toArray();
 
-            $response = \Illuminate\Support\Facades\Http::timeout(60)
+            $response = \Illuminate\Support\Facades\Http::timeout(120)
             ->post(config('services.similarity_url') . '/check', [
                 'use_sbert'   => true,
                 'new_project' => [
@@ -537,7 +537,7 @@ class ProjectController extends Controller {
                 'objectives_embedding' => $p->objectives_embedding,
             ])->toArray();
 
-            $response = \Illuminate\Support\Facades\Http::timeout(60)
+            $response = \Illuminate\Support\Facades\Http::timeout(120)
             ->post(config('services.similarity_url') . '/check', [
                 'use_sbert'   => true,
                 'new_project' => [

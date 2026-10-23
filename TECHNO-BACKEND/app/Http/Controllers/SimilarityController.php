@@ -27,7 +27,7 @@ class SimilarityController extends Controller {
             ->toArray();
 
         try {
-            $response = Http::timeout(60)->post(config('services.similarity_url') . '/check', [
+            $response = Http::timeout(120)->post(config('services.similarity_url') . '/check', [
                 'new_project' => [
                     'title'      => $data['title'],
                     'abstract'   => $data['abstract'],
