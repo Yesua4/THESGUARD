@@ -84,6 +84,15 @@ class ArchivedProject(BaseModel):
     title:      str
     abstract:   Optional[str] = ""
     objectives: Optional[str] = ""
+    # Pre-computed SBERT embeddings (384 floats, L2-normalized), cached by
+    # Laravel in the projects table when a project's text is saved. When
+    # present, /check skips re-encoding this archived entry's text entirely
+    # -- only the new submission still needs a live encode. When absent
+    # (legacy rows not yet backfilled), /check falls back to encoding the
+    # raw text, same as before this cache existed.
+    title_embedding:      Optional[List[float]] = None
+    abstract_embedding:   Optional[List[float]] = None
+    objectives_embedding: Optional[List[float]] = None
 
 class CheckRequest(BaseModel):
     new_project: ProjectText
@@ -93,6 +102,11 @@ class CheckRequest(BaseModel):
 class ExplainRequest(BaseModel):
     own_text:   str
     other_text: str
+
+class EmbedRequest(BaseModel):
+    title:      str
+    abstract:   Optional[str] = ""
+    objectives: Optional[str] = ""
 
 # ── Text preprocessing ────────────────────────────────────────────────────────
 def preprocess(text: str) -> str:
@@ -150,47 +164,59 @@ def combined_similarity(text_a: str, text_b: str, use_sbert: bool = True) -> flo
 def root():
     return {"status": "ThesisGuard similarity service running"}
 
-def _batch_field_scores(new_text: str, old_texts: List[str], use_sbert: bool) -> List[float]:
+def _batch_field_scores(new_text: str, old_texts: List[str], use_sbert: bool,
+                         old_embeddings: Optional[List[Optional[List[float]]]] = None) -> List[float]:
     """
     Scores new_text against every text in old_texts for one field (title,
-    abstract, or objectives). Previously, combined_similarity() was called
-    once per archived entry, which re-ran SBERT on new_text from scratch
-    every single time -- for N archived entries that's N redundant encodes
-    of the exact same text. This batches new_text + all old_texts into ONE
-    SBERT call (embeddings for new_text computed exactly once, reused for
-    every comparison) and reuses preprocess() output, instead of recomputing
-    spaCy lemmatization per pair too. Same math as combined_similarity(),
-    just computed once per field per request instead of once per pair.
+    abstract, or objectives).
+
+    SBERT side: the new submission is always encoded live, exactly once
+    (previously combined_similarity() re-encoded it from scratch for every
+    archived entry). Each archived entry uses its cached embedding when
+    old_embeddings[i] is given (the real fix for the archive-side cost,
+    which used to be re-encoded on every single check regardless of
+    whether the archive text had changed); only entries with no cached
+    embedding yet (legacy rows) get batch-encoded live, in one call.
+
+    TF-IDF side is unaffected -- fitting a 2-document TF-IDF per pair is
+    cheap and was never the bottleneck, so it's still computed directly.
     """
     n = len(old_texts)
-    all_texts = [new_text] + old_texts
+    if old_embeddings is None:
+        old_embeddings = [None] * n
 
-    if use_sbert:
-        valid_idx = [i for i, t in enumerate(all_texts) if t.strip()]
-        embs = None
-        if len(valid_idx) >= 2 or (new_text.strip() and valid_idx):
-            embs_valid = sbert_embed([all_texts[i] for i in valid_idx]) if valid_idx else None
-            embs = np.zeros((len(all_texts), embs_valid.shape[1]), dtype=np.float32) if embs_valid is not None else None
-            if embs is not None:
-                for row, i in enumerate(valid_idx):
-                    embs[i] = embs_valid[row]
+    new_emb = None
+    if use_sbert and new_text.strip():
+        new_emb = sbert_embed([new_text])[0]
 
-    pre = [preprocess(t) for t in all_texts]
+    missing_idx = [
+        i for i in range(n)
+        if use_sbert and old_texts[i].strip() and not old_embeddings[i]
+    ]
+    live_embs = {}
+    if missing_idx:
+        encoded = sbert_embed([old_texts[i] for i in missing_idx])
+        for row, i in enumerate(missing_idx):
+            live_embs[i] = encoded[row]
+
+    pre_new = preprocess(new_text)
+    pre_old = [preprocess(t) for t in old_texts]
 
     scores = []
-    for i in range(1, n + 1):
-        if not all_texts[0].strip() or not all_texts[i].strip():
+    for i in range(n):
+        if not new_text.strip() or not old_texts[i].strip():
             scores.append(0.0)
             continue
         t_score = 0.0
-        if use_sbert and embs is not None:
-            t_score = round(max(0.0, float(np.dot(embs[0], embs[i]))) * 100, 2)
-        a, b = pre[0], pre[i]
+        if use_sbert and new_emb is not None:
+            vec = old_embeddings[i] if old_embeddings[i] else live_embs.get(i)
+            if vec is not None:
+                t_score = round(max(0.0, float(np.dot(new_emb, np.asarray(vec, dtype=np.float32)))) * 100, 2)
         f_score = 0.0
-        if a.strip() and b.strip():
+        if pre_new.strip() and pre_old[i].strip():
             try:
-                vec = TfidfVectorizer()
-                matrix = vec.fit_transform([a, b])
+                vec2 = TfidfVectorizer()
+                matrix = vec2.fit_transform([pre_new, pre_old[i]])
                 f_score = round(float(sklearn_cosine(matrix[0], matrix[1])[0][0]) * 100, 2)
             except Exception:
                 f_score = 0.0
@@ -201,9 +227,9 @@ def _batch_field_scores(new_text: str, old_texts: List[str], use_sbert: bool) ->
 def check_similarity(req: CheckRequest):
     results = []
 
-    title_scores      = _batch_field_scores(req.new_project.title,      [o.title or "" for o in req.archived],      req.use_sbert)
-    abstract_scores   = _batch_field_scores(req.new_project.abstract or "",   [o.abstract or "" for o in req.archived],   req.use_sbert)
-    objectives_scores = _batch_field_scores(req.new_project.objectives or "", [o.objectives or "" for o in req.archived], req.use_sbert)
+    title_scores      = _batch_field_scores(req.new_project.title,      [o.title or "" for o in req.archived],      req.use_sbert, [o.title_embedding for o in req.archived])
+    abstract_scores   = _batch_field_scores(req.new_project.abstract or "",   [o.abstract or "" for o in req.archived],   req.use_sbert, [o.abstract_embedding for o in req.archived])
+    objectives_scores = _batch_field_scores(req.new_project.objectives or "", [o.objectives or "" for o in req.archived], req.use_sbert, [o.objectives_embedding for o in req.archived])
 
     for i, old in enumerate(req.archived):
         title_score, abstract_score, objectives_score = title_scores[i], abstract_scores[i], objectives_scores[i]
@@ -236,6 +262,27 @@ def check_similarity(req: CheckRequest):
         "objectives_score": top["objectives_score"] if top else 0,
         "matches":          results,
         "method":           "SBERT + TF-IDF" if req.use_sbert else "TF-IDF only",
+    }
+
+@app.post("/embed")
+def embed_project(req: EmbedRequest):
+    """
+    Computes and returns SBERT embeddings for a project's title/abstract/
+    objectives, so Laravel can cache them on the projects row. Once cached,
+    /check never needs to re-encode this project's text as an archived
+    comparison target again -- only recomputed when the text itself changes.
+    """
+    texts = [req.title, req.abstract or "", req.objectives or ""]
+    valid_idx = [i for i, t in enumerate(texts) if t.strip()]
+    result: List[Optional[List[float]]] = [None, None, None]
+    if valid_idx:
+        embs = sbert_embed([texts[i] for i in valid_idx])
+        for row, i in enumerate(valid_idx):
+            result[i] = embs[row].tolist()
+    return {
+        "title_embedding":      result[0],
+        "abstract_embedding":   result[1],
+        "objectives_embedding": result[2],
     }
 
 # Verbatim phrase-overlap (see frontend utils/textOverlap.js) only catches

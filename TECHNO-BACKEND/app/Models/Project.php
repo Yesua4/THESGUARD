@@ -9,7 +9,10 @@ class Project extends Model {
         'similarity_score', 'title_status', 'is_final_title', 'defense_verdict', 'github_url', 'title_feedback', 'school_id'
     ];
     protected $casts = [
-        'is_final_title' => 'boolean',
+        'is_final_title'       => 'boolean',
+        'title_embedding'      => 'array',
+        'abstract_embedding'   => 'array',
+        'objectives_embedding' => 'array',
     ];
 
     public function adviser() {

@@ -14,17 +14,20 @@ class SimilarityController extends Controller {
         ]);
 
         $archived = Project::whereIn('status', ['approved', 'archived'])
-            ->get(['id', 'title', 'abstract', 'objectives'])
+            ->get(['id', 'title', 'abstract', 'objectives', 'title_embedding', 'abstract_embedding', 'objectives_embedding'])
             ->map(fn($p) => [
-                'id'         => $p->id,
-                'title'      => $p->title ?? '',
-                'abstract'   => $p->abstract ?? '',
-                'objectives' => $p->objectives ?? '',
+                'id'                   => $p->id,
+                'title'                => $p->title ?? '',
+                'abstract'             => $p->abstract ?? '',
+                'objectives'           => $p->objectives ?? '',
+                'title_embedding'      => $p->title_embedding,
+                'abstract_embedding'   => $p->abstract_embedding,
+                'objectives_embedding' => $p->objectives_embedding,
             ])
             ->toArray();
 
         try {
-            $response = Http::timeout(30)->post(config('services.similarity_url') . '/check', [
+            $response = Http::timeout(60)->post(config('services.similarity_url') . '/check', [
                 'new_project' => [
                     'title'      => $data['title'],
                     'abstract'   => $data['abstract'],

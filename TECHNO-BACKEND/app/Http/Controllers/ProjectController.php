@@ -4,6 +4,7 @@ use App\Models\Contribution;
 use App\Models\Project;
 use App\Models\ProjectMember;
 use App\Services\ActivityBroadcastService;
+use App\Services\EmbeddingService;
 use App\Services\NotificationService;
 use App\Services\SimilarityService;
 use Illuminate\Http\Request;
@@ -53,7 +54,7 @@ class ProjectController extends Controller {
         return response()->json($projects);
     }
 
-    public function importArchived(Request $request) {
+    public function importArchived(Request $request, EmbeddingService $embedder) {
         $user = $request->user();
         abort_unless(in_array($user->role, ['admin', 'instructor']), 403, 'Only administrators and instructors can import archived projects.');
 
@@ -91,7 +92,7 @@ class ProjectController extends Controller {
                 $adviserId = $adviser?->id;
             }
 
-            Project::create([
+            $imported = Project::create([
                 'group_id'      => null,
                 'title'         => substr($title, 0, 500),
                 'abstract'      => $abstract ?: null,
@@ -105,6 +106,7 @@ class ProjectController extends Controller {
                 'title_status'  => 'approved',
                 'school_id'     => $user->school_id,
             ]);
+            $embedder->embedAndCache($imported);
 
             $created++;
         }
@@ -120,7 +122,7 @@ class ProjectController extends Controller {
         ]);
     }
 
-    public function store(Request $request, SimilarityService $svc, NotificationService $notifications) {
+    public function store(Request $request, SimilarityService $svc, NotificationService $notifications, EmbeddingService $embedder) {
         $data = $request->validate([
             'title'         => 'required|string|max:500',
             'abstract'      => 'nullable|string',
@@ -148,13 +150,16 @@ class ProjectController extends Controller {
         // Try Python NLP first, fallback to PHP cosine similarity
         try {
             $archivedForPython = $archived->map(fn($p) => [
-                'id'         => $p->id,
-                'title'      => $p->title ?? '',
-                'abstract'   => $p->abstract ?? '',
-                'objectives' => $p->objectives ?? '',
+                'id'                   => $p->id,
+                'title'                => $p->title ?? '',
+                'abstract'             => $p->abstract ?? '',
+                'objectives'           => $p->objectives ?? '',
+                'title_embedding'      => $p->title_embedding,
+                'abstract_embedding'   => $p->abstract_embedding,
+                'objectives_embedding' => $p->objectives_embedding,
             ])->toArray();
 
-            $response = \Illuminate\Support\Facades\Http::timeout(30)
+            $response = \Illuminate\Support\Facades\Http::timeout(60)
             ->post(config('services.similarity_url') . '/check', [
                 'use_sbert'   => true,
                 'new_project' => [
@@ -200,6 +205,7 @@ class ProjectController extends Controller {
         }
 
         $project = Project::create($data);
+        $embedder->embedAndCache($project);
 
         // Notify adviser about new proposal
         if ($data['adviser_id']) {
@@ -289,7 +295,7 @@ class ProjectController extends Controller {
         return ProjectMember::where('project_id', $project->id)->where('user_id', $user->id)->exists();
     }
 
-    public function update(Request $request, $id, NotificationService $notifications, ActivityBroadcastService $activity) {
+    public function update(Request $request, $id, NotificationService $notifications, ActivityBroadcastService $activity, EmbeddingService $embedder) {
         $project = Project::findOrFail($id);
         $user    = $request->user();
 
@@ -328,6 +334,10 @@ class ProjectController extends Controller {
 
         $oldTitleStatus = $project->title_status;
         $project->update($data);
+
+        if (array_intersect(['title', 'abstract', 'objectives'], array_keys($data))) {
+            $embedder->embedAndCache($project);
+        }
 
         $activity->broadcast($project->id, 'project_updated', ['project' => $project]);
 
@@ -518,13 +528,16 @@ class ProjectController extends Controller {
 
         try {
             $archivedForPython = $archived->map(fn($p) => [
-                'id'         => $p->id,
-                'title'      => $p->title ?? '',
-                'abstract'   => $p->abstract ?? '',
-                'objectives' => $p->objectives ?? '',
+                'id'                   => $p->id,
+                'title'                => $p->title ?? '',
+                'abstract'             => $p->abstract ?? '',
+                'objectives'           => $p->objectives ?? '',
+                'title_embedding'      => $p->title_embedding,
+                'abstract_embedding'   => $p->abstract_embedding,
+                'objectives_embedding' => $p->objectives_embedding,
             ])->toArray();
 
-            $response = \Illuminate\Support\Facades\Http::timeout(30)
+            $response = \Illuminate\Support\Facades\Http::timeout(60)
             ->post(config('services.similarity_url') . '/check', [
                 'use_sbert'   => true,
                 'new_project' => [
