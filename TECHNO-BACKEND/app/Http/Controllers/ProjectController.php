@@ -54,7 +54,7 @@ class ProjectController extends Controller {
         return response()->json($projects);
     }
 
-    public function importArchived(Request $request, EmbeddingService $embedder) {
+    public function importArchived(Request $request) {
         $user = $request->user();
         abort_unless(in_array($user->role, ['admin', 'instructor']), 403, 'Only administrators and instructors can import archived projects.');
 
@@ -106,7 +106,12 @@ class ProjectController extends Controller {
                 'title_status'  => 'approved',
                 'school_id'     => $user->school_id,
             ]);
-            $embedder->embedAndCache($imported);
+            // No synchronous embedAndCache() here on purpose: looping it
+            // over every CSV row made the request blow past PHP's
+            // max_execution_time on large imports, which kills the script
+            // before Laravel can send a response. Archived projects fall
+            // back to live-encoding in /check until something re-embeds
+            // them (see EmbeddingService::embedAndCache docblock).
 
             $created++;
         }
