@@ -46,20 +46,35 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
       if (renderTaskRef.current) renderTaskRef.current.cancel()
       const task = page.render({ canvasContext: ctx, viewport })
       renderTaskRef.current = task
-      await task.promise.catch(() => {})
+      // A real render failure here used to be swallowed silently, which left
+      // the page marked "rendered" with a blank canvas and no visible error
+      // anywhere -- logging it is what actually surfaces the real cause the
+      // next time this happens. RenderingCancelledException is expected
+      // (fired by the unload effect's own task.cancel()) and not a bug.
+      try {
+        await task.promise
+      } catch (err) {
+        if (err?.name !== 'RenderingCancelledException') {
+          console.error(`PDF page ${pageNumber} failed to render:`, err)
+        }
+        return
+      }
       if (cancelled) return
+      setRendered(true) // canvas painted -- show it even if the text layer below fails
 
-      const textLayerDiv = textLayerRef.current
-      if (!textLayerDiv) return
-      textLayerDiv.innerHTML = ''
-      textLayerDiv.style.width = `${viewport.width}px`
-      textLayerDiv.style.height = `${viewport.height}px`
+      try {
+        const textLayerDiv = textLayerRef.current
+        if (!textLayerDiv) return
+        textLayerDiv.innerHTML = ''
+        textLayerDiv.style.width = `${viewport.width}px`
+        textLayerDiv.style.height = `${viewport.height}px`
 
-      const textContent = await page.getTextContent()
-      if (cancelled) return
-      pdfjsLib.renderTextLayer({ textContentSource: textContent, container: textLayerDiv, viewport, textDivs: [] })
-
-      if (!cancelled) setRendered(true)
+        const textContent = await page.getTextContent()
+        if (cancelled) return
+        pdfjsLib.renderTextLayer({ textContentSource: textContent, container: textLayerDiv, viewport, textDivs: [] })
+      } catch (err) {
+        console.error(`PDF page ${pageNumber} text layer failed:`, err)
+      }
     })
 
     return () => { cancelled = true }
