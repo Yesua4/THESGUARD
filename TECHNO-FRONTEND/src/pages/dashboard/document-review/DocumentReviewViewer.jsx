@@ -176,12 +176,13 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
                 documentId={document.id}
                 pageNumber={pageNumber}
                 onPageCountChange={setNumPages}
+                onPageNumberChange={setPageNumber}
                 onSelection={handleSelection}
                 onPageClick={handlePageClick}
                 annotations={annotations}
                 onAnnotationClick={handleAnnotationClick}
                 activeAnnotationId={activeCommentId}
-                pendingDraft={draft && draft.pageNumber === pageNumber ? draft : null}
+                pendingDraft={draft}
                 onSubmitDraft={handleSubmitDraft}
                 onCancelDraft={() => setDraft(null)}
               />
