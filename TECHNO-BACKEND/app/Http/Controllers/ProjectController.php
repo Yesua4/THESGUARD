@@ -67,7 +67,19 @@ class ProjectController extends Controller {
 
         $records = collect($csv->getRecords());
         $created = 0;
+        $duplicates = 0;
         $skipped = [];
+
+        // Pre-load existing archived titles for this school so each row is a
+        // cheap in-memory lookup instead of a query -- keeps the loop fast
+        // enough to stay under PHP's execution-time limit on large CSVs, and
+        // also catches duplicate rows within the CSV file itself, not just
+        // ones already in the archive.
+        $existingTitles = Project::where('status', 'archived')
+            ->when($user->school_id, fn($q) => $q->where('school_id', $user->school_id))
+            ->pluck('title')
+            ->map(fn($t) => strtolower(trim($t)))
+            ->flip();
 
         foreach ($records as $index => $row) {
             $title      = trim($row['title']      ?? $row['Title']      ?? '');
@@ -82,6 +94,14 @@ class ProjectController extends Controller {
                 $skipped[] = "Row " . ($index + 2) . ": Missing title.";
                 continue;
             }
+
+            $titleKey = strtolower($title);
+            if ($existingTitles->has($titleKey)) {
+                $duplicates++;
+                $skipped[] = "Row " . ($index + 2) . ": Already in the archive (duplicate title), skipped.";
+                continue;
+            }
+            $existingTitles->put($titleKey, true);
 
             $adviserId = null;
             if ($adviserName) {
@@ -117,11 +137,12 @@ class ProjectController extends Controller {
         }
 
         $message = $created > 0
-            ? "{$created} archived project(s) imported successfully."
-            : 'No projects were imported.';
+            ? "{$created} archived project(s) imported successfully." . ($duplicates > 0 ? " {$duplicates} duplicate(s) skipped." : '')
+            : ($duplicates > 0 ? "No new projects imported -- all {$duplicates} row(s) already exist in the archive." : 'No projects were imported.');
 
         return response()->json([
             'created' => $created,
+            'duplicates' => $duplicates,
             'skipped' => $skipped,
             'message' => $message,
         ]);
