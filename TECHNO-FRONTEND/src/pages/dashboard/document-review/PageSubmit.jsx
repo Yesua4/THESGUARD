@@ -23,6 +23,7 @@ function PageSubmit({ initialDocumentId, onConsumeInitialDocument }) {
   const [selectedDoc, setSelectedDoc]   = useState(null)
   const [approvedProject, setApprovedProject] = useState(null)
   const [needsChoice, setNeedsChoice]   = useState(false)
+  const [deletingId, setDeletingId]     = useState(null)
 
   useEffect(() => {
     api.get('/projects').then(res => {
@@ -128,6 +129,24 @@ function PageSubmit({ initialDocumentId, onConsumeInitialDocument }) {
       setError(err.response?.data?.message || 'Could not open this document for editing.')
     } finally {
       setConverting(false)
+    }
+  }
+
+  // Lets a student remove a document they uploaded by mistake (wrong file,
+  // wrong type, etc.) instead of it sitting in their history forever with no
+  // way to undo it.
+  const deleteDocument = async doc => {
+    const ok = window.confirm(`Delete ${typeLabel[doc.type] || doc.type} v${doc.version}? This can't be undone.`)
+    if (!ok) return
+    setDeletingId(doc.id)
+    try {
+      await api.delete(`/documents/${doc.id}`)
+      if (selectedDoc?.id === doc.id) setSelectedDoc(null)
+      loadDocs()
+    } catch (err) {
+      setError(err.response?.data?.message || 'Could not delete this document.')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -353,6 +372,12 @@ function PageSubmit({ initialDocumentId, onConsumeInitialDocument }) {
                           </span>
                         )}
                         <span style={{ fontSize:'11px', color:'#1d4ed8', fontWeight:'600' }}>View →</span>
+                        <span
+                          onClick={e => { e.stopPropagation(); deleteDocument(d) }}
+                          style={{ fontSize:'11px', color: deletingId === d.id ? '#cbd5e1' : '#dc2626', fontWeight:'600', pointerEvents: deletingId === d.id ? 'none' : 'auto' }}
+                        >
+                          {deletingId === d.id ? 'Deleting…' : '🗑️ Delete'}
+                        </span>
                       </div>
                     </div>
                   </div>
