@@ -39,18 +39,29 @@ return [
         // Kept under the same 'local' name (not renamed to e.g.
         // 'documents') so Storage::fake('local') in tests keeps working
         // unchanged regardless of which driver this resolves to for real.
-        'local' => [
-            'driver' => env('DOCUMENTS_S3_BUCKET') ? 's3' : 'local',
-            'root' => storage_path('app/private'),
-            'serve' => true,
-            'throw' => false,
-            'report' => false,
+        // 'root' only means something for the 'local' driver -- kept in the
+        // SAME array as the s3 settings before, Flysystem's S3 adapter also
+        // reads it as a key prefix, so every object got stored/looked up
+        // under a path containing this container's own absolute local
+        // filesystem path (storage_path('app/private') = "/app/storage/app
+        // /private"), producing a malformed S3 key and a 403 on every
+        // read/write. These must be two fully separate config arrays.
+        'local' => env('DOCUMENTS_S3_BUCKET') ? [
+            'driver' => 's3',
             'key' => env('DOCUMENTS_S3_KEY'),
             'secret' => env('DOCUMENTS_S3_SECRET'),
             'region' => env('DOCUMENTS_S3_REGION', 'ap-southeast-1'),
             'bucket' => env('DOCUMENTS_S3_BUCKET'),
             'endpoint' => env('DOCUMENTS_S3_ENDPOINT'),
             'use_path_style_endpoint' => true,
+            'throw' => false,
+            'report' => false,
+        ] : [
+            'driver' => 'local',
+            'root' => storage_path('app/private'),
+            'serve' => true,
+            'throw' => false,
+            'report' => false,
         ],
 
         'public' => [
