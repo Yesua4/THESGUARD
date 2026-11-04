@@ -13,6 +13,7 @@ FROM php:8.2-cli-bookworm
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libpq-dev libzip-dev zip unzip git \
         libreoffice-writer \
+        fonts-crosextra-carlito fonts-crosextra-caladea fonts-liberation \
     && docker-php-ext-install pdo pdo_pgsql pgsql pcntl zip \
     && rm -rf /var/lib/apt/lists/*
 
