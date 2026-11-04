@@ -30,12 +30,27 @@ return [
 
     'disks' => [
 
+        // Uploaded documents live here. On Railway this MUST resolve to
+        // durable storage (Supabase Storage, S3-compatible) rather than the
+        // 'local' driver -- Railway containers are ephemeral, so anything
+        // written to the container's own disk is deleted on every redeploy.
+        // Driver switches to 's3' automatically once DOCUMENTS_S3_BUCKET is
+        // set; local dev without it falls back to the real local disk.
+        // Kept under the same 'local' name (not renamed to e.g.
+        // 'documents') so Storage::fake('local') in tests keeps working
+        // unchanged regardless of which driver this resolves to for real.
         'local' => [
-            'driver' => 'local',
+            'driver' => env('DOCUMENTS_S3_BUCKET') ? 's3' : 'local',
             'root' => storage_path('app/private'),
             'serve' => true,
             'throw' => false,
             'report' => false,
+            'key' => env('DOCUMENTS_S3_KEY'),
+            'secret' => env('DOCUMENTS_S3_SECRET'),
+            'region' => env('DOCUMENTS_S3_REGION', 'ap-southeast-1'),
+            'bucket' => env('DOCUMENTS_S3_BUCKET'),
+            'endpoint' => env('DOCUMENTS_S3_ENDPOINT'),
+            'use_path_style_endpoint' => true,
         ],
 
         'public' => [

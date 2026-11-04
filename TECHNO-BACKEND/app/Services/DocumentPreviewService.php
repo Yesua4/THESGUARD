@@ -24,7 +24,7 @@ class DocumentPreviewService {
             return null;
         }
 
-        $sourceFullPath = Storage::disk('local')->path($storedPath);
+        $sourceFullPath = $this->downloadToTemp($storedPath, $srcDir);
         $outDir = storage_path('app/tmp/previews');
         if (!is_dir($outDir)) mkdir($outDir, 0755, true);
 
@@ -43,6 +43,7 @@ class DocumentPreviewService {
         [$exitCode, $output, $errorOutput] = $this->run($cmd, 60);
 
         (new Filesystem())->deleteDirectory($profileDir);
+        (new Filesystem())->deleteDirectory($srcDir);
 
         if ($exitCode !== 0) {
             Log::error("Document preview conversion failed for {$storedPath}: exit={$exitCode} out=[{$output}] err=[{$errorOutput}]");
@@ -76,7 +77,7 @@ class DocumentPreviewService {
             return null;
         }
 
-        $sourceFullPath = Storage::disk('local')->path($storedPath);
+        $sourceFullPath = $this->downloadToTemp($storedPath, $srcDir);
         $outDir = storage_path('app/tmp/html_' . uniqid());
         if (!is_dir($outDir)) mkdir($outDir, 0755, true);
 
@@ -91,6 +92,7 @@ class DocumentPreviewService {
 
         [$exitCode, $output, $errorOutput] = $this->run($cmd, 60);
         (new Filesystem())->deleteDirectory($profileDir);
+        (new Filesystem())->deleteDirectory($srcDir);
 
         if ($exitCode !== 0) {
             Log::error("Document HTML conversion failed for {$storedPath}: exit={$exitCode} out=[{$output}] err=[{$errorOutput}]");
@@ -111,6 +113,18 @@ class DocumentPreviewService {
 
         (new Filesystem())->deleteDirectory($outDir);
         return $bodyHtml;
+    }
+
+    // LibreOffice needs a real path on this machine's own disk -- 'local'
+    // may actually be remote (S3-compatible) storage in production, so
+    // download a scratch copy here rather than assuming the file is already
+    // on disk. $srcDir is populated for the caller to clean up afterward.
+    private function downloadToTemp(string $storedPath, ?string &$srcDir): string {
+        $srcDir = storage_path('app/tmp/convert_src_' . uniqid());
+        mkdir($srcDir, 0755, true);
+        $localPath = $srcDir . DIRECTORY_SEPARATOR . basename($storedPath);
+        file_put_contents($localPath, Storage::disk('local')->get($storedPath));
+        return $localPath;
     }
 
     private function extractBody(string $raw): string {
