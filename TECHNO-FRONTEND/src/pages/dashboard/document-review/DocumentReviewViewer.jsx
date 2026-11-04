@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useAuth } from '../../../context/AuthContext'
 import { useDocumentComments } from '../../../hooks/useDocumentComments'
 import { useProjectChannel } from '../../../hooks/useProjectChannel'
@@ -81,6 +81,9 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
 
   const [pageNumber, setPageNumber] = useState(1)
   const [numPages, setNumPages] = useState(0)
+  // Passed to PdfViewer so it observes scroll position on THIS element
+  // (the one actually scrolling) instead of a second one nested inside it.
+  const bodyScrollRef = useRef(null)
   const [draft, setDraft] = useState(null)
   const [activeCommentId, setActiveCommentId] = useState(null)
   const [previousVersion, setPreviousVersion] = useState(null)
@@ -170,7 +173,7 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
 
         {/* Body */}
         <div className="dg-viewer-body" style={{ flex: 1 }}>
-          <div style={{ flex: 1, overflowY: 'auto', padding: canPreview ? '20px' : 0, background: '#f1f5f9' }}>
+          <div ref={bodyScrollRef} style={{ flex: 1, overflowY: 'auto', padding: canPreview ? '20px' : 0, background: '#f1f5f9' }}>
             {isInAppDraft ? (
               <div
                 style={{ background: '#fff', borderRadius: '10px', padding: '32px 40px', maxWidth: '820px', margin: '0 auto', fontSize: '13px', lineHeight: '1.7', color: '#0f172a' }}
@@ -179,6 +182,7 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
             ) : canPreview ? (
               <PdfViewer
                 documentId={document.id}
+                scrollContainerRef={bodyScrollRef}
                 pageNumber={pageNumber}
                 onPageCountChange={setNumPages}
                 onPageNumberChange={setPageNumber}

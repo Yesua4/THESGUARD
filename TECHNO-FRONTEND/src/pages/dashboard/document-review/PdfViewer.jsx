@@ -250,7 +250,7 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
 // canvas/text layer, via one shared IntersectionObserver rooted on this
 // component's own scroll container, so a long document (dozens+ of pages)
 // doesn't pay the cost of rendering everything up front.
-export default function PdfViewer({ documentId, pageNumber, onPageCountChange, onPageNumberChange, onSelection, onPageClick, annotations = [], onAnnotationClick, activeAnnotationId, pendingDraft, onSubmitDraft, onCancelDraft }) {
+export default function PdfViewer({ documentId, pageNumber, onPageCountChange, onPageNumberChange, onSelection, onPageClick, annotations = [], onAnnotationClick, activeAnnotationId, pendingDraft, onSubmitDraft, onCancelDraft, scrollContainerRef }) {
   const [pdfDoc, setPdfDoc] = useState(null)
   const [numPages, setNumPages] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -260,7 +260,15 @@ export default function PdfViewer({ documentId, pageNumber, onPageCountChange, o
   const [visiblePages, setVisiblePages] = useState(() => new Set([1]))
   const [pageHeights, setPageHeights] = useState({})
 
-  const scrollRef = useRef(null)
+  // Must be the SAME element that actually scrolls -- a second, nested
+  // overflow:auto div here (independent of the parent's own scrollable
+  // wrapper) made the IntersectionObserver's root never line up with real
+  // scroll position, so nothing past whatever happened to be visible on
+  // first paint ever registered as in view. Falls back to an internal ref
+  // if no parent container is supplied (there's currently only one caller,
+  // which always supplies one).
+  const fallbackRef = useRef(null)
+  const scrollRef = scrollContainerRef ?? fallbackRef
   const pageRefs = useRef({})
   // Distinguishes a `pageNumber` prop change caused by us reporting the
   // user's own scroll position back up, vs. a real external jump (nav
@@ -371,7 +379,7 @@ export default function PdfViewer({ documentId, pageNumber, onPageCountChange, o
       {loading && <div style={{ padding: '40px', color: '#94a3b8', fontSize: '13px' }}>Loading document…</div>}
       {error && <div style={{ padding: '40px', color: '#dc2626', fontSize: '13px' }}>{error}</div>}
       {!loading && !error && (
-        <div ref={scrollRef} style={{ width: '100%', height: '100%', overflowY: 'auto' }}>
+        <div style={{ width: '100%' }}>
           {pageNumbers.map(n => (
             <div key={n} ref={el => { pageRefs.current[n] = el }} data-page-number={n}>
               <Page
