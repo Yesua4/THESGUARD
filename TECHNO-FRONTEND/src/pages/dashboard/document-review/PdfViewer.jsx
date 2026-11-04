@@ -65,6 +65,24 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
     return () => { cancelled = true }
   }, [visible, rendered, width, pdfDoc, pageNumber])
 
+  // Release this page's canvas once it scrolls back out of the render
+  // window. Without this, every page that was ever scrolled past stays
+  // rendered forever -- on an 89-page document that's dozens of full-
+  // resolution canvases alive at once, which eventually exceeds the
+  // browser's total canvas memory budget. Chrome doesn't throw when that
+  // happens; it silently blanks canvases (including ones far from where the
+  // budget was exceeded), which is exactly the "pages just go blank" bug
+  // this fixes. `height` is kept so the placeholder holds the same scroll
+  // space instead of the page jumping when it unloads.
+  useEffect(() => {
+    if (visible || !rendered) return
+    if (renderTaskRef.current) { renderTaskRef.current.cancel(); renderTaskRef.current = null }
+    const canvas = canvasRef.current
+    if (canvas) { canvas.width = 0; canvas.height = 0 }
+    if (textLayerRef.current) textLayerRef.current.innerHTML = ''
+    setRendered(false)
+  }, [visible, rendered])
+
   const pageAnnotations = annotations.filter(a => a.pageNumber === pageNumber)
   const pendingRects = pendingDraft && Array.isArray(pendingDraft.anchor) ? pendingDraft.anchor : null
 
@@ -271,9 +289,12 @@ export default function PdfViewer({ documentId, pageNumber, onPageCountChange, o
   }, [pdfDoc, naturalWidth])
 
   // One observer watches every page wrapper: anything within PRELOAD_MARGIN
-  // gets added to visiblePages (and stays rendered once drawn -- Page itself
-  // never un-renders), and the entry closest to the top of the actual
-  // viewport becomes the reported "current page".
+  // is in visiblePages and rendered; anything that scrolls back out of that
+  // margin is removed so Page releases its canvas (see the unload effect in
+  // Page) -- without this a long document keeps every page it ever scrolled
+  // past rendered forever, eventually exceeding the browser's total canvas
+  // memory budget and causing pages to silently go blank. The entry closest
+  // to the top of the actual viewport becomes the reported "current page".
   useEffect(() => {
     if (!pdfDoc || !numPages || !scrollRef.current) return
 
@@ -283,6 +304,7 @@ export default function PdfViewer({ documentId, pageNumber, onPageCountChange, o
         entries.forEach(entry => {
           const n = Number(entry.target.dataset.pageNumber)
           if (entry.isIntersecting) next.add(n)
+          else next.delete(n)
         })
         return next
       })
