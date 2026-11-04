@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
+import logo from '../assets/capstoneguard.png'
 
 const STEPS = ['School Info', 'Admin Account', 'Confirm']
 
@@ -90,11 +91,7 @@ export default function RegisterSchool() {
         <div style={S.leftGlow} />
         <div style={S.leftContent}>
           <div style={S.logoRow} onClick={() => navigate('/')} role="button">
-            <div style={S.logoIcon}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="white">
-                <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z"/>
-              </svg>
-            </div>
+            <img src={logo} alt="ThesisGuard" style={S.logoIcon} />
             <span style={S.logoText}>Thesis<span style={{color:'#f0b429'}}>Guard</span></span>
           </div>
 
@@ -276,7 +273,7 @@ const S = {
   leftGlow: { position: 'absolute', top: '-100px', right: '-100px', width: '500px', height: '500px', background: 'radial-gradient(circle,rgba(46,125,255,0.15) 0%,transparent 70%)', pointerEvents: 'none' },
   leftContent: { position: 'relative', zIndex: 2, padding: '40px', display: 'flex', flexDirection: 'column', height: '100%' },
   logoRow: { display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', marginBottom: '48px' },
-  logoIcon: { width: '36px', height: '36px', background: '#2e7dff', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  logoIcon: { width: '36px', height: '36px', borderRadius: '8px', objectFit: 'contain', flexShrink: 0 },
   logoText: { fontFamily: "'Playfair Display', serif", fontSize: '1.4rem', color: 'white', fontWeight: 700 },
   leftBody: { flex: 1 },
   leftTitle: { fontSize: '1.7rem', fontWeight: 800, color: 'white', lineHeight: 1.3, marginBottom: '12px' },
