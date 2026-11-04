@@ -45,7 +45,16 @@ return [
             'port' => env('MAIL_PORT', 2525),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
-            'timeout' => null,
+            // No explicit timeout meant a stalled SMTP connection fell back to
+            // PHP's default socket timeout (~60s) -- confirmed in production:
+            // two notification emails sent synchronously inside a document
+            // upload pushed the request past Railway's own gateway timeout,
+            // so the browser saw a failure even though the document (and the
+            // notification itself) had already saved. NotificationService's
+            // emailUser() already catches a failed send as best-effort; this
+            // just makes a stalled connection fail fast enough to actually
+            // reach that catch instead of hanging the whole request.
+            'timeout' => env('MAIL_TIMEOUT', 5),
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 
