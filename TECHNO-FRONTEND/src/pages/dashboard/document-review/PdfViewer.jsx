@@ -27,10 +27,8 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
 
   useEffect(() => {
     if (!visible || rendered || !width) return
-    let cancelled = false
 
     pdfDoc.getPage(pageNumber).then(async page => {
-      if (cancelled) return
       const unscaledViewport = page.getViewport({ scale: 1 })
       const scale = width / unscaledViewport.width
       const viewport = page.getViewport({ scale })
@@ -59,7 +57,6 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
         }
         return
       }
-      if (cancelled) return
       setRendered(true) // canvas painted -- show it even if the text layer below fails
 
       try {
@@ -70,14 +67,11 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
         textLayerDiv.style.height = `${viewport.height}px`
 
         const textContent = await page.getTextContent()
-        if (cancelled) return
         pdfjsLib.renderTextLayer({ textContentSource: textContent, container: textLayerDiv, viewport, textDivs: [] })
       } catch (err) {
         console.error(`PDF page ${pageNumber} text layer failed:`, err)
       }
     })
-
-    return () => { cancelled = true }
   }, [visible, rendered, width, pdfDoc, pageNumber])
 
   // Release this page's canvas once it scrolls back out of the render
