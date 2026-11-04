@@ -1,8 +1,11 @@
 import { useRef, useEffect, useState } from 'react'
 
-// ─── Paper metrics (US Letter @ 96dpi) ────────────────────────────────────────
-const PAGE_W = 816   // 8.5in
-const PAGE_H = 1056  // 11in
+// ─── Paper metrics (A4 @ 96dpi) ────────────────────────────────────────────
+// Matches the PDF viewer and the actual page size LibreOffice preserves from
+// the uploaded Word doc -- this used to be hardcoded to US Letter (8.5x11in),
+// which doesn't match the A4 page size most local thesis templates use.
+const PAGE_W = 794   // 210mm
+const PAGE_H = 1123  // 297mm
 const GAP    = 28    // visual seam between page sheets
 const IN     = 96    // 1 inch, in px, for converting the custom-margin inputs
 
