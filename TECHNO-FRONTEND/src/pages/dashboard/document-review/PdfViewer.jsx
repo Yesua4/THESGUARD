@@ -319,7 +319,16 @@ export default function PdfViewer({ documentId, pageNumber, onPageCountChange, o
   // memory budget and causing pages to silently go blank. The entry closest
   // to the top of the actual viewport becomes the reported "current page".
   useEffect(() => {
-    if (!pdfDoc || !numPages || !scrollRef.current) return
+    // Also gated on `loading`: pdfDoc/numPages are set (via setPdfDoc/
+    // setNumPages) a render or two BEFORE loading flips to false, and the
+    // page wrapper divs below are only rendered once `!loading` -- so
+    // without this, this effect fires while those divs don't exist yet,
+    // pageRefs.current is still empty, observer.observe() is never called
+    // on anything, and since pdfDoc/numPages don't change again, it never
+    // re-runs once the real elements do mount. The observer ends up
+    // permanently attached to nothing, and only page 1 ever shows (it's
+    // the only page in visiblePages' hardcoded initial state).
+    if (!pdfDoc || !numPages || !scrollRef.current || loading) return
 
     const observer = new IntersectionObserver(entries => {
       setVisiblePages(prev => {
@@ -344,7 +353,7 @@ export default function PdfViewer({ documentId, pageNumber, onPageCountChange, o
 
     Object.values(pageRefs.current).forEach(el => el && observer.observe(el))
     return () => observer.disconnect()
-  }, [pdfDoc, numPages])
+  }, [pdfDoc, numPages, loading])
 
   // External jump request (nav buttons, clicking an annotation elsewhere in
   // the UI) -- scroll that page into view. Skipped when the prop change is
