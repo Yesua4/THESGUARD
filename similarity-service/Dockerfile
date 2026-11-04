@@ -1,10 +1,9 @@
-# For Google Cloud Run. Render's free tier (512MB) can't fit
-# sentence-transformers even after trimming torch/spaCy; Cloud Run's free
-# tier allows a much higher memory ceiling (billed only for actual usage,
-# GB-seconds, with a generous always-free monthly allowance) and scales to
-# zero when idle, same as Render's free tier does.
+# Used by Railway (and originally built for Google Cloud Run, which this
+# project ultimately didn't use). Render runs this service as native
+# Python instead of via this Dockerfile, so changes here only affect
+# Railway/Cloud-Run-style deployments.
 #
-# Cloud Run injects the PORT env var at runtime (default 8080) -- the
+# Both platforms inject the PORT env var at runtime (default 8080) -- the
 # shell-form CMD below (not JSON-array form) is required so that variable
 # actually expands.
 
@@ -14,8 +13,7 @@ WORKDIR /app
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt \
-    && python -m spacy download en_core_web_sm \
-    && python -m nltk.downloader stopwords
+    && python -m spacy download en_core_web_sm
 
 COPY main.py .
 
