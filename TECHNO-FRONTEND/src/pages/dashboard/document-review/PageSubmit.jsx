@@ -335,6 +335,11 @@ function PageSubmit({ initialDocumentId, onConsumeInitialDocument }) {
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:'13px', fontWeight:'600', color:'#0a1f44' }}>{typeLabel[d.type]||d.type} <span style={{ fontWeight:'400', color:'#94a3b8', fontSize:'11px' }}>v{d.version}</span></div>
                       <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'2px' }}>{d.version_note || 'No note'}</div>
+                      {d.created_at && (
+                        <div style={{ fontSize:'10px', color:'#b0b9c6', marginTop:'2px' }}>
+                          {new Date(d.created_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                        </div>
+                      )}
                     </div>
                     <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'4px' }}>
                       <span style={{ fontSize:'11px', padding:'2px 8px', borderRadius:'20px', fontWeight:'700', ...statusStyle(d.status) }}>{d.status}</span>

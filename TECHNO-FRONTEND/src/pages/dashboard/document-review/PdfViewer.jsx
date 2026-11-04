@@ -111,8 +111,8 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
       onClick={rendered ? handleContainerClick : undefined}
       style={{
         position: 'relative',
-        width: '100%',
-        maxWidth: '700px',
+        width: `${width}px`,
+        maxWidth: '100%',
         // Placeholder height until this page actually renders: another
         // page's real measured height is a better guess than a generic
         // ratio, since every page in one exported document is the same size.
@@ -223,6 +223,7 @@ export default function PdfViewer({ documentId, pageNumber, onPageCountChange, o
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [containerWidth, setContainerWidth] = useState(700)
+  const [naturalWidth, setNaturalWidth] = useState(null)
   const [visiblePages, setVisiblePages] = useState(() => new Set([1]))
   const [pageHeights, setPageHeights] = useState({})
 
@@ -240,11 +241,20 @@ export default function PdfViewer({ documentId, pageNumber, onPageCountChange, o
 
     api.get(`/documents/${documentId}/preview`, { responseType: 'arraybuffer' })
       .then(res => pdfjsLib.getDocument({ data: res.data }).promise)
-      .then(doc => {
+      .then(async doc => {
         if (cancelled) return
         setPdfDoc(doc)
         setNumPages(doc.numPages)
         onPageCountChange?.(doc.numPages)
+
+        const page1 = await doc.getPage(1)
+        if (cancelled) return
+        // PDF.js viewport units are 1/72in (print points); multiplying by
+        // 96/72 gives the page's true CSS-pixel size at normal screen
+        // density, so an A4 page renders at A4 size instead of being
+        // stretched or squeezed to fit an arbitrary column width.
+        const unscaled = page1.getViewport({ scale: 1 })
+        setNaturalWidth(unscaled.width * (96 / 72))
       })
       .catch(() => { if (!cancelled) setError('Could not load this document for preview.') })
       .finally(() => { if (!cancelled) setLoading(false) })
@@ -254,8 +264,11 @@ export default function PdfViewer({ documentId, pageNumber, onPageCountChange, o
 
   useEffect(() => {
     if (!scrollRef.current) return
-    setContainerWidth(Math.min(700, scrollRef.current.clientWidth - 4))
-  }, [pdfDoc])
+    const available = scrollRef.current.clientWidth - 24
+    // Never upscale past the page's true size -- only shrink to fit when
+    // the viewer is narrower than that.
+    setContainerWidth(naturalWidth ? Math.min(naturalWidth, available) : available)
+  }, [pdfDoc, naturalWidth])
 
   // One observer watches every page wrapper: anything within PRELOAD_MARGIN
   // gets added to visiblePages (and stays rendered once drawn -- Page itself

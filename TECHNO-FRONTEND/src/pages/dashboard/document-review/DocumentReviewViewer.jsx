@@ -129,13 +129,18 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,31,68,0.35)', zIndex: 50, display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end' }}>
-      <div style={{ width: 'min(1100px, 96vw)', height: '100vh', background: '#fff', boxShadow: '-8px 0 32px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'stretch' }}>
+      <div style={{ width: '100vw', height: '100vh', background: '#fff', display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
         <div style={{ background: 'linear-gradient(135deg,#0a1f44,#1040a0)', padding: '16px 22px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
           <div>
             <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Document Review</div>
             <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>Version {document.version} — {document.uploader?.name}</div>
+            {document.created_at && (
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)', marginTop: '2px' }}>
+                Uploaded {new Date(document.created_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             {canPreview && numPages > 0 && (
