@@ -85,7 +85,7 @@ export default function RegisterSchool() {
       <style>{CSS}</style>
 
       {/* Left panel */}
-      <div style={S.left}>
+      <div className="split-left" style={S.left}>
         <div style={S.leftGrid} />
         <div style={S.leftGlow} />
         <div style={S.leftContent}>
@@ -134,7 +134,7 @@ export default function RegisterSchool() {
       </div>
 
       {/* Right panel — form */}
-      <div style={S.right}>
+      <div className="split-right" style={S.right}>
         <div style={S.formWrap}>
 
           {/* Steps indicator */}
@@ -149,7 +149,7 @@ export default function RegisterSchool() {
                 }}>
                   {i < step ? '✓' : i + 1}
                 </div>
-                <span style={{
+                <span className="step-label" style={{
                   ...S.stepLabel,
                   color: i === step ? '#1a2540' : '#94a3b8',
                   fontWeight: i === step ? 600 : 400,
@@ -338,7 +338,10 @@ const CSS = `
 @keyframes fadeIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
 input:focus { border-color: #2e7dff !important; box-shadow: 0 0 0 3px rgba(46,125,255,0.12); }
 @media (max-width: 768px) {
-  div[style*="display: flex"][style*="min-height: 100vh"] > div:first-child { display: none; }
-  div[style*="display: flex"][style*="min-height: 100vh"] > div:last-child { padding: 24px 20px; }
+  .split-left { display: none !important; }
+  .split-right { padding: 24px 20px !important; }
+}
+@media (max-width: 480px) {
+  .step-label { display: none !important; }
 }
 `
