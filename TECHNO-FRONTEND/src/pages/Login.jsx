@@ -88,7 +88,7 @@ const RESPONSIVE_CSS = `
     .lg-panel { display: none !important; }
     .login-card { flex-direction: column !important; max-width: 420px !important; min-height: unset !important; }
     .login-right { padding: 28px 20px 32px !important; }
-    .login-page { padding: 16px !important; align-items: flex-start !important; }
+    .login-page { padding: 16px !important; }
   }
   @media (max-width: 400px) {
     .login-right { padding: 22px 14px 28px !important; }
