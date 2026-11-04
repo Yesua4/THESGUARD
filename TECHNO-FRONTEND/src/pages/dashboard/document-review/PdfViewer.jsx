@@ -65,9 +65,15 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
         textLayerDiv.innerHTML = ''
         textLayerDiv.style.width = `${viewport.width}px`
         textLayerDiv.style.height = `${viewport.height}px`
+        // pdf.js positions each text span via calc(var(--scale-factor) * ...);
+        // without this set on the container, it never throws loudly on its
+        // own (the rejection below only surfaces because we now await it) --
+        // it just silently renders every span at the wrong position.
+        textLayerDiv.style.setProperty('--scale-factor', viewport.scale)
 
         const textContent = await page.getTextContent()
-        pdfjsLib.renderTextLayer({ textContentSource: textContent, container: textLayerDiv, viewport, textDivs: [] })
+        const textLayerTask = pdfjsLib.renderTextLayer({ textContentSource: textContent, container: textLayerDiv, viewport, textDivs: [] })
+        await textLayerTask.promise
       } catch (err) {
         console.error(`PDF page ${pageNumber} text layer failed:`, err)
       }
