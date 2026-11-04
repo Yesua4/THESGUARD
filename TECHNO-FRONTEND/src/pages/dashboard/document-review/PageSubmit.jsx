@@ -59,7 +59,8 @@ function PageSubmit({ initialDocumentId, onConsumeInitialDocument }) {
   useEffect(() => {
     if (!selectedDoc) return
     const fresh = documents.find(d => d.id === selectedDoc.id)
-    if (fresh && fresh.status !== selectedDoc.status) setSelectedDoc(fresh)
+    if (!fresh) { setSelectedDoc(null); return } // deleted elsewhere -- close the viewer
+    if (fresh.status !== selectedDoc.status) setSelectedDoc(fresh)
   }, [documents])
 
   const loadDocs = () => api.get('/documents').then(res => {
@@ -68,9 +69,11 @@ function PageSubmit({ initialDocumentId, onConsumeInitialDocument }) {
   })
 
   // Live updates: see the status badge flip the instant an adviser/instructor
-  // approves/revises a submission, without needing to reload the page.
+  // approves/revises a submission, a new upload appear, or a deletion (from
+  // this same account on another device, an adviser, etc.) disappear --
+  // without needing to reload the page.
   useProjectChannel(approvedProject?.id, (type) => {
-    if (type === 'document_status_changed' || type === 'document_uploaded') loadDocs()
+    if (type === 'document_status_changed' || type === 'document_uploaded' || type === 'document_deleted') loadDocs()
   })
   const handle = e => setForm({ ...form, [e.target.name]: e.target.value })
 

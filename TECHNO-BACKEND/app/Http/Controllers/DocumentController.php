@@ -356,7 +356,12 @@ class DocumentController extends Controller {
         if ($document->preview_path) {
             Storage::disk('local')->delete($document->preview_path);
         }
+        $projectId = $document->project_id;
+        $documentId = $document->id;
         $document->delete();
+
+        $this->activity->broadcast($projectId, 'document_deleted', ['document_id' => $documentId]);
+
         return response()->json(['message' => 'Deleted']);
     }
 }
