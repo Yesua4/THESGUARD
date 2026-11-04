@@ -77,14 +77,16 @@ class DocumentController extends Controller {
 
         $path = $request->file('file')->store("documents/{$request->project_id}", 'local');
 
-        // PDFs preview as-is; Word files get converted so both can go through
-        // the same in-app viewer instead of falling back to download-only.
+        // PDFs preview as-is. Word files get converted to PDF so both can go
+        // through the same in-app viewer -- but NOT here: LibreOffice
+        // conversion of a large .docx can take long enough to blow past the
+        // request timeout and leave the uploader staring at a hung "Saving"
+        // button (same failure shape as the CSV import before it was fixed
+        // to not block on per-row work). Instead this just marks the preview
+        // pending; preview() converts lazily the first time someone actually
+        // opens the document.
         $previewPath = null;
-        $previewStatus = 'unsupported';
-        if (!str_ends_with(strtolower($path), '.pdf')) {
-            $previewPath = app(DocumentPreviewService::class)->convertToPdf($path);
-            $previewStatus = $previewPath ? 'ready' : 'failed';
-        }
+        $previewStatus = str_ends_with(strtolower($path), '.pdf') ? 'unsupported' : 'pending';
 
         $document = Document::create([
             'project_id'      => $request->project_id,
@@ -242,6 +244,17 @@ class DocumentController extends Controller {
 
         $isPdf = $document->file_path && str_ends_with(strtolower($document->file_path), '.pdf');
         $path  = $isPdf ? $document->file_path : $document->preview_path;
+
+        // Non-PDF uploads aren't converted at upload time (see store()) --
+        // do it now, on the first time someone actually opens the preview,
+        // instead of making every uploader wait on it.
+        if (!$path && !$isPdf && $document->preview_status === 'pending') {
+            $path = app(DocumentPreviewService::class)->convertToPdf($document->file_path);
+            $document->forceFill([
+                'preview_path'   => $path,
+                'preview_status' => $path ? 'ready' : 'failed',
+            ])->save();
+        }
 
         if (!$path || !Storage::disk('local')->exists($path)) {
             return response()->json(['message' => 'Preview not available for this document.'], 404);

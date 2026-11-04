@@ -73,7 +73,11 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
   const handleSetResolved = (id, resolved) => setResolved(id, resolved).catch(() => {})
   const isInAppDraft = !document.file_path && !!document.content
   const canPreviewFile = !!document.file_path && document.file_path.toLowerCase().endsWith('.pdf')
-  const canPreview = canPreviewFile || document.preview_status === 'ready'
+  // 'pending' isn't converted yet -- the backend converts it lazily on this
+  // very request (see DocumentController::preview()), so it still needs to
+  // go through PdfViewer (which already has its own loading/error states)
+  // rather than straight to the download-only fallback.
+  const canPreview = canPreviewFile || document.preview_status === 'ready' || document.preview_status === 'pending'
 
   const [pageNumber, setPageNumber] = useState(1)
   const [numPages, setNumPages] = useState(0)
