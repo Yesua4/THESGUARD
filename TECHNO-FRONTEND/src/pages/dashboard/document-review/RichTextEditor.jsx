@@ -79,6 +79,22 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
     return (el === ref.current || !el) ? null : el
   }
 
+  // True for a paragraph that should start a fresh page regardless of how
+  // much room is left -- either a manual break the user inserted here (see
+  // insertPageBreak), or one carried over from the original Word document.
+  // LibreOffice's HTML export maps Word's manual page breaks to
+  // page-break-before (and some versions emit the newer break-before) on
+  // the paragraph that follows the break, so honoring that here is what
+  // makes pagination match the uploaded file instead of being re-estimated
+  // from scratch by height alone.
+  const hasForcedBreakBefore = el => {
+    if (el.hasAttribute('data-page-break')) return true
+    const inline = el.style.pageBreakBefore || el.style.breakBefore || ''
+    if (/always|page/i.test(inline)) return true
+    const attr = el.getAttribute('style') || ''
+    return /page-break-before\s*:\s*always|break-before\s*:\s*page/i.test(attr)
+  }
+
   const repaginate = () => {
     const root = ref.current
     if (!root) return
@@ -90,7 +106,8 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
     let pages = 1
     for (const child of children) {
       const h = outerHeight(child)
-      if (used > 0 && used + h > usableH) {
+      const forced = used > 0 && hasForcedBreakBefore(child)
+      if (forced || (used > 0 && used + h > usableH)) {
         const spacer = document.createElement('div')
         spacer.setAttribute('data-page-spacer', 'true')
         spacer.contentEditable = 'false'
@@ -231,6 +248,13 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
     exec('insertHTML', html)
   }
 
+  // Marks the paragraph the cursor lands in (a fresh one right after the
+  // break) so repaginate() always starts a new page there, the same way a
+  // break carried over from the original Word doc is honored.
+  const insertPageBreak = () => {
+    exec('insertHTML', '<p data-page-break="true" style="page-break-before:always;"><br></p>')
+  }
+
   const insertLink = () => {
     const url = window.prompt('Enter URL (including https://):')
     if (!url) return
@@ -337,6 +361,7 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
         <button type="button" style={btnStyle} title="Insert link" onClick={insertLink}>🔗 Link</button>
         <button type="button" style={btnStyle} title="Insert table" onClick={insertTable}>▦ Table</button>
         <button type="button" style={btnStyle} title="Insert image by URL" onClick={insertImageByUrl}>🖼 Image</button>
+        <button type="button" style={btnStyle} title="Insert page break" onClick={insertPageBreak}>⤓ Page Break</button>
         <button type="button" style={btnStyle} title="Clear formatting" onClick={() => exec('removeFormat')}>Clear</button>
         {divider}
 
