@@ -199,6 +199,46 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
     afterChange()
   }
 
+  // A page-spacer div is contentEditable="false" (it's presentational only,
+  // see repaginate) -- browsers treat that as an atomic, non-mergeable
+  // island, so native Backspace at the very start of the paragraph right
+  // after one silently does nothing instead of merging into the paragraph
+  // before it, the same as it would if there were no page break there at
+  // all. Detect exactly that case and do the merge ourselves. This also
+  // naturally lets a manual page break (see insertPageBreak) be undone by
+  // backspacing at its start, since it's marked the same way.
+  const handleKeyDown = e => {
+    if (e.key !== 'Backspace' || !paginated) return
+    const sel = window.getSelection()
+    if (!sel || !sel.rangeCount || !sel.isCollapsed) return
+    const range = sel.getRangeAt(0)
+    const block = closestBlock(range.startContainer)
+    if (!block) return
+
+    const beforeCaret = document.createRange()
+    beforeCaret.setStart(block, 0)
+    beforeCaret.setEnd(range.startContainer, range.startOffset)
+    if (beforeCaret.toString().length > 0) return // caret isn't at the very start of the block
+
+    const spacer = block.previousElementSibling
+    if (!spacer || !spacer.hasAttribute('data-page-spacer')) return
+    const target = spacer.previousElementSibling
+    if (!target) return
+
+    e.preventDefault()
+    const caretOffset = target.childNodes.length
+    while (block.firstChild) target.appendChild(block.firstChild)
+    block.remove()
+    spacer.remove()
+
+    const newRange = document.createRange()
+    newRange.setStart(target, caretOffset)
+    newRange.collapse(true)
+    sel.removeAllRanges()
+    sel.addRange(newRange)
+    afterChange()
+  }
+
   const applyFontSize = pt => {
     ref.current?.focus()
     document.execCommand('fontSize', false, '7')
@@ -403,6 +443,7 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
             contentEditable
             onInput={afterChange}
             onPaste={handlePaste}
+            onKeyDown={handleKeyDown}
             suppressContentEditableWarning
             style={{
               position: 'relative', zIndex: 1, width: `${PAGE_W}px`, boxSizing: 'border-box',
