@@ -418,6 +418,17 @@ export default function Login() {
                   </button>
                 </form>
 
+                {/* Student sign-up */}
+                <div style={{ textAlign: 'center', marginTop: '16px', paddingTop: '14px', borderTop: '1px solid #e8ecf2' }}>
+                  <span style={{ fontSize: '12px', color: '#94a3b8' }}>Student without an account? </span>
+                  <span
+                    style={{ fontSize: '12px', color: '#1040a0', fontWeight: '600', cursor: 'pointer' }}
+                    onClick={() => navigate('/register')}
+                  >
+                    Create one →
+                  </span>
+                </div>
+
                 {/* Register link */}
                 {/* <div style={{ textAlign: 'center', marginTop: '16px', paddingTop: '14px', borderTop: '1px solid #e8ecf2' }}>
                   <span style={{ fontSize: '12px', color: '#94a3b8' }}>Don't have an account? </span>

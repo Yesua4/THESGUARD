@@ -16,6 +16,7 @@ use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\DefenseMinutesController;
 use App\Http\Controllers\ProjectChecklistController;
+use App\Http\Controllers\ClassRosterController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
 
@@ -37,6 +38,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/me/switch-role', [AuthController::class, 'switchRole']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::put('profile/change-password', [AuthController::class, 'changePassword']);
+
+    // Everything else needs an enrolled account: a self-registered student
+    // waits here until an instructor imports a class list with their
+    // Student No. (see EnsureStudentEnrolled).
+    Route::middleware('enrolled')->group(function () {
+    Route::get('/roster', [ClassRosterController::class, 'index']);
+    Route::post('/roster/import', [ClassRosterController::class, 'import']);
+    Route::delete('/roster/{id}', [ClassRosterController::class, 'destroy']);
     Route::apiResource('projects', ProjectController::class);
     Route::apiResource('documents', DocumentController::class);
     Route::get('documents/{document}/file', [DocumentController::class, 'file']);
@@ -91,7 +101,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('evaluations', [EvaluationController::class, 'index']);
     Route::post('evaluations', [EvaluationController::class, 'store']);
     Route::get('evaluations/project/{projectId}', [EvaluationController::class, 'show']);
-    Route::put('profile/change-password', [AuthController::class, 'changePassword']);
     Route::put('documents/{document}/status', [DocumentController::class, 'updateStatus']);
     Route::get('/school/plan', [SchoolController::class, 'plan']);
     Route::get('/schools', [SchoolController::class, 'index']);
@@ -105,4 +114,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/broadcasting/auth', function (Request $request) {
         return Broadcast::auth($request);
     });
+    }); // enrolled
 });

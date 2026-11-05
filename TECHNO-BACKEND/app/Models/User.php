@@ -15,13 +15,13 @@ class User extends Authenticatable {
     public const EXCLUSIVE_ROLES = ['student', 'admin'];
 
     protected $fillable = [
-        'name', 'email', 'password', 'role', 'student_id', 'section', 'school_id',
+        'name', 'last_name', 'first_name', 'middle_name', 'email', 'password', 'role', 'student_id', 'section', 'school_id',
         'google_id', 'avatar',
     ];
 
     protected $hidden = ['password', 'remember_token', 'roleAssignments', 'sectionAssignments'];
 
-    protected $casts = ['email_verified_at' => 'datetime'];
+    protected $casts = ['email_verified_at' => 'datetime', 'awaiting_enrollment' => 'boolean'];
 
     // ── Relationships ─────────────────────────────────────────
     public function school() {

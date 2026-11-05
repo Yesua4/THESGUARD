@@ -20,6 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // which crashes with a 500 instead of a clean 401 whenever a client
         // omits an Accept: application/json header. Disable the redirect.
         $middleware->redirectGuestsTo(fn () => null);
+
+        $middleware->alias([
+            'enrolled' => \App\Http\Middleware\EnsureStudentEnrolled::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(fn () => true);

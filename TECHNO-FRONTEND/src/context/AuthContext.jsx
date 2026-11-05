@@ -26,6 +26,19 @@ export function AuthProvider({ children }) {
     return res.data.user
   }
 
+  // Student self-registration; signs the new student straight in.
+  const register = async data => {
+    const res = await api.post('/register', data)
+    localStorage.setItem('token', res.data.token)
+    localStorage.setItem('user', JSON.stringify(res.data.user))
+    setUser(res.data.user)
+    if (res.data.school) {
+      localStorage.setItem('school', JSON.stringify(res.data.school))
+      setSchool(res.data.school)
+    }
+    return res.data.user
+  }
+
   // Used by the Google OAuth callback: the backend already issued a Sanctum
   // token (via redirect query param), so this just stores it and fetches
   // the user, mirroring what login() does after a password check.
@@ -76,7 +89,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, school, login, loginWithToken, logout, refreshUser, switchRole }}>
+    <AuthContext.Provider value={{ user, school, login, register, loginWithToken, logout, refreshUser, switchRole }}>
       {children}
     </AuthContext.Provider>
   )

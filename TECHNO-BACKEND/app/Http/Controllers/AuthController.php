@@ -12,27 +12,48 @@ class AuthController extends Controller {
         return env('PASSWORD_PEPPER', '');
     }
 
-    public function register(Request $request) {
-    $data = $request->validate([
-        'name'       => 'required|string|max:255',
-        'email'      => 'required|email|unique:users',
-        'password'   => 'required|min:12',
-        'student_id' => 'nullable|string|unique:users,student_id',
-    ]);
+    // Student self-registration. The student gives their name, Student No.
+    // and email; an instructor later enrolls them by importing the class
+    // list (matched on Student No.). If that class list was already
+    // imported, they're enrolled right away.
+    public function register(Request $request, \App\Services\ClassRosterService $roster) {
+        $request->merge([
+            'student_id' => \App\Services\ClassRosterService::normalizeStudentId($request->input('student_id')),
+        ]);
+        $data = $request->validate([
+            'last_name'   => 'required|string|max:100',
+            'first_name'  => 'required|string|max:100',
+            'middle_name' => 'nullable|string|max:100',
+            'email'       => 'required|email|unique:users',
+            'password'    => 'required|min:12',
+            'student_id'  => ['required', 'string', 'max:50', function ($attr, $value, $fail) {
+                if (User::whereRaw('UPPER(TRIM(student_id)) = ?', [$value])->exists()) {
+                    $fail('This Student No. is already registered. If it is yours, ask your instructor for help.');
+                }
+            }],
+        ], [], ['student_id' => 'Student No.']);
 
-    // Role is NEVER accepted from the request — self-registered users are
-    // always students. Admins use createUser() to assign other roles.
-    $data['role']      = 'student';
-    $data['password']  = Hash::make($data['password'] . $this->pepper());
+        $data = array_map(fn ($v) => is_string($v) ? trim(preg_replace('/\s+/', ' ', $v)) : $v, $data);
+        $data['middle_name'] = ($data['middle_name'] ?? '') ?: null;
+        $data['name'] = implode(' ', array_filter([$data['first_name'], $data['middle_name'], $data['last_name']]));
 
-    // school_id cannot be self-assigned either — an admin must assign it later,
-    // or use the school registration flow (SchoolController::register)
-    $data['school_id'] = null;
+        // Role is NEVER accepted from the request -- self-registered users
+        // are always students. school_id can't be self-assigned either; it
+        // comes from the class-list import.
+        $data['role']      = 'student';
+        $data['school_id'] = null;
+        $data['password']  = Hash::make($data['password'] . $this->pepper());
 
-    $user  = User::create($data);
-    $token = $user->createToken('auth_token')->plainTextToken;
-    return response()->json(['user' => $user, 'token' => $token], 201);
-}
+        $user = User::create($data);
+        $user->forceFill(['awaiting_enrollment' => true])->save();
+        $user->syncRoles(['student']);
+        $roster->claimForNewStudent($user);
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+        $user = $user->fresh();
+        $school = $user->school_id ? ['id' => $user->school->id, 'name' => $user->school->name] : null;
+        return response()->json(['user' => $user->append(['roles', 'handled_sections']), 'token' => $token, 'school' => $school], 201);
+    }
 
     public function login(Request $request) {
         $request->validate([

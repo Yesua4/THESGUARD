@@ -4,6 +4,7 @@ import { useToast } from '../../context/ToastContext'
 import api from '../../api/axios'
 import { ROLE_ORDER, userRoles } from '../../constants/roles'
 import { SectionPicker, SectionField } from '../../components/dashboard/SectionPicker'
+import { ImportClassListModal, RosterModal } from '../../components/dashboard/ClassRoster'
 
 // Student and admin accounts hold only that one role; the faculty roles
 // (instructor, adviser, panelist) can be combined freely.
@@ -64,6 +65,8 @@ function PageUsers() {
   const [importResult, setImportResult] = useState(null)
   const [bulkSection, setBulkSection]   = useState('')
   const [selectedIds, setSelectedIds]   = useState([])
+  const [showClassList, setShowClassList] = useState(false)
+  const [showRoster, setShowRoster]       = useState(false)
 
   const load = () => {
     api.get('/users').then(res => setUsers(res.data)).finally(() => setLoading(false))
@@ -252,15 +255,26 @@ const createUser = async e => {
               style={{ background:'linear-gradient(135deg,#0a1f44,#1040a0)', color:'#fff', border:'none', borderRadius:'8px', padding:'9px 16px', fontSize:'13px', fontWeight:'600', cursor:'pointer' }}>
               {user?.role === 'instructor' ? '+ Add Student' : '+ Add User'}
             </button>
-            {['admin','instructor'].includes(user?.role) && (
-              <button onClick={() => { setShowImport(true); setImportResult(null) }}
-                style={{ background:'#fff', color:'#0a1f44', border:'1.5px solid #e2e8f0', borderRadius:'8px', padding:'9px 16px', fontSize:'13px', fontWeight:'600', cursor:'pointer' }}>
-                ↑ Import CSV
-              </button>
-            )}
+            <button onClick={() => setShowClassList(true)}
+              title="Enroll students from the registrar's class list, matched by Student No."
+              style={{ background:'linear-gradient(135deg,#059669,#047857)', color:'#fff', border:'none', borderRadius:'8px', padding:'9px 16px', fontSize:'13px', fontWeight:'600', cursor:'pointer' }}>
+              ↑ Import Class List
+            </button>
+            <button onClick={() => setShowRoster(true)}
+              style={{ background:'#fff', color:'#0a1f44', border:'1.5px solid #e2e8f0', borderRadius:'8px', padding:'9px 16px', fontSize:'13px', fontWeight:'600', cursor:'pointer' }}>
+              Class Roster
+            </button>
+            <button onClick={() => { setShowImport(true); setImportResult(null) }}
+              title="Create accounts from a CSV that includes emails"
+              style={{ background:'#fff', color:'#0a1f44', border:'1.5px solid #e2e8f0', borderRadius:'8px', padding:'9px 16px', fontSize:'13px', fontWeight:'600', cursor:'pointer' }}>
+              ↑ Import CSV
+            </button>
           </div>
         )}
       </div>
+
+{showClassList && <ImportClassListModal user={user} onClose={() => setShowClassList(false)} onDone={load} />}
+{showRoster && <RosterModal onClose={() => setShowRoster(false)} />}
 
 {/* CSV Import Modal */}
 {showImport && (
