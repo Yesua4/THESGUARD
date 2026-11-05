@@ -105,7 +105,7 @@ class ProjectController extends Controller {
 
             $adviserId = null;
             if ($adviserName) {
-                $adviser = \App\Models\User::where('role', 'adviser')
+                $adviser = \App\Models\User::withRole('adviser')
                     ->where('school_id', $user->school_id)
                     ->whereRaw('LOWER(name) = ?', [strtolower($adviserName)])
                     ->first();

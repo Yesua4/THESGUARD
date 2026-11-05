@@ -35,6 +35,7 @@ Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallbac
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/me/switch-role', [AuthController::class, 'switchRole']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::apiResource('projects', ProjectController::class);
     Route::apiResource('documents', DocumentController::class);

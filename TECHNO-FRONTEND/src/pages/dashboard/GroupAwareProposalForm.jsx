@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../../api/axios'
+import { userRoles } from '../../constants/roles'
 
 function GroupAwareProposalForm({ user, users, onSubmit, saving }) {
   const [myGroup, setMyGroup] = useState(null)
@@ -71,7 +72,7 @@ useEffect(() => {
           <label style={labelStyle}>Submit to (Instructor)</label>
           <select name="instructor_id" value={form.instructor_id} onChange={handle} style={inputStyle}>
             <option value="">Select instructor...</option>
-            {users.filter(u => ['instructor','adviser','panelist'].includes(u.role)).map(u => (
+            {users.filter(u => userRoles(u).some(r => ['instructor','adviser','panelist'].includes(r))).map(u => (
               <option key={u.id} value={u.id}>{u.name}</option>
             ))}
           </select>

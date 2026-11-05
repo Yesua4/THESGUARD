@@ -11,7 +11,7 @@ import UserAvatar from '../../components/dashboard/UserAvatar'
 import PageRouter from './PageRouter'
 
 function DashboardShell() {
-  const { user, logout } = useAuth()
+  const { user, logout, refreshUser, switchRole } = useAuth()
   const navigate         = useNavigate()
   const [page, setPage]  = useState('dashboard')
   const [navTarget, setNavTarget] = useState(null)
@@ -58,6 +58,28 @@ function DashboardShell() {
     channel.listen('.notification.created', fetchUnread)
     return () => echo.leave(`App.Models.User.${user.id}`)
   }, [user?.id, fetchUnread])
+
+  // Pick up role changes the admin made since this session's login (new
+  // roles to switch to, or an active role that was removed).
+  useEffect(() => { refreshUser() }, [refreshUser])
+
+  // If the active role changes (switched here, or the admin removed it),
+  // the current page may not exist in the new role's nav -- go home.
+  useEffect(() => { setPage('dashboard'); setNavTarget(null) }, [user?.role])
+
+  const [switchingRole, setSwitchingRole] = useState(false)
+  const handleSwitchRole = async role => {
+    if (role === user?.role || switchingRole) return
+    setSwitchingRole(true)
+    try {
+      await switchRole(role)
+    } catch {
+      // Role no longer assigned (admin changed it) -- resync from the server.
+      refreshUser()
+    } finally {
+      setSwitchingRole(false)
+    }
+  }
 
   const handleLogout = async () => {
     setLoggingOut(true)
@@ -273,12 +295,16 @@ function DashboardShell() {
         setSidebarOpen={setSidebarOpen}
         onNotificationsClick={() => setPage('notifications')}
         onNavigate={setPage}
+        onSwitchRole={handleSwitchRole}
+        switchingRole={switchingRole}
       />
 
 
       {/* Page content */}
       <div className="page-content" style={{ padding: '24px', flex: 1 }}>
+        {/* keyed by role so every page remounts and refetches for the new role */}
         <PageRouter
+          key={user?.role}
           page={page} setPage={setPage} setUnreadCount={setUnreadCount} user={user}
           navTarget={navTarget} clearNavTarget={() => setNavTarget(null)}
           onNotificationNavigate={handleNotificationNavigate}

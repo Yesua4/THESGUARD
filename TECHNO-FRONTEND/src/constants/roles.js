@@ -6,3 +6,13 @@ const ROLE_META = {
   panelist:   { label: 'Panelist',      color: '#9f1239', bg: '#ffe4e6' },
 }
 export { ROLE_META }
+
+// Display order for a user's assigned roles.
+const ROLE_ORDER = ['admin', 'instructor', 'adviser', 'student', 'panelist']
+
+// Every role an account was assigned. `user.role` is the ACTIVE role;
+// `user.roles` (from the API) is the full set. Falls back to the active role
+// for user objects that don't carry `roles` (e.g. nested in other payloads).
+const userRoles = u => (Array.isArray(u?.roles) && u.roles.length ? u.roles : (u?.role ? [u.role] : []))
+
+export { ROLE_ORDER, userRoles }

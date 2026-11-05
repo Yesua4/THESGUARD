@@ -111,7 +111,7 @@ class EvaluationController extends Controller {
         $panelistNames = array_values(array_filter(array_map('trim', explode(',', $schedule->panelists))));
         if (empty($panelistNames)) return;
 
-        $expectedPanelistIds = User::where('role', 'panelist')->get()
+        $expectedPanelistIds = User::withRole('panelist')->get()
             ->filter(fn($u) => collect($panelistNames)->contains(fn($n) => strcasecmp($n, $u->name) === 0))
             ->pluck('id');
         if ($expectedPanelistIds->isEmpty()) return;

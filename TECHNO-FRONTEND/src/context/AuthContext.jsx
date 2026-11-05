@@ -59,13 +59,24 @@ export function AuthProvider({ children }) {
         localStorage.setItem('school', JSON.stringify(res.data.school))
         setSchool(res.data.school)
       }
-    } catch {
-      logout()
+    } catch (err) {
+      // Only an expired/invalid token should sign the user out -- a network
+      // blip or a cold-starting backend must not.
+      if (err.response?.status === 401) logout()
     }
   }, [])
 
+  // Switch the active role to another role the admin assigned to this
+  // account. The server checks the role is actually assigned.
+  const switchRole = async role => {
+    const res = await api.post('/me/switch-role', { role })
+    localStorage.setItem('user', JSON.stringify(res.data.user))
+    setUser(res.data.user)
+    return res.data.user
+  }
+
   return (
-    <AuthContext.Provider value={{ user, school, login, loginWithToken, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, school, login, loginWithToken, logout, refreshUser, switchRole }}>
       {children}
     </AuthContext.Provider>
   )

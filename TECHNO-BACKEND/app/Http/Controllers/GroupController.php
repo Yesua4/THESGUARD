@@ -135,7 +135,7 @@ class GroupController extends Controller {
 
     public function advisers(Request $request) {
         $user = $request->user();
-        $query = User::whereIn('role', ['adviser', 'instructor']);
+        $query = User::withRole(['adviser', 'instructor']);
 
         // ── School isolation ──────────────────────────────────
         if ($user->school_id) {

@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import api from '../../api/axios'
-import { ROLE_META } from '../../constants/roles'
+import { ROLE_META, userRoles } from '../../constants/roles'
 import UserAvatar from './UserAvatar'
 
 function EnhancedTopBar({
   user, unreadCount, loggingOut, handleLogout,
   currentPageLabel, sidebarOpen, setSidebarOpen, onNotificationsClick, onNavigate,
+  onSwitchRole, switchingRole,
 }) {
   const [profileOpen, setProfileOpen] = useState(false)
   const [notifOpen, setNotifOpen]     = useState(false)
@@ -14,6 +15,7 @@ function EnhancedTopBar({
   const notifRef   = useRef(null)
 
   const meta = ROLE_META[user?.role] || { label: 'User', color: '#475569', bg: '#f1f5f9' }
+  const assignedRoles = userRoles(user)
 
   // Load recent notifications for the popover
   useEffect(() => {
@@ -202,6 +204,37 @@ function EnhancedTopBar({
                 </span>
               </div>
             </div>
+
+            {/* Role switcher -- only for accounts with more than one role */}
+            {assignedRoles.length > 1 && (
+              <div style={{ padding: '8px 8px 6px', borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ fontSize: '10px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '2px 8px 6px' }}>
+                  Switch role
+                </div>
+                {assignedRoles.map(r => {
+                  const m = ROLE_META[r] || { label: r, color: '#475569', bg: '#f1f5f9' }
+                  const active = r === user?.role
+                  return (
+                    <button key={r}
+                      disabled={active || switchingRole}
+                      onClick={() => { setProfileOpen(false); onSwitchRole?.(r) }}
+                      style={{
+                        width: '100%', padding: '8px 10px', borderRadius: '8px', border: 'none',
+                        background: active ? m.bg : 'none',
+                        cursor: active ? 'default' : (switchingRole ? 'wait' : 'pointer'),
+                        display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px',
+                        color: active ? m.color : '#334155', fontWeight: active ? '700' : '500', textAlign: 'left',
+                      }}
+                      onMouseOver={e => { if (!active) e.currentTarget.style.background = '#f8fafc' }}
+                      onMouseOut={e => { if (!active) e.currentTarget.style.background = 'none' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: m.color, flexShrink: 0 }} />
+                      <span style={{ flex: 1 }}>{m.label}</span>
+                      {active && <span style={{ fontSize: '11px' }}>✓</span>}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
 
             {/* Menu items */}
             {[

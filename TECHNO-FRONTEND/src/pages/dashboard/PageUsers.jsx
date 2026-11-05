@@ -2,6 +2,47 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import api from '../../api/axios'
+import { ROLE_ORDER, userRoles } from '../../constants/roles'
+
+// Student and admin accounts hold only that one role; the faculty roles
+// (instructor, adviser, panelist) can be combined freely.
+const EXCLUSIVE_ROLES = ['student', 'admin']
+
+const toggleRole = (roles, role) => {
+  if (roles.includes(role)) {
+    const next = roles.filter(r => r !== role)
+    return next.length ? next : roles   // always keep at least one
+  }
+  if (EXCLUSIVE_ROLES.includes(role)) return [role]
+  return ROLE_ORDER.filter(r => r === role || (roles.includes(r) && !EXCLUSIVE_ROLES.includes(r)))
+}
+
+function RoleChecks({ roles, onChange, disabled, compact }) {
+  return (
+    <div style={{ display:'flex', flexWrap:'wrap', gap: compact ? '4px' : '6px' }}>
+      {ROLE_ORDER.map(r => {
+        const on = roles.includes(r)
+        return (
+          <label key={r} title={disabled ? 'You cannot change the roles on your own account.' : undefined}
+            style={{
+              display:'inline-flex', alignItems:'center', gap:'4px',
+              fontSize: compact ? '11px' : '12px', fontWeight: on ? '700' : '500',
+              padding: compact ? '3px 8px' : '5px 10px', borderRadius:'20px',
+              border: `1.5px solid ${on ? '#1d4ed8' : '#e2e8f0'}`,
+              background: on ? '#eff6ff' : '#fff', color: on ? '#1d4ed8' : '#64748b',
+              cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1,
+              textTransform:'capitalize', userSelect:'none',
+            }}>
+            <input type="checkbox" checked={on} disabled={disabled}
+              onChange={() => onChange(toggleRole(roles, r))}
+              style={{ margin:0, width:'12px', height:'12px' }} />
+            {r}
+          </label>
+        )
+      })}
+    </div>
+  )
+}
 
 function PageUsers() {
   const { user } = useAuth()
@@ -14,7 +55,7 @@ function PageUsers() {
   const [search, setSearch]         = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [showAddUser, setShowAddUser] = useState(false)
-  const [newUser, setNewUser]       = useState({ name:'', email:'', password:'', role:'student', student_id:'', section:'' })
+  const [newUser, setNewUser]       = useState({ name:'', email:'', password:'', roles:['student'], student_id:'', section:'' })
   const [addingUser, setAddingUser] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [importFile, setImportFile] = useState(null)
@@ -34,7 +75,7 @@ const createUser = async e => {
   try {
     await api.post('/users', newUser)
     setShowAddUser(false)
-    setNewUser({ name:'', email:'', password:'', role:'student', student_id:'', section:'' })
+    setNewUser({ name:'', email:'', password:'', roles:['student'], student_id:'', section:'' })
     load()
   } catch (err) {
     // ── Validation errors ──────────────────────────────────
@@ -45,6 +86,7 @@ const createUser = async e => {
         if (field === 'name')       return '• Name is required.'
         if (field === 'password')   return '• Password must be at least 12 characters.'
         if (field === 'student_id') return '• Student ID is already registered.'
+        if (field === 'roles')      return `• ${msgs[0]}`
         return `• ${msgs[0]}`
       }).join('\n')
       showToast('Please fix the following:\n' + messages, 'error', 8000)
@@ -54,14 +96,17 @@ const createUser = async e => {
   } finally { setAddingUser(false) }
 }
 
-  const startEdit  = u => { setEditing(u.id); setEditForm({ name:u.name, email:u.email, role:u.role, student_id:u.student_id||'', section:u.section||'' }) }
+  const startEdit  = u => { setEditing(u.id); setEditForm({ name:u.name, email:u.email, roles:userRoles(u), student_id:u.student_id||'', section:u.section||'' }) }
   const cancelEdit = () => { setEditing(null); setEditForm({}) }
   const handleEdit = e => setEditForm({...editForm, [e.target.name]: e.target.value})
 
   const saveEdit = async id => {
     setSaving(true)
-    try { await api.put(`/users/${id}`, editForm); setEditing(null); load() }
-    catch { showToast('Error updating user.') }
+    // Only admins manage roles, and never their own.
+    const payload = { ...editForm }
+    if (user?.role !== 'admin' || id === user?.id) delete payload.roles
+    try { await api.put(`/users/${id}`, payload); setEditing(null); load() }
+    catch (err) { showToast(err.response?.data?.message || 'Error updating user.') }
     finally { setSaving(false) }
   }
 
@@ -89,7 +134,7 @@ const createUser = async e => {
 
   const downloadTemplate = () => {
   const csv = user?.role === 'admin'
-  ? 'name,email,student_id,section,password,role\nJuan dela Cruz,juan@school.edu.ph,2023-00001,BSIT 3A,ThesisGuard2025!,student\n...'
+  ? 'name,email,student_id,section,password,role\nJuan dela Cruz,juan@school.edu.ph,2023-00001,BSIT 3A,ThesisGuard2025!,student\nMaria Santos,maria@school.edu.ph,,,ThesisGuard2025!,instructor|adviser|panelist\n...'
   : 'name,email,student_id,section,password\nJuan dela Cruz,juan@school.edu.ph,2023-00001,BSIT 3A,ThesisGuard2025!\n...'
   const blob = new Blob([csv], { type: 'text/csv' })
   const a = Object.assign(document.createElement('a'), {
@@ -110,11 +155,11 @@ const createUser = async e => {
 
   const toggleSelect = id => setSelectedIds(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id])
 
-  const visibleUsers  = user?.role === 'instructor' ? users.filter(u => u.role === 'student') : users
+  const visibleUsers  = user?.role === 'instructor' ? users.filter(u => userRoles(u).includes('student')) : users
   const filteredUsers = visibleUsers.filter(u => {
     const q = search.toLowerCase()
     return (!q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.student_id?.toLowerCase().includes(q)) &&
-           (!roleFilter || u.role === roleFilter)
+           (!roleFilter || userRoles(u).includes(roleFilter))
   })
 
   const rolePill = role => ({
@@ -149,15 +194,13 @@ const createUser = async e => {
                 <label style={labelStyle}>Email Address</label>
                 <input type="email" value={newUser.email} onChange={e => setNewUser({...newUser, email:e.target.value})} required style={inputStyle} placeholder="e.g. juan@dnsc.edu.ph" />
               </div>
-              <div className="dg-grid-2" style={{ display:'grid', gap:'12px' }}>
-                {user?.role === 'admin' && (
-                  <div>
-                    <label style={labelStyle}>Role</label>
-                    <select value={newUser.role} onChange={e => setNewUser({...newUser, role:e.target.value})} style={inputStyle}>
-                      {['student','adviser','instructor','panelist','admin'].map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase()+r.slice(1)}</option>)}
-                    </select>
-                  </div>
-                )}
+              {user?.role === 'admin' && (
+                <div>
+                  <label style={labelStyle}>Roles <span style={{ color:'#cbd5e1', textTransform:'none', fontWeight:'400' }}>(faculty can have several)</span></label>
+                  <RoleChecks roles={newUser.roles} onChange={roles => setNewUser({...newUser, roles})} />
+                </div>
+              )}
+              <div>
                 <div>
                   <label style={labelStyle}>Student ID <span style={{ color:'#cbd5e1', textTransform:'none', fontWeight:'400' }}>(optional)</span></label>
                   <input value={newUser.student_id} onChange={e => setNewUser({...newUser, student_id:e.target.value})} style={inputStyle} placeholder="e.g. 22-1234" />
@@ -191,7 +234,7 @@ const createUser = async e => {
         </div>
         {['admin','instructor'].includes(user?.role) && (
           <div style={{ display:'flex', gap:'8px' }}>
-            <button onClick={() => { setNewUser({ name:'', email:'', password:'', role:'student', student_id:'', section:'' }); setShowAddUser(true) }}
+            <button onClick={() => { setNewUser({ name:'', email:'', password:'', roles:['student'], student_id:'', section:'' }); setShowAddUser(true) }}
               style={{ background:'linear-gradient(135deg,#0a1f44,#1040a0)', color:'#fff', border:'none', borderRadius:'8px', padding:'9px 16px', fontSize:'13px', fontWeight:'600', cursor:'pointer' }}>
               {user?.role === 'instructor' ? '+ Add Student' : '+ Add User'}
             </button>
@@ -227,7 +270,7 @@ const createUser = async e => {
                 • <strong>password</strong> — leave blank to use default: <code style={{ fontSize:'11px' }}>ThesisGuard2025!</code>
                 
                 {user?.role === 'admin' && (
-                  <div>• <strong>role</strong> — student, adviser, instructor, panelist (default: student)</div>
+                  <div>• <strong>role</strong> — student, adviser, instructor, panelist (default: student). For several roles separate with <code style={{ fontSize:'11px' }}>|</code>, e.g. <code style={{ fontSize:'11px' }}>instructor|adviser|panelist</code></div>
                 )}
               </div>
               <button
@@ -363,13 +406,13 @@ const createUser = async e => {
                         <td style={{ padding:'8px 14px' }}><input name="name" value={editForm.name} onChange={handleEdit} style={{ ...inputStyle, padding:'6px 10px' }} /></td>
                         {user?.role === 'admin' && (
                           <td style={{ padding:'8px 14px' }}>
-                            <select name="role" value={editForm.role} onChange={handleEdit} style={{ ...inputStyle, padding:'6px 10px' }}>
-                              {['admin','instructor','adviser','student','panelist'].map(r => <option key={r} value={r}>{r}</option>)}
-                            </select>
+                            <RoleChecks compact roles={editForm.roles || []} disabled={u.id === user?.id}
+                              onChange={roles => setEditForm({ ...editForm, roles })} />
                           </td>
                         )}
                         <td style={{ padding:'8px 14px' }}><input name="email" value={editForm.email} onChange={handleEdit} style={{ ...inputStyle, padding:'6px 10px' }} /></td>
                         <td style={{ padding:'8px 14px' }}><input name="student_id" value={editForm.student_id} onChange={handleEdit} style={{ ...inputStyle, padding:'6px 10px' }} placeholder="e.g. 20-1234" /></td>
+                        <td style={{ padding:'8px 14px' }}><input name="section" value={editForm.section} onChange={handleEdit} style={{ ...inputStyle, padding:'6px 10px' }} placeholder="e.g. BSIT 4A" /></td>
                         <td style={{ padding:'8px 14px' }}>
                           <div style={{ display:'flex', gap:'6px' }}>
                             <button onClick={() => saveEdit(u.id)} disabled={saving} style={{ fontSize:'11px', padding:'5px 12px', borderRadius:'6px', border:'none', background:'linear-gradient(135deg,#0a1f44,#1040a0)', color:'#fff', cursor:'pointer', fontWeight:'700' }}>{saving?'Saving...':'Save'}</button>
@@ -389,7 +432,14 @@ const createUser = async e => {
                         </td>
                         {user?.role === 'admin' && (
                           <td style={{ padding:'12px 14px' }}>
-                            <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'700', textTransform:'capitalize', ...rolePill(u.role) }}>{u.role}</span>
+                            <div style={{ display:'flex', flexWrap:'wrap', gap:'4px' }}>
+                              {userRoles(u).map(r => (
+                                <span key={r} title={userRoles(u).length > 1 && r === u.role ? 'Currently active role' : undefined}
+                                  style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'700', textTransform:'capitalize', ...rolePill(r) }}>
+                                  {r}
+                                </span>
+                              ))}
+                            </div>
                           </td>
                         )}
                         <td style={{ padding:'12px 14px', color:'#64748b' }}>{u.email}</td>

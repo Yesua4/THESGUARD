@@ -54,7 +54,7 @@ class AuthController extends Controller {
         }
 
         return response()->json([
-            'user'   => $user,
+            'user'   => $user->append('roles'),
             'token'  => $token,
             'school' => $schoolInfo,
         ]);
@@ -71,9 +71,28 @@ class AuthController extends Controller {
             ];
         }
         return response()->json([
-            'user'   => $user,
+            'user'   => $user->append('roles'),
             'school' => $schoolInfo,
         ]);
+    }
+
+    // Switch the active role to another role the admin assigned to this
+    // account. Every authorization check reads users.role, so this is all
+    // it takes for the sidebar, pages and permissions to follow.
+    public function switchRole(Request $request) {
+        $data = $request->validate([
+            'role' => 'required|string|in:' . implode(',', User::ROLES),
+        ]);
+
+        $user = $request->user();
+        abort_unless($user->hasRole($data['role']), 403, 'That role is not assigned to your account.');
+
+        if ($user->role !== $data['role']) {
+            $user->role = $data['role'];
+            $user->save();
+        }
+
+        return response()->json(['user' => $user->append('roles')]);
     }
 
     // ── Google Sign-In (link-only: succeeds only for emails that already
@@ -120,17 +139,20 @@ class AuthController extends Controller {
     // ── List users — scoped to same school ───────────────────
     public function users(Request $request) {
         $user  = $request->user();
-        $query = User::query();
+        $query = User::query()->with('roleAssignments');
 
         if ($user->school_id) {
             $query->where('school_id', $user->school_id);
         }
 
+        // Matches anyone who HAS the role, not just whoever is currently
+        // using it -- an instructor who is also a panelist must still show
+        // up in the panelist picker.
         if ($request->filled('role')) {
-            $query->where('role', $request->query('role'));
+            $query->withRole($request->query('role'));
         }
 
-        return response()->json($query->get());
+        return response()->json($query->get()->each->append('roles'));
     }
 
     public function updateUser(Request $request, $id) {
@@ -140,7 +162,9 @@ class AuthController extends Controller {
         $data = $request->validate([
             'name'       => 'sometimes|string|max:255',
             'email'      => 'sometimes|email|unique:users,email,' . $id,
-            'role'       => 'sometimes|in:admin,instructor,adviser,student,panelist',
+            'role'       => 'sometimes|in:' . implode(',', User::ROLES),
+            'roles'      => 'sometimes|array|min:1',
+            'roles.*'    => 'string|in:' . implode(',', User::ROLES),
             'student_id' => 'nullable|string|unique:users,student_id,' . $id,
             'section'    => 'nullable|string|max:100'
         ]);
@@ -151,12 +175,30 @@ class AuthController extends Controller {
         // a role (that would let an instructor promote a student to admin,
         // or move a student out from under this restriction entirely).
         if ($caller->role !== 'admin') {
-            abort_unless($user->role === 'student', 403, 'Instructors can only manage student accounts.');
-            unset($data['role']);
+            abort_unless($user->assignedRoles() === ['student'], 403, 'Instructors can only manage student accounts.');
+            unset($data['role'], $data['roles']);
+        }
+
+        // `roles` is the full set of assigned roles; a lone `role` (older
+        // clients) means "this is now the only role".
+        $roles = $data['roles'] ?? (isset($data['role']) ? [$data['role']] : null);
+        unset($data['role'], $data['roles']);
+
+        if ($roles !== null) {
+            $roles = array_values(array_unique($roles));
+            $unchanged = empty(array_diff($roles, $user->assignedRoles())) && empty(array_diff($user->assignedRoles(), $roles));
+            abort_if($caller->id === $user->id && !$unchanged, 403, 'You cannot change the roles on your own account.');
+            if ($error = User::validateRoleSet($roles)) {
+                return response()->json(['message' => $error, 'errors' => ['roles' => [$error]]], 422);
+            }
         }
 
         $user->update($data);
-        return response()->json($user);
+        if ($roles !== null) {
+            $user->syncRoles($roles);
+        }
+
+        return response()->json($user->fresh()->append('roles'));
     }
 
     public function createUser(Request $request) {
@@ -167,22 +209,33 @@ class AuthController extends Controller {
             'name'       => 'required|string|max:255',
             'email'      => 'required|email|unique:users,email',
             'password'   => 'required|min:12',
-            'role'       => 'required|in:admin,instructor,adviser,student,panelist',
+            'role'       => 'required_without:roles|in:' . implode(',', User::ROLES),
+            'roles'      => 'required_without:role|array|min:1',
+            'roles.*'    => 'string|in:' . implode(',', User::ROLES),
             'student_id' => 'nullable|string|unique:users,student_id',
             'section'    => 'nullable|string|max:100'
         ]);
+
+        $roles = array_values(array_unique($data['roles'] ?? [$data['role']]));
+        unset($data['roles']);
 
         // Instructors can only ever create student accounts, regardless of
         // what role value is submitted -- the frontend already hides this
         // field for them, but the server must not trust that.
         if ($caller->role !== 'admin') {
-            $data['role'] = 'student';
+            $roles = ['student'];
         }
 
+        if ($error = User::validateRoleSet($roles)) {
+            return response()->json(['message' => $error, 'errors' => ['roles' => [$error]]], 422);
+        }
+
+        $data['role']      = $roles[0];
         $data['school_id'] = $caller->school_id ?? null;
         $data['password']  = Hash::make($data['password'] . $this->pepper());
         $user = User::create($data);
-        return response()->json($user, 201);
+        $user->syncRoles($roles);
+        return response()->json($user->append('roles'), 201);
     }
 
     public function deleteUser(Request $request, $id) {
@@ -195,7 +248,7 @@ class AuthController extends Controller {
 
         $user = User::findOrFail($id);
         if ($caller->role !== 'admin') {
-            abort_unless($user->role === 'student', 403, 'Instructors can only manage student accounts.');
+            abort_unless($user->assignedRoles() === ['student'], 403, 'Instructors can only manage student accounts.');
         }
 
         $user->delete();
@@ -315,13 +368,27 @@ class AuthController extends Controller {
             continue;
         }
 
-        $role = $admin->role === 'admin'
-            ? (in_array(strtolower($row['role'] ?? ''), ['student','adviser','instructor','panelist','admin'])
-                ? strtolower($row['role'])
-                : 'student')
-            : 'student';
+        // Admins may give several roles separated by "|" or ";", e.g.
+        // "instructor|adviser|panelist". Unknown values are ignored; an
+        // empty result falls back to student.
+        $roles = ['student'];
+        if ($admin->role === 'admin') {
+            $rawRoles = strtolower($row['role'] ?? $row['Role'] ?? $row['roles'] ?? $row['Roles'] ?? '');
+            $parsed = array_values(array_unique(array_intersect(
+                array_map('trim', preg_split('/[|;]/', $rawRoles)),
+                User::ROLES
+            )));
+            if ($parsed) {
+                if ($error = User::validateRoleSet($parsed)) {
+                    $skipped[] = "Row " . ($index + 2) . " ({$email}): {$error}";
+                    continue;
+                }
+                $roles = $parsed;
+            }
+        }
+        $role = $roles[0];
 
-        User::create([
+        $newUser = User::create([
             'name'       => $name,
             'email'      => $email,
             'student_id' => $student_id ?: null,
@@ -330,8 +397,11 @@ class AuthController extends Controller {
             'school_id'  => $admin->school_id,
             'password'   => \Illuminate\Support\Facades\Hash::make($password . $this->pepper()),
         ]);
+        $newUser->syncRoles($roles);
 
-        $roleCounts[$role] = ($roleCounts[$role] ?? 0) + 1;
+        foreach ($roles as $r) {
+            $roleCounts[$r] = ($roleCounts[$r] ?? 0) + 1;
+        }
         $created++;
     }
 
