@@ -22,6 +22,35 @@ const MARGIN_PRESETS = {
 
 const BLOCK_TAGS = new Set(['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'BLOCKQUOTE', 'TABLE'])
 
+// Thesis manuscripts follow a standard structure where these section
+// headings always start a fresh page -- true regardless of the specific
+// document, unlike LibreOffice's page-break-before CSS (which mixes real
+// manual breaks with layout artifacts and can't be trusted; see
+// hasForcedBreakBefore). Matched as a full line (not "CHAPTER 1 ... 5",
+// which would be a Table of Contents entry, not the actual heading) so a
+// TOC page doesn't get misread as a run of chapter starts.
+const STRUCTURAL_HEADING_RE = /^(CHAPTER\s+\d+\.?|REFERENCES\.?|BIBLIOGRAPHY\.?|APPENDI(X|CES)\.?|APPROVAL\s+SHEET|ACKNOWLEDGE?MENTS?|ABSTRACT|DEDICATION|TABLE\s+OF\s+CONTENTS|LIST\s+OF\s+(FIGURES|TABLES)|CURRICULUM\s+VITAE)$/i
+
+// Runs once, right after freshly-loaded content is set into the editor
+// (see the mount effect): marks every top-level block whose own text is
+// exactly one of the standard thesis section headings, the same way
+// insertPageBreak marks a manual break, so repaginate() starts a fresh
+// page there without the user having to click through every chapter by
+// hand. Only ever applied to freshly-loaded content, never while the user
+// is actively editing, so it can't fight their own edits or undo history.
+function markStructuralPageBreaks(root) {
+  if (!root) return
+  Array.from(root.children).forEach((el, i) => {
+    if (i === 0) return // first block is already page 1, nothing to push it onto
+    if (el.hasAttribute('data-page-spacer') || el.hasAttribute('data-page-break')) return
+    const text = (el.textContent || '').trim()
+    if (STRUCTURAL_HEADING_RE.test(text)) {
+      el.setAttribute('data-page-break', 'true')
+      el.style.pageBreakBefore = 'always'
+    }
+  })
+}
+
 function outerHeight(el) {
   const cs = getComputedStyle(el)
   return el.offsetHeight + parseFloat(cs.marginTop || 0) + parseFloat(cs.marginBottom || 0)
@@ -140,6 +169,7 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
     if (paginated) {
       document.execCommand('styleWithCSS', false, true)
       document.execCommand('defaultParagraphSeparator', false, 'p')
+      markStructuralPageBreaks(ref.current)
       repaginate()
     }
     if (autoFocus) ref.current?.focus()
