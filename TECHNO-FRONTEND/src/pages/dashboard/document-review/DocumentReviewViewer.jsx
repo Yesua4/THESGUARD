@@ -203,9 +203,20 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
                      in-app editor's spacer (RichTextEditor.jsx), reproduced
                      here as a ::before pseudo-element since this is static
                      rendered HTML, not something JS can insert sibling nodes
-                     into the way the live editor does. */
-                  .dg-draft-content [data-page-break] { margin-top: 0; padding-top: 0; }
-                  .dg-draft-content [data-page-break]::before { content: ""; display: block; height: 56px; margin: 0 -40px 0 -40px; background: #f1f5f9; box-shadow: inset 0 10px 12px -10px rgba(15,23,42,0.35), inset 0 -10px 12px -10px rgba(15,23,42,0.35); }
+                     into the way the live editor does.
+                     The editor's own fix for this same break applies quiet
+                     blank margin space on both sides of the gray gutter
+                     (previous page's bottom margin, then the gutter, then
+                     this page's top margin) instead of running text flush
+                     against it -- 96px matches the editor's default Thesis
+                     margin preset (1in top/bottom), the only value this
+                     static view can assume since per-document margins
+                     aren't part of the saved content. margin-top (outside
+                     the element's box) lands before the gutter; the
+                     ::before's own margin-bottom pushes the real text that
+                     follows it down again after the gutter. */
+                  .dg-draft-content [data-page-break] { margin-top: 96px; padding-top: 0; }
+                  .dg-draft-content [data-page-break]::before { content: ""; display: block; height: 28px; margin: 0 -40px 96px -40px; background: #f1f5f9; box-shadow: inset 0 8px 10px -8px rgba(15,23,42,0.35), inset 0 -8px 10px -8px rgba(15,23,42,0.35); }
 
                   /* Real pagination for the one place it actually matters: this
                      is what Ctrl+P / the Print button below produces. Browsers

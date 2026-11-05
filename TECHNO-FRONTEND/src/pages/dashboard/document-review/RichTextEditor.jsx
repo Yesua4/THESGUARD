@@ -191,21 +191,39 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
     })
 
     breakBefore.forEach(child => {
-      // A real gap between two sheets, the same shape Word/Docs show --
-      // not a debug-looking dashed line with a label. Bleeds past the
-      // content box's own edges (negative side margins) so it reads as
-      // the gray canvas showing through between two separate white pages,
-      // with inset shadows on the gap's top/bottom to suggest the drop
-      // shadow a real page edge would cast, rather than one continuous
-      // white column with a stripe cut through it.
+      // The single contentEditable region's own padding (margins.top/bottom)
+      // only ever applies once, at the very start and very end of the whole
+      // document -- every page boundary IN BETWEEN had no margin of its own,
+      // so text ran flush up to the old flat gray bar and resumed flush
+      // after it (confirmed: a side-by-side with the real Google Doc showed
+      // text touching the gap on both sides, where Docs shows a generous
+      // quiet white margin before AND after the gray gutter). A page is its
+      // margins, not just its text, so each break now reproduces that: a
+      // blank run the height of the outgoing page's own bottom margin
+      // (plain, inherits the white background -- it's blank space, not a
+      // marker), then a thin gray gutter standing in for the gap between
+      // two physical sheets, then a blank run the height of the incoming
+      // page's top margin before its text starts.
       const spacer = document.createElement('div')
       spacer.setAttribute('data-page-spacer', 'true')
       spacer.contentEditable = 'false'
       spacer.style.pointerEvents = 'none'
-      spacer.style.height = '56px'
-      spacer.style.margin = '0 -40px' // modest bleed past the box edge, not an unbounded one that risks horizontal scroll
-      spacer.style.background = '#f1f5f9'
-      spacer.style.boxShadow = 'inset 0 10px 12px -10px rgba(15,23,42,0.35), inset 0 -10px 12px -10px rgba(15,23,42,0.35)'
+
+      const bottomMargin = document.createElement('div')
+      bottomMargin.style.height = `${margins.bottom}px`
+      spacer.appendChild(bottomMargin)
+
+      const gutter = document.createElement('div')
+      gutter.style.height = '28px'
+      gutter.style.margin = '0 -40px' // modest bleed past the box edge, not an unbounded one that risks horizontal scroll
+      gutter.style.background = '#f1f5f9'
+      gutter.style.boxShadow = 'inset 0 8px 10px -8px rgba(15,23,42,0.35), inset 0 -8px 10px -8px rgba(15,23,42,0.35)'
+      spacer.appendChild(gutter)
+
+      const topMargin = document.createElement('div')
+      topMargin.style.height = `${margins.top}px`
+      spacer.appendChild(topMargin)
+
       root.insertBefore(spacer, child)
     })
 
