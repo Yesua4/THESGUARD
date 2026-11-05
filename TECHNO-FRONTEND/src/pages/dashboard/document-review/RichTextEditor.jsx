@@ -156,14 +156,21 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
     let breaks = 0
     children.forEach((child, i) => {
       if (i === 0 || !hasForcedBreakBefore(child)) return
+      // A real gap between two sheets, the same shape Word/Docs show --
+      // not a debug-looking dashed line with a label. Bleeds past the
+      // content box's own edges (negative side margins) so it reads as
+      // the gray canvas showing through between two separate white pages,
+      // with inset shadows on the gap's top/bottom to suggest the drop
+      // shadow a real page edge would cast, rather than one continuous
+      // white column with a stripe cut through it.
       const spacer = document.createElement('div')
       spacer.setAttribute('data-page-spacer', 'true')
       spacer.contentEditable = 'false'
       spacer.style.pointerEvents = 'none'
-      spacer.style.margin = '28px 0'
-      spacer.style.borderTop = '2px dashed #cbd5e1'
-      spacer.style.position = 'relative'
-      spacer.innerHTML = '<span style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:#f1f5f9;padding:0 10px;font-size:10px;font-weight:700;letter-spacing:0.05em;color:#94a3b8;">PAGE BREAK</span>'
+      spacer.style.height = '56px'
+      spacer.style.margin = '0 -40px' // modest bleed past the box edge, not an unbounded one that risks horizontal scroll
+      spacer.style.background = '#f1f5f9'
+      spacer.style.boxShadow = 'inset 0 10px 12px -10px rgba(15,23,42,0.35), inset 0 -10px 12px -10px rgba(15,23,42,0.35)'
       root.insertBefore(spacer, child)
       breaks++
     })
@@ -559,8 +566,9 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
           just the one continuous document, styled identically in both
           places it's shown. */}
       <style>{`
-        .dg-draft-content [data-page-break] { margin-top: 28px; padding-top: 24px; border-top: 2px dashed #cbd5e1; position: relative; }
-        .dg-draft-content [data-page-break]::before { content: "PAGE BREAK"; position: absolute; top: -9px; left: 50%; transform: translateX(-50%); background: #fff; padding: 0 10px; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; color: #94a3b8; }
+        /* Real page-gap look lives on the spacer sibling element itself
+           (see repaginate()'s data-page-spacer, inserted via JS) -- the
+           break element is otherwise a normal paragraph. */
 
         /* Same print rule as the read-only viewer (DocumentReviewViewer.jsx)
            -- lets Print be checked at any point while actively editing,
@@ -571,8 +579,11 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
           .dg-print-area { position: absolute; left: 0; top: 0; width: 100%; }
           @page { size: A4; margin: 1in 1in 1in 1.5in; }
           .dg-draft-content { max-width: none !important; box-shadow: none !important; padding: 0 !important; }
-          .dg-draft-content [data-page-break] { page-break-before: always; border-top: none !important; margin-top: 0 !important; padding-top: 0 !important; }
-          .dg-draft-content [data-page-break]::before { display: none; }
+          .dg-draft-content [data-page-break] { page-break-before: always; }
+          /* The visual gap spacer would otherwise print as an extra blank
+             gray box on top of the real page break the line above already
+             creates -- real print pagination doesn't need (or want) it. */
+          .dg-draft-content [data-page-spacer] { display: none !important; }
           /* Printing while Page View is active (viewMode !== 'edit') leaves
              the edit wrapper's inline display:none in place -- confirmed:
              without this, the printed/PDF output is completely blank in

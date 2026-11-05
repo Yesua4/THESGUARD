@@ -198,8 +198,14 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
                     editor showed clearly would silently vanish the moment this same
                     content is viewed instead of edited. */}
                 <style>{`
-                  .dg-draft-content [data-page-break] { margin-top: 28px; padding-top: 24px; border-top: 2px dashed #cbd5e1; position: relative; }
-                  .dg-draft-content [data-page-break]::before { content: "PAGE BREAK"; position: absolute; top: -9px; left: 50%; transform: translateX(-50%); background: #fff; padding: 0 10px; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; color: #94a3b8; }
+                  /* A real gap between two sheets, matching Word/Docs -- not a
+                     debug-looking dashed line with a label. Same look as the
+                     in-app editor's spacer (RichTextEditor.jsx), reproduced
+                     here as a ::before pseudo-element since this is static
+                     rendered HTML, not something JS can insert sibling nodes
+                     into the way the live editor does. */
+                  .dg-draft-content [data-page-break] { margin-top: 0; padding-top: 0; }
+                  .dg-draft-content [data-page-break]::before { content: ""; display: block; height: 56px; margin: 0 -40px 0 -40px; background: #f1f5f9; box-shadow: inset 0 10px 12px -10px rgba(15,23,42,0.35), inset 0 -10px 12px -10px rgba(15,23,42,0.35); }
 
                   /* Real pagination for the one place it actually matters: this
                      is what Ctrl+P / the Print button below produces. Browsers
