@@ -6,6 +6,7 @@ import api from '../../../api/axios'
 import PdfViewer from './PdfViewer'
 import CommentSidebar from './CommentSidebar'
 import DocumentDiffViewer from './DocumentDiffViewer'
+import { DEFAULT_MARGINS, markStructuralPageBreaks, paginate } from './pagination'
 
 // Shown when no PDF-renderable version exists yet: either the file is a
 // Word doc whose automatic conversion failed (or hasn't been attempted,
@@ -88,6 +89,27 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
   const [activeCommentId, setActiveCommentId] = useState(null)
   const [previousVersion, setPreviousVersion] = useState(null)
   const [showDiff, setShowDiff] = useState(false)
+  // The in-app draft content (dangerouslySetInnerHTML, static) and the live
+  // editor it was written in are two different DOM trees, so React can't
+  // just share the editor's page breaks -- this ref lets the exact same
+  // pagination function (./pagination.js) run against THIS tree too.
+  const draftContentRef = useRef(null)
+
+  // Runs the identical measurement RichTextEditor uses, against this
+  // read-only content, so a page break here is the same break shown while
+  // editing -- not a different approximation (a flat CSS padding that
+  // ignored the real margin preset, and a static rule that only knew about
+  // forced breaks, not ones the real content naturally overflows into).
+  // Confirmed: those two gaps meant Edit and View could show the same
+  // document with different text wrapping and different breaks entirely,
+  // not just a styling mismatch. Per-document margins aren't saved, so this
+  // assumes the editor's default (Thesis) preset -- the same assumption the
+  // editor itself starts from.
+  useEffect(() => {
+    if (!isInAppDraft || !draftContentRef.current) return
+    markStructuralPageBreaks(draftContentRef.current)
+    paginate(draftContentRef.current, DEFAULT_MARGINS)
+  }, [isInAppDraft, document.content])
 
   useEffect(() => {
     if (document.version <= 1) { setPreviousVersion(null); return }
@@ -188,55 +210,32 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
           <div ref={bodyScrollRef} style={{ flex: 1, overflowY: 'auto', padding: canPreview ? '20px' : 0, background: '#f1f5f9' }}>
             {isInAppDraft ? (
               <>
-                {/* Matches the same rule used in the in-app editor (RichTextEditor's
-                    paginated mode) -- a page break a user set while editing (either
-                    the "Page Break" button or an auto-detected chapter/section
-                    heading) needs to look the same way here, in read-only view, as
-                    it did while being edited. Without this, data-page-break's
-                    page-break-before style has no visible effect in an ordinary
-                    scrolling view (it's a print-only CSS property), so a break the
-                    editor showed clearly would silently vanish the moment this same
-                    content is viewed instead of edited. */}
+                {/* The actual page-break spacers are inserted into
+                    draftContentRef's DOM by the effect above, which calls
+                    the exact same pagination.js functions RichTextEditor
+                    uses -- not a separate CSS approximation of them. Only
+                    the print override is still a plain CSS rule here: real
+                    print pagination doesn't need (or want) the on-screen
+                    spacer, same as in the editor. */}
                 <style>{`
-                  /* A real gap between two sheets, matching Word/Docs -- not a
-                     debug-looking dashed line with a label. Same look as the
-                     in-app editor's spacer (RichTextEditor.jsx), reproduced
-                     here as a ::before pseudo-element since this is static
-                     rendered HTML, not something JS can insert sibling nodes
-                     into the way the live editor does.
-                     The editor's own fix for this same break applies quiet
-                     blank margin space on both sides of the gray gutter
-                     (previous page's bottom margin, then the gutter, then
-                     this page's top margin) instead of running text flush
-                     against it -- 96px matches the editor's default Thesis
-                     margin preset (1in top/bottom), the only value this
-                     static view can assume since per-document margins
-                     aren't part of the saved content. margin-top (outside
-                     the element's box) lands before the gutter; the
-                     ::before's own margin-bottom pushes the real text that
-                     follows it down again after the gutter. */
-                  .dg-draft-content [data-page-break] { margin-top: 96px; padding-top: 0; }
-                  .dg-draft-content [data-page-break]::before { content: ""; display: block; height: 28px; margin: 0 -40px 96px -40px; background: #f1f5f9; box-shadow: inset 0 8px 10px -8px rgba(15,23,42,0.35), inset 0 -8px 10px -8px rgba(15,23,42,0.35); }
-
-                  /* Real pagination for the one place it actually matters: this
-                     is what Ctrl+P / the Print button below produces. Browsers
-                     reflow text across pages correctly on their own -- this is
-                     the one case all night where trusting the real renderer
-                     instead of estimating page breaks ourselves is exactly
-                     right, since it's what's really going to end up on paper. */
                   @media print {
                     body * { visibility: hidden; }
                     .dg-print-area, .dg-print-area * { visibility: visible; }
                     .dg-print-area { position: absolute; left: 0; top: 0; width: 100%; }
                     @page { size: A4; margin: 1in 1in 1in 1.5in; }
                     .dg-draft-content { max-width: none !important; box-shadow: none !important; padding: 0 !important; }
-                    .dg-draft-content [data-page-break] { page-break-before: always; border-top: none !important; margin-top: 0 !important; padding-top: 0 !important; }
-                    .dg-draft-content [data-page-break]::before { display: none; }
+                    .dg-draft-content [data-page-break] { page-break-before: always; }
+                    .dg-draft-content [data-page-spacer] { display: none !important; }
                   }
                 `}</style>
                 <div
+                  ref={draftContentRef}
                   className="dg-draft-content dg-print-area"
-                  style={{ background: '#fff', borderRadius: '10px', padding: '32px 40px', maxWidth: '820px', margin: '0 auto', fontSize: '13px', lineHeight: '1.7', color: '#0f172a' }}
+                  style={{
+                    boxSizing: 'border-box', background: '#fff', borderRadius: '10px',
+                    padding: `${DEFAULT_MARGINS.top}px ${DEFAULT_MARGINS.right}px ${DEFAULT_MARGINS.bottom}px ${DEFAULT_MARGINS.left}px`,
+                    maxWidth: '820px', margin: '0 auto', fontSize: '13px', lineHeight: '1.7', color: '#0f172a',
+                  }}
                   dangerouslySetInnerHTML={{ __html: document.content }}
                 />
               </>

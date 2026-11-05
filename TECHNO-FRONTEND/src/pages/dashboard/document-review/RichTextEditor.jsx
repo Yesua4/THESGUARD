@@ -1,60 +1,7 @@
 import { useRef, useEffect, useState } from 'react'
-import PagedPreview from './PagedPreview'
-
-// ─── Paper metrics (A4 @ 96dpi) ────────────────────────────────────────────
-// Matches the PDF viewer and the actual page size LibreOffice preserves from
-// the uploaded Word doc -- this used to be hardcoded to US Letter (8.5x11in),
-// which doesn't match the A4 page size most local thesis templates use.
-const PAGE_W = 794   // 210mm
-const PAGE_H = 1123  // 297mm
-const IN     = 96    // 1 inch, in px, for converting the custom-margin inputs
-
-// Default: standard Philippine thesis/binding format — wider left margin for
-// binding, 1in on the other three sides. Adjustable in the toolbar, same idea
-// as Word's Layout > Margins.
-const DEFAULT_MARGINS = { top: 96, right: 96, bottom: 96, left: 144 }
-const MARGIN_PRESETS = {
-  thesis:   { label: 'Thesis (1.5" left)', top: 96, right: 96, bottom: 96, left: 144 },
-  normal:   { label: 'Normal (1")',        top: 96, right: 96, bottom: 96, left: 96 },
-  moderate: { label: 'Moderate',           top: 96, right: 72, bottom: 96, left: 72 },
-  narrow:   { label: 'Narrow (0.5")',      top: 48, right: 48, bottom: 48, left: 48 },
-}
+import { IN, DEFAULT_MARGINS, MARGIN_PRESETS, markStructuralPageBreaks, paginate } from './pagination'
 
 const BLOCK_TAGS = new Set(['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'BLOCKQUOTE', 'TABLE'])
-
-// Thesis manuscripts follow a standard structure where these section
-// headings always start a fresh page -- true regardless of the specific
-// document, unlike LibreOffice's page-break-before CSS (which mixes real
-// manual breaks with layout artifacts and can't be trusted; see
-// hasForcedBreakBefore). Matched as a full line (not "CHAPTER 1 ... 5",
-// which would be a Table of Contents entry, not the actual heading) so a
-// TOC page doesn't get misread as a run of chapter starts.
-const STRUCTURAL_HEADING_RE = /^(CHAPTER\s+\d+\.?|REFERENCES\.?|BIBLIOGRAPHY\.?|APPENDI(X|CES)\.?|APPROVAL\s+SHEET|ACKNOWLEDGE?MENTS?|ABSTRACT|DEDICATION|TABLE\s+OF\s+CONTENTS|LIST\s+OF\s+(FIGURES|TABLES)|CURRICULUM\s+VITAE)$/i
-
-// Runs once, right after freshly-loaded content is set into the editor
-// (see the mount effect): marks every top-level block whose own text is
-// exactly one of the standard thesis section headings, the same way
-// insertPageBreak marks a manual break, so repaginate() starts a fresh
-// page there without the user having to click through every chapter by
-// hand. Only ever applied to freshly-loaded content, never while the user
-// is actively editing, so it can't fight their own edits or undo history.
-function markStructuralPageBreaks(root) {
-  if (!root) return
-  Array.from(root.children).forEach((el, i) => {
-    if (i === 0) return // first block is already page 1, nothing to push it onto
-    if (el.hasAttribute('data-page-spacer') || el.hasAttribute('data-page-break')) return
-    const text = (el.textContent || '').trim()
-    if (STRUCTURAL_HEADING_RE.test(text)) {
-      el.setAttribute('data-page-break', 'true')
-      el.style.pageBreakBefore = 'always'
-    }
-  })
-}
-
-function outerHeight(el) {
-  const cs = getComputedStyle(el)
-  return el.offsetHeight + parseFloat(cs.marginTop || 0) + parseFloat(cs.marginBottom || 0)
-}
 
 // Google Docs (and some other editors) wrap the entire copied selection in a
 // single generic container — typically <b id="docs-internal-guid-...">  — with
@@ -101,21 +48,6 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
   const [marginPreset, setMarginPreset] = useState('thesis')
   const [customOpen, setCustomOpen] = useState(false)
   const [customVals, setCustomVals] = useState({ top: 1, right: 1, bottom: 1, left: 1.5 })
-  // 'edit': the plain continuous surface typing actually happens in --
-  // typing directly into Paged.js's own output isn't safe, since it
-  // reflows/re-splits content across page boundaries on every change,
-  // which would fight a live cursor. 'pages': a real paginated preview
-  // (see PagedPreview) of the current content, read-only.
-  const [viewMode, setViewMode] = useState('edit')
-  // True only while Paged.js is actively mid-render. Confirmed under
-  // rapid-toggle stress testing: unmounting PagedPreview (switching back to
-  // Edit) while Paged.js's own async renderAsync() is still running crashes
-  // it internally, reading DOM nodes React just detached out from under it.
-  // Paged.js exposes no way to cancel that in-flight work, so the only safe
-  // fix is to not allow the unmount that triggers it in the first place --
-  // this disables the Edit button for the (typically well under a couple of
-  // seconds, even for an 80+ page document) time a render is genuinely busy.
-  const [pagesRendering, setPagesRendering] = useState(false)
 
   const closestBlock = node => {
     let el = node.nodeType === 3 ? node.parentElement : node
@@ -123,147 +55,13 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
     return (el === ref.current || !el) ? null : el
   }
 
-  // True for a paragraph that should start a fresh page regardless of how
-  // much room is left, from a manual break explicitly inserted here (see
-  // insertPageBreak). Earlier this also trusted page-break-before/
-  // break-before CSS carried over from LibreOffice's HTML export, on the
-  // theory that it reflects Word's real manual page breaks -- in practice
-  // LibreOffice emits that style on paragraphs with no corresponding break
-  // in the actual document (confirmed: a paragraph that flows continuously
-  // in the real manuscript got forced onto its own page, leaving roughly
-  // half of the previous page blank), so that signal isn't trustworthy and
-  // this only honors breaks this editor itself created.
-  const hasForcedBreakBefore = el => el.hasAttribute('data-page-break')
-
-  // WYSIWYG means what you see while editing has to actually be true of the
-  // saved document. The earlier version of this only broke pages at a point
-  // this editor explicitly knew was real -- a manual break, or a thesis
-  // section heading -- because an earlier attempt at *estimating* where a
-  // page should break (from character counts / assumed font metrics, before
-  // anything was actually laid out) guessed wrong against the real renderer
-  // and showed a blank gap that didn't correspond to anything, in the wrong
-  // place, that never made it into the saved content either.
-  //
-  // That fix was incomplete: between two section headings, a chapter's worth
-  // of body text got zero page breaks at all, no matter how long it ran --
-  // visually one giant unbroken sheet instead of several pages, nothing like
-  // Word or Docs. The difference here is MEASURING, not estimating: every
-  // top-level block is already sitting in the live DOM in its real,
-  // currently-rendered size (the exact font, the exact line-breaking, the
-  // same box the user is looking at) by the time this runs, so walking their
-  // actual offsetHeight and breaking where the running total would exceed
-  // one page's usable height can't disagree with what's on screen -- it IS
-  // what's on screen. It still won't land on the exact same line Word or
-  // LibreOffice would (different layout engine, same as before), but it
-  // can't show a gap that contradicts its own content, and now every chapter
-  // gets as many breaks as its real rendered length needs, not just the ones
-  // at a heading.
+  // Pagination itself (the actual break-position math and the spacer DOM
+  // it builds) lives in ./pagination.js, shared with DocumentReviewViewer --
+  // see that file for why. This just re-runs it against the live editor DOM
+  // and reports how many pages it found.
   const repaginate = () => {
-    const root = ref.current
-    if (!root) return
-    root.querySelectorAll('[data-page-spacer]').forEach(el => el.remove())
-
-    const usableH = PAGE_H - margins.top - margins.bottom
-    const children = Array.from(root.children)
-    // Read every child's real rendered height up front, before any spacer
-    // is inserted -- one measurement pass, then one DOM-mutation pass below,
-    // so inserting earlier spacers can't shift what a later measurement
-    // reads (layout thrashing) and doesn't change any height being compared.
-    const heights = children.map(outerHeight)
-
-    const breakBefore = []
-    let used = 0
-    children.forEach((child, i) => {
-      const h = heights[i]
-      if (i === 0) { used = h; return }
-      const forced = hasForcedBreakBefore(child)
-      // Only break mid-flow once the current page actually has something on
-      // it (used > 0) -- a block taller than one full page (a big table or
-      // image) still gets to start its own page rather than triggering a
-      // second, immediately-empty break right after the one before it.
-      const overflows = !forced && used > 0 && used + h > usableH
-      if (forced || overflows) {
-        // A forced break (a chapter heading, say) can land well before the
-        // current page is actually full -- a short title page followed
-        // immediately by "CHAPTER 1" is the normal case, not an edge case.
-        // Confirmed against the real Google Doc: its title page stays a
-        // full blank sheet all the way down and Chapter 1 starts on a
-        // genuinely new page, where this editor was shrink-wrapping the
-        // break to right after the last line of text -- a page that sizes
-        // itself to its content isn't a page, it's just a text block with a
-        // divider after it. A natural-overflow break needs no filler: the
-        // page is already full by definition (that's the only reason it
-        // broke).
-        const fillerHeight = forced ? Math.max(0, usableH - used) : 0
-        breakBefore.push({ child, fillerHeight })
-        used = h
-      } else {
-        used += h
-      }
-    })
-
-    breakBefore.forEach(({ child, fillerHeight }) => {
-      // The single contentEditable region's own padding (margins.top/bottom)
-      // only ever applies once, at the very start and very end of the whole
-      // document -- every page boundary IN BETWEEN had no margin of its own,
-      // so text ran flush up to the old flat gray bar and resumed flush
-      // after it (confirmed: a side-by-side with the real Google Doc showed
-      // text touching the gap on both sides, where Docs shows a generous
-      // quiet white margin before AND after the gray gutter). A page is its
-      // margins, not just its text, so each break now reproduces that: an
-      // optional blank run padding the outgoing page out to its full height
-      // (see fillerHeight above), then a blank run the height of its own
-      // bottom margin (plain, inherits the white background -- it's blank
-      // space, not a marker), then a thin gray gutter standing in for the
-      // gap between two physical sheets, then a blank run the height of the
-      // incoming page's top margin before its text starts.
-      const spacer = document.createElement('div')
-      spacer.setAttribute('data-page-spacer', 'true')
-      spacer.contentEditable = 'false'
-      spacer.style.pointerEvents = 'none'
-
-      if (fillerHeight > 0) {
-        const filler = document.createElement('div')
-        filler.style.height = `${fillerHeight}px`
-        spacer.appendChild(filler)
-      }
-
-      const bottomMargin = document.createElement('div')
-      bottomMargin.style.height = `${margins.bottom}px`
-      spacer.appendChild(bottomMargin)
-
-      const gutter = document.createElement('div')
-      gutter.style.height = '28px'
-      gutter.style.margin = '0 -40px' // modest bleed past the box edge, not an unbounded one that risks horizontal scroll
-      gutter.style.background = '#f1f5f9'
-      gutter.style.boxShadow = 'inset 0 8px 10px -8px rgba(15,23,42,0.35), inset 0 -8px 10px -8px rgba(15,23,42,0.35)'
-      spacer.appendChild(gutter)
-
-      const topMargin = document.createElement('div')
-      topMargin.style.height = `${margins.top}px`
-      spacer.appendChild(topMargin)
-
-      root.insertBefore(spacer, child)
-    })
-
-    // The very last page has no following break to hang a filler off of,
-    // but it's just as real a page as any other -- pad it out to full
-    // height too so the document doesn't end with a sheet that's been
-    // shrink-wrapped to its last paragraph.
-    const trailingFiller = Math.max(0, usableH - used)
-    if (trailingFiller > 0 && children.length > 0) {
-      const filler = document.createElement('div')
-      filler.setAttribute('data-page-spacer', 'true')
-      filler.contentEditable = 'false'
-      filler.style.pointerEvents = 'none'
-      filler.style.height = `${trailingFiller}px`
-      root.appendChild(filler)
-    }
-
-    // breakBefore.length spacers means that many page boundaries, so this is
-    // now an exact count of what's actually shown -- not a separate estimate
-    // layered on top of it.
-    setPageCount(breakBefore.length + 1)
+    const breaks = paginate(ref.current, margins)
+    setPageCount(breaks + 1)
   }
 
   const emitCleanValue = () => {
@@ -591,14 +389,7 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
         <button type="button" style={btnStyle} title="Opens your browser's print dialog, with real A4 pagination -- an accurate preview of what printing or saving as PDF actually produces" onClick={() => window.print()}>🖨 Print</button>
         {divider}
 
-        {/* Disabled while Page View is actively rendering, same reason as
-            the Edit button above: changing margins mid-render changes
-            PagedPreview's props, which clears its container to start a
-            fresh layout pass while Paged.js's PREVIOUS pass may still be
-            actively reading that same container -- the identical crash
-            class as the unmount race, just triggered by a prop change
-            instead of a toggle click. */}
-        <select style={selectStyle} value={marginPreset} title={pagesRendering ? 'Finishing page layout…' : 'Page margins'} disabled={pagesRendering} onChange={e => applyMarginPreset(e.target.value)}>
+        <select style={selectStyle} value={marginPreset} title="Page margins" onChange={e => applyMarginPreset(e.target.value)}>
           {Object.entries(MARGIN_PRESETS).map(([key, p]) => <option key={key} value={key}>Margins: {p.label}</option>)}
           <option value="custom">Margins: Custom...</option>
         </select>
@@ -608,31 +399,19 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
               <label key={side} title={`${side} margin (inches)`} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px', color: '#64748b' }}>
                 {side[0].toUpperCase()}
                 <input
-                  type="number" min="0" max="3" step="0.1" value={customVals[side]} disabled={pagesRendering}
+                  type="number" min="0" max="3" step="0.1" value={customVals[side]}
                   onChange={e => setCustomVals(v => ({ ...v, [side]: parseFloat(e.target.value) || 0 }))}
                   style={{ width: '42px', border: '1px solid #e2e8f0', borderRadius: '4px', padding: '2px 4px', fontSize: '11px' }}
                 />
               </label>
             ))}
-            <button type="button" disabled={pagesRendering} onClick={applyCustomMargins} style={{ ...btnStyle, padding: '4px 8px', opacity: pagesRendering ? 0.5 : 1, cursor: pagesRendering ? 'wait' : 'pointer' }}>Apply</button>
+            <button type="button" onClick={applyCustomMargins} style={{ ...btnStyle, padding: '4px 8px' }}>Apply</button>
           </div>
         )}
 
         <div style={{ flex: 1 }} />
-        {viewMode === 'edit' && (
-          <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', flexShrink: 0 }} title="Counts the page breaks shown below, measured from this editor's own rendered layout -- may still differ slightly from the exact page count LibreOffice or Word would produce">
-            ~{pageCount} page{pageCount !== 1 ? 's' : ''}
-          </div>
-        )}
-        <div style={{ display: 'flex', border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}>
-          <button type="button" title={pagesRendering ? 'Finishing page layout…' : 'Type here'} disabled={pagesRendering} onClick={() => setViewMode('edit')}
-            style={{ border: 'none', padding: '5px 12px', fontSize: '12px', fontWeight: 600, cursor: pagesRendering ? 'wait' : 'pointer', opacity: pagesRendering && viewMode !== 'edit' ? 0.5 : 1, background: viewMode === 'edit' ? '#0a1f44' : '#fff', color: viewMode === 'edit' ? '#fff' : '#334155' }}>
-            ✏️ Edit
-          </button>
-          <button type="button" title="Real paginated preview -- the same layout technology print/PDF uses, not an estimate" onClick={() => setViewMode('pages')}
-            style={{ border: 'none', padding: '5px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', background: viewMode === 'pages' ? '#0a1f44' : '#fff', color: viewMode === 'pages' ? '#fff' : '#334155' }}>
-            📄 Page View{pagesRendering ? '…' : ''}
-          </button>
+        <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', flexShrink: 0 }} title="Counts the page breaks shown below, measured from this editor's own rendered layout -- the same measurement View uses for this same content, so the two always agree">
+          ~{pageCount} page{pageCount !== 1 ? 's' : ''}
         </div>
       </div>
 
@@ -664,24 +443,10 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
              gray box on top of the real page break the line above already
              creates -- real print pagination doesn't need (or want) it. */
           .dg-draft-content [data-page-spacer] { display: none !important; }
-          /* Printing while Page View is active (viewMode !== 'edit') leaves
-             the edit wrapper's inline display:none in place -- confirmed:
-             without this, the printed/PDF output is completely blank in
-             that state, since visibility:visible on a display:none
-             ancestor's children has no effect; display:none removes the
-             whole subtree from layout outright. An !important class rule
-             (unlike a plain one) beats a non-!important inline style
-             regardless of specificity, which is what's needed here since
-             the inline style itself can't be conditioned on print media. */
-          .dg-edit-wrapper { display: block !important; }
         }
       `}</style>
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        {/* Kept mounted (just hidden) rather than unmounted when switching to
-            Page View -- this is the one DOM node holding the live cursor,
-            selection, and undo history; remounting it would mean re-running
-            its setup effect from scratch on every toggle back to Edit. */}
-        <div className="dg-edit-wrapper" style={{ maxWidth: '820px', margin: '0 auto 40px', display: viewMode === 'edit' ? 'block' : 'none' }}>
+        <div className="dg-edit-wrapper" style={{ maxWidth: '820px', margin: '0 auto 40px' }}>
           <div
             ref={ref}
             contentEditable
@@ -698,11 +463,6 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
             }}
           />
         </div>
-        {/* Real pagination (Paged.js), not another estimate -- see
-            PagedPreview.jsx. Read-only: typing directly into its output
-            isn't safe, since it reflows/re-splits content across page
-            boundaries on every change, which would fight a live cursor. */}
-        {viewMode === 'pages' && <PagedPreview html={value} margins={margins} onRenderingChange={setPagesRendering} />}
       </div>
     </div>
   )
