@@ -175,10 +175,26 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
         <div className="dg-viewer-body" style={{ flex: 1 }}>
           <div ref={bodyScrollRef} style={{ flex: 1, overflowY: 'auto', padding: canPreview ? '20px' : 0, background: '#f1f5f9' }}>
             {isInAppDraft ? (
-              <div
-                style={{ background: '#fff', borderRadius: '10px', padding: '32px 40px', maxWidth: '820px', margin: '0 auto', fontSize: '13px', lineHeight: '1.7', color: '#0f172a' }}
-                dangerouslySetInnerHTML={{ __html: document.content }}
-              />
+              <>
+                {/* Matches the same rule used in the in-app editor (RichTextEditor's
+                    paginated mode) -- a page break a user set while editing (either
+                    the "Page Break" button or an auto-detected chapter/section
+                    heading) needs to look the same way here, in read-only view, as
+                    it did while being edited. Without this, data-page-break's
+                    page-break-before style has no visible effect in an ordinary
+                    scrolling view (it's a print-only CSS property), so a break the
+                    editor showed clearly would silently vanish the moment this same
+                    content is viewed instead of edited. */}
+                <style>{`
+                  .dg-draft-content [data-page-break] { margin-top: 28px; padding-top: 24px; border-top: 2px dashed #cbd5e1; position: relative; }
+                  .dg-draft-content [data-page-break]::before { content: "PAGE BREAK"; position: absolute; top: -9px; left: 50%; transform: translateX(-50%); background: #fff; padding: 0 10px; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; color: #94a3b8; }
+                `}</style>
+                <div
+                  className="dg-draft-content"
+                  style={{ background: '#fff', borderRadius: '10px', padding: '32px 40px', maxWidth: '820px', margin: '0 auto', fontSize: '13px', lineHeight: '1.7', color: '#0f172a' }}
+                  dangerouslySetInnerHTML={{ __html: document.content }}
+                />
+              </>
             ) : canPreview ? (
               <PdfViewer
                 documentId={document.id}

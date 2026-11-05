@@ -506,15 +506,21 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
         </div>
       </div>
 
-      {/* Paper canvas -- one continuous sheet, not pre-cut into fixed-height
-          page rectangles: content between real breaks can be taller or
-          shorter than one physical page, and faking page-height boundaries
-          for content that hasn't actually been measured against a real
-          layout engine is exactly the "shows something that isn't true"
-          problem this replaced. The dashed PAGE BREAK lines (from
-          repaginate) are the only breaks this editor claims are real. */}
+      {/* Same container look, typography, and page-break divider styling
+          (.dg-draft-content, defined in DocumentReviewViewer.jsx right next
+          to where this content is shown read-only) as the actual viewer
+          uses for this exact content -- not an approximation of it. If this
+          drifts from that styling again, editing looks different from
+          viewing again, which was the whole problem: no fake paper sheet,
+          no page-height boundaries this editor can't actually guarantee,
+          just the one continuous document, styled identically in both
+          places it's shown. */}
+      <style>{`
+        .dg-draft-content [data-page-break] { margin-top: 28px; padding-top: 24px; border-top: 2px dashed #cbd5e1; position: relative; }
+        .dg-draft-content [data-page-break]::before { content: "PAGE BREAK"; position: absolute; top: -9px; left: 50%; transform: translateX(-50%); background: #fff; padding: 0 10px; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; color: #94a3b8; }
+      `}</style>
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        <div style={{ width: `${PAGE_W}px`, margin: '0 auto 40px' }}>
+        <div style={{ maxWidth: '820px', margin: '0 auto 40px' }}>
           <div
             ref={ref}
             contentEditable
@@ -522,11 +528,11 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
             onPaste={handlePaste}
             onKeyDown={handleKeyDown}
             suppressContentEditableWarning
+            className="dg-draft-content"
             style={{
-              width: `${PAGE_W}px`, minHeight: `${PAGE_H}px`, boxSizing: 'border-box',
-              background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.08)',
+              boxSizing: 'border-box', background: '#fff', borderRadius: '10px',
               padding: `${margins.top}px ${margins.right}px ${margins.bottom}px ${margins.left}px`,
-              fontFamily: 'Arial, sans-serif', fontSize: '12pt', lineHeight: '1.6', color: '#0f172a',
+              fontSize: '13px', lineHeight: '1.7', color: '#0f172a',
               outline: 'none',
             }}
           />
