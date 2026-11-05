@@ -107,6 +107,15 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
   // which would fight a live cursor. 'pages': a real paginated preview
   // (see PagedPreview) of the current content, read-only.
   const [viewMode, setViewMode] = useState('edit')
+  // True only while Paged.js is actively mid-render. Confirmed under
+  // rapid-toggle stress testing: unmounting PagedPreview (switching back to
+  // Edit) while Paged.js's own async renderAsync() is still running crashes
+  // it internally, reading DOM nodes React just detached out from under it.
+  // Paged.js exposes no way to cancel that in-flight work, so the only safe
+  // fix is to not allow the unmount that triggers it in the first place --
+  // this disables the Edit button for the (typically well under a couple of
+  // seconds, even for an 80+ page document) time a render is genuinely busy.
+  const [pagesRendering, setPagesRendering] = useState(false)
 
   const closestBlock = node => {
     let el = node.nodeType === 3 ? node.parentElement : node
@@ -495,7 +504,14 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
         <button type="button" style={btnStyle} title="Opens your browser's print dialog, with real A4 pagination -- an accurate preview of what printing or saving as PDF actually produces" onClick={() => window.print()}>🖨 Print</button>
         {divider}
 
-        <select style={selectStyle} value={marginPreset} title="Page margins" onChange={e => applyMarginPreset(e.target.value)}>
+        {/* Disabled while Page View is actively rendering, same reason as
+            the Edit button above: changing margins mid-render changes
+            PagedPreview's props, which clears its container to start a
+            fresh layout pass while Paged.js's PREVIOUS pass may still be
+            actively reading that same container -- the identical crash
+            class as the unmount race, just triggered by a prop change
+            instead of a toggle click. */}
+        <select style={selectStyle} value={marginPreset} title={pagesRendering ? 'Finishing page layout…' : 'Page margins'} disabled={pagesRendering} onChange={e => applyMarginPreset(e.target.value)}>
           {Object.entries(MARGIN_PRESETS).map(([key, p]) => <option key={key} value={key}>Margins: {p.label}</option>)}
           <option value="custom">Margins: Custom...</option>
         </select>
@@ -505,13 +521,13 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
               <label key={side} title={`${side} margin (inches)`} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px', color: '#64748b' }}>
                 {side[0].toUpperCase()}
                 <input
-                  type="number" min="0" max="3" step="0.1" value={customVals[side]}
+                  type="number" min="0" max="3" step="0.1" value={customVals[side]} disabled={pagesRendering}
                   onChange={e => setCustomVals(v => ({ ...v, [side]: parseFloat(e.target.value) || 0 }))}
                   style={{ width: '42px', border: '1px solid #e2e8f0', borderRadius: '4px', padding: '2px 4px', fontSize: '11px' }}
                 />
               </label>
             ))}
-            <button type="button" onClick={applyCustomMargins} style={{ ...btnStyle, padding: '4px 8px' }}>Apply</button>
+            <button type="button" disabled={pagesRendering} onClick={applyCustomMargins} style={{ ...btnStyle, padding: '4px 8px', opacity: pagesRendering ? 0.5 : 1, cursor: pagesRendering ? 'wait' : 'pointer' }}>Apply</button>
           </div>
         )}
 
@@ -522,13 +538,13 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
           </div>
         )}
         <div style={{ display: 'flex', border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}>
-          <button type="button" title="Type here" onClick={() => setViewMode('edit')}
-            style={{ border: 'none', padding: '5px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', background: viewMode === 'edit' ? '#0a1f44' : '#fff', color: viewMode === 'edit' ? '#fff' : '#334155' }}>
+          <button type="button" title={pagesRendering ? 'Finishing page layout…' : 'Type here'} disabled={pagesRendering} onClick={() => setViewMode('edit')}
+            style={{ border: 'none', padding: '5px 12px', fontSize: '12px', fontWeight: 600, cursor: pagesRendering ? 'wait' : 'pointer', opacity: pagesRendering && viewMode !== 'edit' ? 0.5 : 1, background: viewMode === 'edit' ? '#0a1f44' : '#fff', color: viewMode === 'edit' ? '#fff' : '#334155' }}>
             ✏️ Edit
           </button>
           <button type="button" title="Real paginated preview -- the same layout technology print/PDF uses, not an estimate" onClick={() => setViewMode('pages')}
             style={{ border: 'none', padding: '5px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', background: viewMode === 'pages' ? '#0a1f44' : '#fff', color: viewMode === 'pages' ? '#fff' : '#334155' }}>
-            📄 Page View
+            📄 Page View{pagesRendering ? '…' : ''}
           </button>
         </div>
       </div>
@@ -585,7 +601,7 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
             PagedPreview.jsx. Read-only: typing directly into its output
             isn't safe, since it reflows/re-splits content across page
             boundaries on every change, which would fight a live cursor. */}
-        {viewMode === 'pages' && <PagedPreview html={value} margins={margins} />}
+        {viewMode === 'pages' && <PagedPreview html={value} margins={margins} onRenderingChange={setPagesRendering} />}
       </div>
     </div>
   )

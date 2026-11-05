@@ -18,7 +18,19 @@ import { useEffect, useRef, useState } from 'react'
 // (getBoundingClientRect) during its async render crashed its internal
 // Layout class outright. display:none has no real layout box; fixed by
 // keeping the target in-flow (visibility:hidden) while loading instead.
-export default function PagedPreview({ html, margins }) {
+//
+// The second real bug (confirmed under rapid-toggle stress testing): the
+// `cancelled` flag below only stops *this* code from acting on a stale
+// result -- it does nothing to stop Paged.js's own async renderAsync()
+// from continuing to run against containerRef.current. If the parent
+// unmounts this component (switching back to Edit) while that's still
+// in flight, React removes containerRef.current from the DOM while
+// Paged.js is still actively reading/measuring it, which throws the same
+// internal crash reading a now-detached node. Reported via
+// onRenderingChange so the parent can refuse to unmount this component
+// until rendering genuinely finishes, instead of trying to make Paged.js
+// itself cancelable (it exposes no such API).
+export default function PagedPreview({ html, margins, onRenderingChange }) {
   const containerRef = useRef(null)
   const [rendering, setRendering] = useState(true)
   const [error, setError] = useState('')
@@ -28,6 +40,7 @@ export default function PagedPreview({ html, margins }) {
     if (!container) return
     let cancelled = false
     setRendering(true)
+    onRenderingChange?.(true)
     setError('')
     container.innerHTML = ''
 
@@ -48,15 +61,17 @@ export default function PagedPreview({ html, margins }) {
         .then(flow => {
           if (cancelled) return
           setRendering(false)
+          onRenderingChange?.(false)
           void flow
         })
         .catch(err => {
           console.error('Page preview failed:', err)
-          if (!cancelled) { setError('Could not render page preview.'); setRendering(false) }
+          if (!cancelled) { setError('Could not render page preview.'); setRendering(false); onRenderingChange?.(false) }
         })
     })
 
     return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [html, margins])
 
   return (
