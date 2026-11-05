@@ -481,7 +481,7 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
             style={{
               position: 'relative', zIndex: 1, width: `${PAGE_W}px`, boxSizing: 'border-box',
               padding: `${margins.top}px ${margins.right}px ${margins.bottom}px ${margins.left}px`,
-              fontSize: '11pt', lineHeight: '1.6', color: '#0f172a',
+              fontFamily: 'Arial, sans-serif', fontSize: '12pt', lineHeight: '1.6', color: '#0f172a',
               outline: 'none',
             }}
           />
