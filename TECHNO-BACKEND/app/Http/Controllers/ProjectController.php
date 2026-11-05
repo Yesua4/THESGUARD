@@ -31,6 +31,14 @@ class ProjectController extends Controller {
             });
         } elseif ($user->role === 'panelist') {
             $query->whereIn('status', ['approved', 'for_defense']);
+        } elseif ($user->role === 'instructor' && $user->sectionScope()) {
+            // Section-scoped instructor: projects of groups in their sections
+            // (or that they created/advise), plus projects assigned to them.
+            $groupIds = \App\Models\Group::query()->visibleToInstructor($user)->pluck('id');
+            $query->where(fn ($q) => $q
+                ->where('instructor_id', $user->id)
+                ->orWhereIn('group_id', $groupIds)
+            );
         }
 
         return response()->json($query->get());

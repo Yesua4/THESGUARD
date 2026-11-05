@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import api from '../../api/axios'
 import { ROLE_ORDER, userRoles } from '../../constants/roles'
+import { SectionPicker, SectionField } from '../../components/dashboard/SectionPicker'
 
 // Student and admin accounts hold only that one role; the faculty roles
 // (instructor, adviser, panelist) can be combined freely.
@@ -55,7 +56,7 @@ function PageUsers() {
   const [search, setSearch]         = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [showAddUser, setShowAddUser] = useState(false)
-  const [newUser, setNewUser]       = useState({ name:'', email:'', password:'', roles:['student'], student_id:'', section:'' })
+  const [newUser, setNewUser]       = useState({ name:'', email:'', password:'', roles:['student'], student_id:'', section:'', handled_sections:[] })
   const [addingUser, setAddingUser] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [importFile, setImportFile] = useState(null)
@@ -75,7 +76,7 @@ const createUser = async e => {
   try {
     await api.post('/users', newUser)
     setShowAddUser(false)
-    setNewUser({ name:'', email:'', password:'', roles:['student'], student_id:'', section:'' })
+    setNewUser({ name:'', email:'', password:'', roles:['student'], student_id:'', section:'', handled_sections:[] })
     load()
   } catch (err) {
     // ── Validation errors ──────────────────────────────────
@@ -96,7 +97,7 @@ const createUser = async e => {
   } finally { setAddingUser(false) }
 }
 
-  const startEdit  = u => { setEditing(u.id); setEditForm({ name:u.name, email:u.email, roles:userRoles(u), student_id:u.student_id||'', section:u.section||'' }) }
+  const startEdit  = u => { setEditing(u.id); setEditForm({ name:u.name, email:u.email, roles:userRoles(u), student_id:u.student_id||'', section:u.section||'', handled_sections:u.handled_sections||[] }) }
   const cancelEdit = () => { setEditing(null); setEditForm({}) }
   const handleEdit = e => setEditForm({...editForm, [e.target.name]: e.target.value})
 
@@ -105,6 +106,7 @@ const createUser = async e => {
     // Only admins manage roles, and never their own.
     const payload = { ...editForm }
     if (user?.role !== 'admin' || id === user?.id) delete payload.roles
+    if (user?.role !== 'admin') delete payload.handled_sections
     try { await api.put(`/users/${id}`, payload); setEditing(null); load() }
     catch (err) { showToast(err.response?.data?.message || 'Error updating user.') }
     finally { setSaving(false) }
@@ -155,6 +157,11 @@ const createUser = async e => {
 
   const toggleSelect = id => setSelectedIds(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id])
 
+  // Every section already used in the school, offered as quick picks when
+  // the admin assigns an instructor's sections.
+  const knownSections = [...new Set(users.flatMap(u => [u.section, ...(u.handled_sections || [])]).filter(Boolean))]
+  const handlesSections = u => userRoles(u).includes('instructor')
+
   const visibleUsers  = user?.role === 'instructor' ? users.filter(u => userRoles(u).includes('student')) : users
   const filteredUsers = visibleUsers.filter(u => {
     const q = search.toLowerCase()
@@ -200,6 +207,13 @@ const createUser = async e => {
                   <RoleChecks roles={newUser.roles} onChange={roles => setNewUser({...newUser, roles})} />
                 </div>
               )}
+              {user?.role === 'admin' && newUser.roles.includes('instructor') && (
+                <div>
+                  <label style={labelStyle}>Handles Sections <span style={{ color:'#cbd5e1', textTransform:'none', fontWeight:'400' }}>(the instructor only sees these)</span></label>
+                  <SectionPicker value={newUser.handled_sections} suggestions={knownSections}
+                    onChange={handled_sections => setNewUser({...newUser, handled_sections})} />
+                </div>
+              )}
               <div>
                 <div>
                   <label style={labelStyle}>Student ID <span style={{ color:'#cbd5e1', textTransform:'none', fontWeight:'400' }}>(optional)</span></label>
@@ -212,7 +226,7 @@ const createUser = async e => {
               </div>
               <div>
                 <label style={labelStyle}>Course / Section <span style={{ color:'#cbd5e1', textTransform:'none', fontWeight:'400' }}>(optional)</span></label>
-                <input value={newUser.section} onChange={e => setNewUser({...newUser, section:e.target.value})} style={inputStyle} placeholder="e.g. BSIT 3A" />
+                <SectionField user={user} value={newUser.section} onChange={section => setNewUser({...newUser, section})} style={inputStyle} />
               </div>
               <div style={{ display:'flex', gap:'10px', paddingTop:'4px' }}>
                 <button type="submit" disabled={addingUser} style={{ flex:1, padding:'10px', background: addingUser?'#cbd5e1':'linear-gradient(135deg,#0a1f44,#1040a0)', color:'#fff', border:'none', borderRadius:'8px', fontSize:'13px', fontWeight:'700', cursor:addingUser?'not-allowed':'pointer' }}>
@@ -234,7 +248,7 @@ const createUser = async e => {
         </div>
         {['admin','instructor'].includes(user?.role) && (
           <div style={{ display:'flex', gap:'8px' }}>
-            <button onClick={() => { setNewUser({ name:'', email:'', password:'', roles:['student'], student_id:'', section:'' }); setShowAddUser(true) }}
+            <button onClick={() => { setNewUser({ name:'', email:'', password:'', roles:['student'], student_id:'', section:'', handled_sections:[] }); setShowAddUser(true) }}
               style={{ background:'linear-gradient(135deg,#0a1f44,#1040a0)', color:'#fff', border:'none', borderRadius:'8px', padding:'9px 16px', fontSize:'13px', fontWeight:'600', cursor:'pointer' }}>
               {user?.role === 'instructor' ? '+ Add Student' : '+ Add User'}
             </button>
@@ -369,7 +383,7 @@ const createUser = async e => {
           {selectedIds.length > 0 && (
             <div style={{ background:'#eff6ff', border:'1.5px solid #bfdbfe', borderRadius:'10px', padding:'10px 14px', marginBottom:'12px', display:'flex', alignItems:'center', gap:'10px', flexWrap:'wrap' }}>
               <span style={{ fontSize:'12px', fontWeight:'700', color:'#1d4ed8' }}>{selectedIds.length} student(s) selected</span>
-              <input value={bulkSection} onChange={e => setBulkSection(e.target.value)} placeholder="Enter section (e.g. BSIT 3A)" style={{ ...inputStyle, flex:1, minWidth:'180px', padding:'6px 10px' }} />
+              <SectionField user={user} value={bulkSection} onChange={setBulkSection} placeholder="Enter section (e.g. BSIT 3A)" style={{ ...inputStyle, flex:1, minWidth:'180px', padding:'6px 10px' }} />
               <button onClick={bulkAssign} style={{ padding:'7px 14px', background:'linear-gradient(135deg,#1d4ed8,#1e40af)', color:'#fff', border:'none', borderRadius:'8px', fontSize:'12px', fontWeight:'700', cursor:'pointer' }}>Assign Section</button>
               <button onClick={() => setSelectedIds([])} style={{ padding:'7px 14px', background:'#fff', color:'#64748b', border:'1.5px solid #e2e8f0', borderRadius:'8px', fontSize:'12px', cursor:'pointer' }}>Clear</button>
             </div>
@@ -412,7 +426,14 @@ const createUser = async e => {
                         )}
                         <td style={{ padding:'8px 14px' }}><input name="email" value={editForm.email} onChange={handleEdit} style={{ ...inputStyle, padding:'6px 10px' }} /></td>
                         <td style={{ padding:'8px 14px' }}><input name="student_id" value={editForm.student_id} onChange={handleEdit} style={{ ...inputStyle, padding:'6px 10px' }} placeholder="e.g. 20-1234" /></td>
-                        <td style={{ padding:'8px 14px' }}><input name="section" value={editForm.section} onChange={handleEdit} style={{ ...inputStyle, padding:'6px 10px' }} placeholder="e.g. BSIT 4A" /></td>
+                        <td style={{ padding:'8px 14px' }}>
+                          {user?.role === 'admin' && (editForm.roles || []).includes('instructor') ? (
+                            <SectionPicker compact value={editForm.handled_sections} suggestions={knownSections}
+                              onChange={handled_sections => setEditForm({ ...editForm, handled_sections })} />
+                          ) : (
+                            <SectionField user={user} value={editForm.section} onChange={section => setEditForm({ ...editForm, section })} style={{ ...inputStyle, padding:'6px 10px' }} placeholder="e.g. BSIT 4A" />
+                          )}
+                        </td>
                         <td style={{ padding:'8px 14px' }}>
                           <div style={{ display:'flex', gap:'6px' }}>
                             <button onClick={() => saveEdit(u.id)} disabled={saving} style={{ fontSize:'11px', padding:'5px 12px', borderRadius:'6px', border:'none', background:'linear-gradient(135deg,#0a1f44,#1040a0)', color:'#fff', cursor:'pointer', fontWeight:'700' }}>{saving?'Saving...':'Save'}</button>
@@ -444,7 +465,15 @@ const createUser = async e => {
                         )}
                         <td style={{ padding:'12px 14px', color:'#64748b' }}>{u.email}</td>
                         <td style={{ padding:'12px 14px', color:'#94a3b8' }}>{u.student_id || '—'}</td>
-                      <td style={{ padding:'12px 14px', color:'#94a3b8' }}>{u.section || '—'}</td>
+                      <td style={{ padding:'12px 14px', color:'#94a3b8' }}>
+                        {handlesSections(u) && u.handled_sections?.length ? (
+                          <div style={{ display:'flex', flexWrap:'wrap', gap:'4px' }} title="Sections this instructor handles">
+                            {u.handled_sections.map(s => (
+                              <span key={s} style={{ fontSize:'11px', padding:'2px 8px', borderRadius:'20px', fontWeight:'700', background:'#dbeafe', color:'#1e40af' }}>{s}</span>
+                            ))}
+                          </div>
+                        ) : (u.section || '—')}
+                      </td>
                       <td style={{ padding:'12px 14px' }}>
                         <div style={{ display:'flex', gap:'6px' }}>
                           <button onClick={() => startEdit(u)}

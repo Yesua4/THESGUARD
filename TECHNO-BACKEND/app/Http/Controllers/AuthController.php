@@ -54,7 +54,7 @@ class AuthController extends Controller {
         }
 
         return response()->json([
-            'user'   => $user->append('roles'),
+            'user'   => $user->append(['roles', 'handled_sections']),
             'token'  => $token,
             'school' => $schoolInfo,
         ]);
@@ -71,7 +71,7 @@ class AuthController extends Controller {
             ];
         }
         return response()->json([
-            'user'   => $user->append('roles'),
+            'user'   => $user->append(['roles', 'handled_sections']),
             'school' => $schoolInfo,
         ]);
     }
@@ -92,7 +92,7 @@ class AuthController extends Controller {
             $user->save();
         }
 
-        return response()->json(['user' => $user->append('roles')]);
+        return response()->json(['user' => $user->append(['roles', 'handled_sections'])]);
     }
 
     // ── Google Sign-In (link-only: succeeds only for emails that already
@@ -139,10 +139,20 @@ class AuthController extends Controller {
     // ── List users — scoped to same school ───────────────────
     public function users(Request $request) {
         $user  = $request->user();
-        $query = User::query()->with('roleAssignments');
+        $query = User::query()->with('roleAssignments', 'sectionAssignments');
 
         if ($user->school_id) {
             $query->where('school_id', $user->school_id);
+        }
+
+        // An instructor assigned to specific sections only sees the student
+        // accounts in those sections (staff accounts stay visible -- they're
+        // needed for adviser/panelist pickers).
+        if ($sections = $user->sectionScope()) {
+            $query->where(fn ($q) => $q
+                ->where('role', '!=', 'student')
+                ->orWhere(fn ($s) => User::whereSectionIn($s, 'section', $sections))
+            );
         }
 
         // Matches anyone who HAS the role, not just whoever is currently
@@ -152,7 +162,7 @@ class AuthController extends Controller {
             $query->withRole($request->query('role'));
         }
 
-        return response()->json($query->get()->each->append('roles'));
+        return response()->json($query->get()->each->append(['roles', 'handled_sections']));
     }
 
     public function updateUser(Request $request, $id) {
@@ -166,17 +176,25 @@ class AuthController extends Controller {
             'roles'      => 'sometimes|array|min:1',
             'roles.*'    => 'string|in:' . implode(',', User::ROLES),
             'student_id' => 'nullable|string|unique:users,student_id,' . $id,
-            'section'    => 'nullable|string|max:100'
+            'section'    => 'nullable|string|max:100',
+            'handled_sections'   => 'sometimes|array',
+            'handled_sections.*' => 'string|max:100',
         ]);
 
         $user = User::findOrFail($id);
+        $handledSections = $data['handled_sections'] ?? null;
+        unset($data['handled_sections']);
 
         // Instructors may only manage student accounts, and may never change
         // a role (that would let an instructor promote a student to admin,
         // or move a student out from under this restriction entirely).
         if ($caller->role !== 'admin') {
-            abort_unless($user->assignedRoles() === ['student'], 403, 'Instructors can only manage student accounts.');
+            $this->assertInstructorCanManage($caller, $user);
             unset($data['role'], $data['roles']);
+            $handledSections = null;
+            if (array_key_exists('section', $data)) {
+                abort_unless($caller->handlesSection($data['section']), 403, 'You can only move students into sections you handle.');
+            }
         }
 
         // `roles` is the full set of assigned roles; a lone `role` (older
@@ -197,8 +215,9 @@ class AuthController extends Controller {
         if ($roles !== null) {
             $user->syncRoles($roles);
         }
+        $this->applyHandledSections($user->fresh(), $handledSections);
 
-        return response()->json($user->fresh()->append('roles'));
+        return response()->json($user->fresh()->append(['roles', 'handled_sections']));
     }
 
     public function createUser(Request $request) {
@@ -213,17 +232,33 @@ class AuthController extends Controller {
             'roles'      => 'required_without:role|array|min:1',
             'roles.*'    => 'string|in:' . implode(',', User::ROLES),
             'student_id' => 'nullable|string|unique:users,student_id',
-            'section'    => 'nullable|string|max:100'
+            'section'    => 'nullable|string|max:100',
+            'handled_sections'   => 'sometimes|array',
+            'handled_sections.*' => 'string|max:100',
         ]);
 
         $roles = array_values(array_unique($data['roles'] ?? [$data['role']]));
-        unset($data['roles']);
+        $handledSections = $data['handled_sections'] ?? null;
+        unset($data['roles'], $data['handled_sections']);
 
         // Instructors can only ever create student accounts, regardless of
         // what role value is submitted -- the frontend already hides this
         // field for them, but the server must not trust that.
         if ($caller->role !== 'admin') {
             $roles = ['student'];
+            $handledSections = null;
+
+            // A section-scoped instructor's new students must land in one of
+            // their sections, or they'd vanish from that instructor's list.
+            if ($scope = $caller->sectionScope()) {
+                if (empty($data['section']) && count($scope) === 1) {
+                    $data['section'] = $scope[0];
+                }
+                if (!$caller->handlesSection($data['section'] ?? null)) {
+                    $msg = 'Choose one of your sections: ' . implode(', ', $scope) . '.';
+                    return response()->json(['message' => $msg, 'errors' => ['section' => [$msg]]], 422);
+                }
+            }
         }
 
         if ($error = User::validateRoleSet($roles)) {
@@ -235,7 +270,8 @@ class AuthController extends Controller {
         $data['password']  = Hash::make($data['password'] . $this->pepper());
         $user = User::create($data);
         $user->syncRoles($roles);
-        return response()->json($user->append('roles'), 201);
+        $this->applyHandledSections($user, $handledSections);
+        return response()->json($user->fresh()->append(['roles', 'handled_sections']), 201);
     }
 
     public function deleteUser(Request $request, $id) {
@@ -248,11 +284,28 @@ class AuthController extends Controller {
 
         $user = User::findOrFail($id);
         if ($caller->role !== 'admin') {
-            abort_unless($user->assignedRoles() === ['student'], 403, 'Instructors can only manage student accounts.');
+            $this->assertInstructorCanManage($caller, $user);
         }
 
         $user->delete();
         return response()->json(['message' => 'Deleted']);
+    }
+
+    // Instructors manage student accounts only -- and, once the admin has
+    // assigned them sections, only students in those sections.
+    private function assertInstructorCanManage(User $caller, User $target): void {
+        abort_unless($target->assignedRoles() === ['student'], 403, 'Instructors can only manage student accounts.');
+        abort_unless($caller->handlesSection($target->section), 403, 'You can only manage students in the sections you handle.');
+    }
+
+    // Sections only mean something for instructors: set them when given, and
+    // clear them if the account no longer has the instructor role.
+    private function applyHandledSections(User $user, ?array $sections): void {
+        if (!$user->hasRole('instructor')) {
+            $user->syncHandledSections([]);
+        } elseif ($sections !== null) {
+            $user->syncHandledSections($sections);
+        }
     }
 
     public function changePassword(Request $request) {
@@ -387,6 +440,16 @@ class AuthController extends Controller {
             }
         }
         $role = $roles[0];
+
+        if ($scope = $admin->sectionScope()) {
+            if (!$section && count($scope) === 1) {
+                $section = $scope[0];
+            }
+            if (!$admin->handlesSection($section)) {
+                $skipped[] = "Row " . ($index + 2) . " ({$email}): Section must be one of yours (" . implode(', ', $scope) . ").";
+                continue;
+            }
+        }
 
         $newUser = User::create([
             'name'       => $name,

@@ -25,7 +25,8 @@ trait AuthorizesDocumentAccess {
                 ->exists();
         }
         if ($user->role === 'instructor') {
-            $advisoryGroupIds = Group::where('adviser_id', $user->id)->pluck('id');
+            $advisoryGroupIds = Group::where('adviser_id', $user->id)->pluck('id')
+                ->merge(Group::idsInSectionsOf($user));
             return Project::where('id', $projectId)
                 ->where(fn($q) => $q->where('instructor_id', $user->id)->orWhereIn('group_id', $advisoryGroupIds))
                 ->exists();

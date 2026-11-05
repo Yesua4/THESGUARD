@@ -19,7 +19,7 @@ class User extends Authenticatable {
         'google_id', 'avatar',
     ];
 
-    protected $hidden = ['password', 'remember_token', 'roleAssignments'];
+    protected $hidden = ['password', 'remember_token', 'roleAssignments', 'sectionAssignments'];
 
     protected $casts = ['email_verified_at' => 'datetime'];
 
@@ -30,6 +30,62 @@ class User extends Authenticatable {
 
     public function roleAssignments() {
         return $this->hasMany(UserRole::class);
+    }
+
+    public function sectionAssignments() {
+        return $this->hasMany(InstructorSection::class);
+    }
+
+    // ── Sections an instructor handles ────────────────────────
+    // Sections are free text ("BSIT 4A") on students and groups, so they're
+    // compared trimmed, upper-cased and with single spaces.
+    public static function normalizeSection(?string $section): string {
+        return strtoupper(preg_replace('/\s+/', ' ', trim((string) $section)));
+    }
+
+    public function handledSectionNames(): array {
+        return $this->sectionAssignments->pluck('section')->sort()->values()->all();
+    }
+
+    // Exposed as `handled_sections` where explicitly appended, like `roles`.
+    public function getHandledSectionsAttribute(): array {
+        return $this->handledSectionNames();
+    }
+
+    public function syncHandledSections(array $sections): void {
+        $sections = array_values(array_unique(array_filter(array_map([self::class, 'normalizeSection'], $sections))));
+
+        $this->sectionAssignments()->whereNotIn('section', $sections)->delete();
+        $existing = $this->sectionAssignments()->pluck('section')->all();
+        foreach (array_diff($sections, $existing) as $section) {
+            $this->sectionAssignments()->create(['section' => $section]);
+        }
+        $this->unsetRelation('sectionAssignments');
+    }
+
+    /**
+     * The sections this user's view is limited to, or null for no limit.
+     * Only applies while active as instructor, and only once the admin has
+     * assigned at least one section -- an instructor with none keeps the
+     * school-wide view they had before sections existed.
+     */
+    public function sectionScope(): ?array {
+        if ($this->role !== 'instructor') {
+            return null;
+        }
+        $sections = $this->handledSectionNames();
+        return $sections ?: null;
+    }
+
+    public function handlesSection(?string $section): bool {
+        $scope = $this->sectionScope();
+        return $scope === null || in_array(self::normalizeSection($section), $scope, true);
+    }
+
+    // Constrains $column (a section column) to the given normalized sections.
+    // UPPER/TRIM behave the same on MySQL, Postgres and SQLite.
+    public static function whereSectionIn($query, string $column, array $sections) {
+        return $query->whereIn(\Illuminate\Support\Facades\DB::raw("UPPER(TRIM($column))"), $sections);
     }
 
     // ── Roles ─────────────────────────────────────────────────

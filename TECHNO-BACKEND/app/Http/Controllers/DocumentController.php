@@ -39,7 +39,9 @@ class DocumentController extends Controller {
             $classProjectIds    = Project::where('instructor_id', $user->id)->pluck('id');
             $advisoryGroupIds   = \App\Models\Group::where('adviser_id', $user->id)->pluck('id');
             $advisoryProjectIds = Project::whereIn('group_id', $advisoryGroupIds)->pluck('id');
-            $allProjectIds      = $classProjectIds->merge($advisoryProjectIds)->unique();
+            // 3. Their SECTIONS -- projects of groups in sections the admin assigned them
+            $sectionProjectIds  = Project::whereIn('group_id', \App\Models\Group::idsInSectionsOf($user))->pluck('id');
+            $allProjectIds      = $classProjectIds->merge($advisoryProjectIds)->merge($sectionProjectIds)->unique();
             $query->whereIn('project_id', $allProjectIds);
         } elseif ($user->role === 'panelist') {
             // Panelist sees documents only for projects whose defense schedule

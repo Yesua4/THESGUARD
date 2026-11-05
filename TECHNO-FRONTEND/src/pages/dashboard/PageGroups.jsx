@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import api from '../../api/axios'
+import { SectionField } from '../../components/dashboard/SectionPicker'
 
 function PageGroups() {
   const { user } = useAuth()
@@ -173,7 +174,7 @@ function PageGroups() {
             </div>
             <div>
               <label style={labelStyle}>Course / Section <span style={{ color:'#cbd5e1', textTransform:'none', fontWeight:'400' }}>(optional)</span></label>
-              <input value={form.section} onChange={e => setForm({...form, section:e.target.value})} style={inputStyle} placeholder="e.g. BSIT 3A" />
+              <SectionField user={user} value={form.section} onChange={section => setForm({...form, section})} style={inputStyle} />
             </div>
             <div>
               <label style={labelStyle}>Assign Adviser</label>

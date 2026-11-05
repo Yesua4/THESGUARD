@@ -18,6 +18,8 @@ class GroupController extends Controller {
 
         if ($user->role === 'adviser') {
             $query->where('adviser_id', $user->id);
+        } elseif ($user->role === 'instructor') {
+            $query->visibleToInstructor($user);
         } elseif ($user->role === 'student') {
             $groupIds = GroupMember::where('user_id', $user->id)->pluck('group_id');
             $query->whereIn('id', $groupIds);
@@ -35,6 +37,10 @@ class GroupController extends Controller {
         abort_unless(in_array($request->user()->role, ['instructor', 'admin']), 403, 'Only instructors and admins can manage groups.');
     }
 
+    private function assertGroupInScope(Request $request, Group $group): void {
+        abort_unless($group->isManageableBy($request->user()), 403, 'This group is not in a section you handle.');
+    }
+
     public function store(Request $request) {
         $this->assertCanManageGroups($request);
         $data = $request->validate([
@@ -45,6 +51,18 @@ class GroupController extends Controller {
             'members'    => 'required|array|min:1',
             'leader_id'  => 'required|integer',
         ]);
+
+        // A section-scoped instructor can only create groups in their sections.
+        $caller = $request->user();
+        if ($scope = $caller->sectionScope()) {
+            if (empty($data['section']) && count($scope) === 1) {
+                $data['section'] = $scope[0];
+            }
+            if (!$caller->handlesSection($data['section'] ?? null)) {
+                $msg = 'Choose one of your sections: ' . implode(', ', $scope) . '.';
+                return response()->json(['message' => $msg, 'errors' => ['section' => [$msg]]], 422);
+            }
+        }
 
         // Check if any selected student already has a group
         $alreadyGrouped = [];
@@ -91,6 +109,10 @@ class GroupController extends Controller {
     public function update(Request $request, $id) {
         $this->assertCanManageGroups($request);
         $group = Group::findOrFail($id);
+        $this->assertGroupInScope($request, $group);
+        if ($request->has('section')) {
+            abort_unless($request->user()->handlesSection($request->input('section')), 403, 'You can only move groups into sections you handle.');
+        }
         $group->update($request->only(['group_name', 'batch', 'section', 'adviser_id']));
 
         // Keep every project under this group in sync with its adviser — Project.adviser_id
@@ -117,7 +139,9 @@ class GroupController extends Controller {
 
     public function destroy(Request $request, $id) {
         $this->assertCanManageGroups($request);
-        Group::findOrFail($id)->delete();
+        $group = Group::findOrFail($id);
+        $this->assertGroupInScope($request, $group);
+        $group->delete();
         return response()->json(['message' => 'Deleted']);
     }
 
@@ -128,6 +152,10 @@ class GroupController extends Controller {
         // ── School isolation ──────────────────────────────────
         if ($user->school_id) {
             $query->where('school_id', $user->school_id);
+        }
+
+        if ($sections = $user->sectionScope()) {
+            User::whereSectionIn($query, 'section', $sections);
         }
 
         return response()->json($query->get());
