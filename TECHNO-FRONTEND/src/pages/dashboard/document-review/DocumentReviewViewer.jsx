@@ -6,7 +6,7 @@ import api from '../../../api/axios'
 import PdfViewer from './PdfViewer'
 import CommentSidebar from './CommentSidebar'
 import DocumentDiffViewer from './DocumentDiffViewer'
-import { DEFAULT_MARGINS, markStructuralPageBreaks, paginate } from './pagination'
+import { PAGE_W, DEFAULT_MARGINS, markStructuralPageBreaks, paginate } from './pagination'
 
 // Shown when no PDF-renderable version exists yet: either the file is a
 // Word doc whose automatic conversion failed (or hasn't been attempted,
@@ -223,7 +223,7 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
                     .dg-print-area, .dg-print-area * { visibility: visible; }
                     .dg-print-area { position: absolute; left: 0; top: 0; width: 100%; }
                     @page { size: A4; margin: 1in 1in 1in 1.5in; }
-                    .dg-draft-content { max-width: none !important; box-shadow: none !important; padding: 0 !important; }
+                    .dg-draft-content { max-width: none !important; width: auto !important; background: none !important; box-shadow: none !important; padding: 0 !important; }
                     .dg-draft-content [data-page-break] { page-break-before: always; }
                     .dg-draft-content [data-page-spacer] { display: none !important; }
                   }
@@ -232,9 +232,15 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
                   ref={draftContentRef}
                   className="dg-draft-content dg-print-area"
                   style={{
-                    boxSizing: 'border-box', background: '#fff', borderRadius: '10px',
+                    boxSizing: 'border-box',
+                    // No `background` key here on purpose -- see the same
+                    // note in RichTextEditor.jsx: paginate() sets
+                    // root.style.background directly from the real gutter
+                    // positions it just measured in THIS tree, and a React
+                    // style prop here would stomp that on every re-render.
+                    boxShadow: '0 1px 3px rgba(15,23,42,0.12), 0 10px 28px rgba(15,23,42,0.08)',
                     padding: `${DEFAULT_MARGINS.top}px ${DEFAULT_MARGINS.right}px ${DEFAULT_MARGINS.bottom}px ${DEFAULT_MARGINS.left}px`,
-                    maxWidth: '820px', margin: '0 auto', fontSize: '13px', lineHeight: '1.7', color: '#0f172a',
+                    width: `${PAGE_W}px`, margin: '0 auto', fontSize: '13px', lineHeight: '1.7', color: '#0f172a',
                   }}
                   dangerouslySetInnerHTML={{ __html: document.content }}
                 />

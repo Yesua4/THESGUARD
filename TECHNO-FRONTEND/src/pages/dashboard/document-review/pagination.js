@@ -18,6 +18,10 @@ export const PAGE_W = 794   // 210mm
 export const PAGE_H = 1123  // 297mm
 export const IN     = 96    // 1 inch, in px, for converting the custom-margin inputs
 
+// Height of the gray gutter standing in for the gap between two physical
+// sheets.
+export const GUTTER = 28
+
 // Default: standard Philippine thesis/binding format — wider left margin for
 // binding, 1in on the other three sides. Also what the read-only viewer
 // assumes, since per-document margins aren't part of the saved content.
@@ -74,11 +78,16 @@ const hasForcedBreakBefore = el => el.hasAttribute('data-page-break')
 // A forced break (a chapter heading, say) can land well before the current
 // page is actually full -- a short title page followed immediately by
 // "CHAPTER 1" is the normal case. A page that sizes itself to its content
-// isn't a page, so a forced break pads the outgoing page out to its full
-// height first; a natural-overflow break needs no filler, since the page
-// is already full by definition. The very last page gets the same
-// treatment via a trailing filler, so the document doesn't end on a sheet
-// shrink-wrapped to its last paragraph either.
+// isn't a page, so EVERY break pads the outgoing page out to its full
+// height first, forced or natural -- a real printed page is always the
+// same physical size, blank trailing space and all, whether a paragraph
+// didn't fit (natural) or a heading forced a fresh start early (forced).
+// This also keeps every page exactly PAGE_H + GUTTER tall with no
+// exceptions, which the page background (see RichTextEditor/
+// DocumentReviewViewer) depends on to line its own repeating white/gray
+// bands up with where these spacers actually land. The very last page gets
+// the same treatment via a trailing filler, so the document doesn't end on
+// a sheet shrink-wrapped to its last paragraph either.
 //
 // Returns the number of page breaks inserted (page count is breaks + 1).
 export function paginate(root, margins) {
@@ -87,11 +96,26 @@ export function paginate(root, margins) {
 
   const usableH = PAGE_H - margins.top - margins.bottom
   const children = Array.from(root.children)
-  // Read every child's real rendered height up front, before any spacer is
-  // inserted -- one measurement pass, then one DOM-mutation pass below, so
-  // inserting earlier spacers can't shift what a later measurement reads
-  // (layout thrashing) and doesn't change any height being compared.
-  const heights = children.map(outerHeight)
+  // Each child's effective height in the real rendered flow -- the gap
+  // between its own top and the next child's top, not outerHeight()'s own
+  // margin-top + margin-bottom summed independently. Adjacent block
+  // elements' vertical margins collapse in real CSS layout (the browser
+  // renders the LARGER of the two touching margins, not their sum), so
+  // summing each child's own margins separately overcounts by the smaller
+  // margin at every boundary that collapses -- confirmed: across several
+  // pages of a real LibreOffice-converted manuscript (whose paragraphs
+  // carry their own margin-top/bottom), that overcount compounded into a
+  // 15-20px drift by the third or fourth page, enough to throw the page
+  // background (which assumes a fixed, exact cycle length) out of sync
+  // with where the real spacers land. Reading each child's actual rendered
+  // top position sidesteps the whole problem: it's whatever the browser
+  // already collapsed it to, not a second, independent calculation that
+  // can disagree with the real layout.
+  const rootTop = root.getBoundingClientRect().top
+  const tops = children.map(c => c.getBoundingClientRect().top - rootTop)
+  const heights = children.map((c, i) =>
+    i < children.length - 1 ? tops[i + 1] - tops[i] : outerHeight(c)
+  )
 
   const breakBefore = []
   let used = 0
@@ -105,7 +129,7 @@ export function paginate(root, margins) {
     // second, immediately-empty break right after the one before it.
     const overflows = !forced && used > 0 && used + h > usableH
     if (forced || overflows) {
-      const fillerHeight = forced ? Math.max(0, usableH - used) : 0
+      const fillerHeight = Math.max(0, usableH - used)
       breakBefore.push({ child, fillerHeight })
       used = h
     } else {
@@ -138,7 +162,8 @@ export function paginate(root, margins) {
     spacer.appendChild(bottomMargin)
 
     const gutter = document.createElement('div')
-    gutter.style.height = '28px'
+    gutter.setAttribute('data-page-gutter', 'true')
+    gutter.style.height = `${GUTTER}px`
     gutter.style.margin = '0 -40px' // modest bleed past the box edge, not an unbounded one that risks horizontal scroll
     gutter.style.background = '#f1f5f9'
     gutter.style.boxShadow = 'inset 0 8px 10px -8px rgba(15,23,42,0.35), inset 0 -8px 10px -8px rgba(15,23,42,0.35)'
@@ -163,5 +188,42 @@ export function paginate(root, margins) {
     root.appendChild(filler)
   }
 
+  applyPageBackground(root)
   return breakBefore.length
+}
+
+// A real page boundary for the whole time you're scrolled inside it, not
+// just where a spacer sits -- without this, scrolling through the middle
+// of a page's own content looked like one undifferentiated white column
+// with no top or bottom edge, nothing like a bounded A4 sheet.
+//
+// A first version painted this as a context-free repeating-linear-gradient
+// sized to a fixed PAGE_H + GUTTER cycle, on the theory that every page is
+// now always padded to that exact height (see fillerHeight above) so a
+// fixed-size repeat should line up. It didn't, consistently: real block
+// elements' adjacent margins collapse in actual CSS layout, and small
+// measurement differences compounded page over page into a visible second,
+// mismatched gray sliver a few pages in (confirmed with a screenshot
+// against real converted-manuscript content). A formula computed
+// independently of the real layout can always drift from it.
+//
+// This instead reads the REAL rendered position of every gutter this
+// function just inserted and builds one exact, non-repeating gradient from
+// those positions -- derived from the same measurements paginate() already
+// trusts, so it cannot disagree with where the real spacers are: there's
+// only one source of truth, not two things that are supposed to agree.
+function applyPageBackground(root) {
+  const rootTop = root.getBoundingClientRect().top
+  const stops = ['#ffffff 0px']
+  root.querySelectorAll('[data-page-gutter]').forEach(gutter => {
+    const r = gutter.getBoundingClientRect()
+    const top = r.top - rootTop
+    const bottom = r.bottom - rootTop
+    stops.push(`#ffffff ${top}px`, `#e2e8f0 ${top}px`, `#e2e8f0 ${bottom}px`, `#ffffff ${bottom}px`)
+  })
+  const last = root.lastElementChild
+  const totalH = last ? (last.getBoundingClientRect().bottom - rootTop) : 0
+  stops.push(`#ffffff ${totalH}px`)
+  root.style.background = `linear-gradient(to bottom, ${stops.join(', ')})`
+  root.style.backgroundRepeat = 'no-repeat'
 }

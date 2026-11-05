@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react'
-import { IN, DEFAULT_MARGINS, MARGIN_PRESETS, markStructuralPageBreaks, paginate } from './pagination'
+import { PAGE_W, IN, DEFAULT_MARGINS, MARGIN_PRESETS, markStructuralPageBreaks, paginate } from './pagination'
 
 const BLOCK_TAGS = new Set(['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'BLOCKQUOTE', 'TABLE'])
 
@@ -437,7 +437,12 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
           .dg-print-area, .dg-print-area * { visibility: visible; }
           .dg-print-area { position: absolute; left: 0; top: 0; width: 100%; }
           @page { size: A4; margin: 1in 1in 1in 1.5in; }
-          .dg-draft-content { max-width: none !important; box-shadow: none !important; padding: 0 !important; }
+          /* The on-screen repeating page background and shadow are purely
+             a screen approximation of page boundaries -- printing uses the
+             browser's own real pagination via @page above, so both need to
+             be cleared or the printed page shows faint banding behind the
+             real text instead of plain paper. */
+          .dg-draft-content { max-width: none !important; width: auto !important; background: none !important; box-shadow: none !important; padding: 0 !important; }
           .dg-draft-content [data-page-break] { page-break-before: always; }
           /* The visual gap spacer would otherwise print as an extra blank
              gray box on top of the real page break the line above already
@@ -446,7 +451,10 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
         }
       `}</style>
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        <div className="dg-edit-wrapper" style={{ maxWidth: '820px', margin: '0 auto 40px' }}>
+        {/* Real A4 width (PAGE_W, 210mm @ 96dpi) -- not a readable-column
+            approximation. "Set to A4" has to mean actually A4-sized, the
+            same way the width this content prints at is A4-sized. */}
+        <div className="dg-edit-wrapper" style={{ width: `${PAGE_W}px`, margin: '0 auto 40px' }}>
           <div
             ref={ref}
             contentEditable
@@ -456,7 +464,14 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
             suppressContentEditableWarning
             className="dg-draft-content dg-print-area"
             style={{
-              boxSizing: 'border-box', background: '#fff', borderRadius: '10px',
+              boxSizing: 'border-box',
+              // No `background` key here on purpose: paginate() paints a
+              // real, bounded page the whole time you're scrolled inside
+              // it (not just at a break) by setting root.style.background
+              // directly, built from the actual gutter positions it just
+              // measured -- a React style prop here would overwrite that
+              // on every re-render with a stale value.
+              boxShadow: '0 1px 3px rgba(15,23,42,0.12), 0 10px 28px rgba(15,23,42,0.08)',
               padding: `${margins.top}px ${margins.right}px ${margins.bottom}px ${margins.left}px`,
               fontSize: '13px', lineHeight: '1.7', color: '#0f172a',
               outline: 'none',
