@@ -161,6 +161,12 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
                 ⇄ Compare with v{previousVersion.version}
               </button>
             )}
+            {isInAppDraft && (
+              <button onClick={() => window.print()} title="Opens your browser's print dialog, with real A4 pagination -- this is an accurate preview of what printing or saving as PDF actually produces, not an on-screen approximation"
+                style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>
+                🖨 Print
+              </button>
+            )}
             {onEdit && (
               <button onClick={onEdit}
                 style={{ background: '#fff', border: 'none', color: '#0a1f44', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 700 }}>
@@ -194,9 +200,25 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
                 <style>{`
                   .dg-draft-content [data-page-break] { margin-top: 28px; padding-top: 24px; border-top: 2px dashed #cbd5e1; position: relative; }
                   .dg-draft-content [data-page-break]::before { content: "PAGE BREAK"; position: absolute; top: -9px; left: 50%; transform: translateX(-50%); background: #fff; padding: 0 10px; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; color: #94a3b8; }
+
+                  /* Real pagination for the one place it actually matters: this
+                     is what Ctrl+P / the Print button below produces. Browsers
+                     reflow text across pages correctly on their own -- this is
+                     the one case all night where trusting the real renderer
+                     instead of estimating page breaks ourselves is exactly
+                     right, since it's what's really going to end up on paper. */
+                  @media print {
+                    body * { visibility: hidden; }
+                    .dg-print-area, .dg-print-area * { visibility: visible; }
+                    .dg-print-area { position: absolute; left: 0; top: 0; width: 100%; }
+                    @page { size: A4; margin: 1in 1in 1in 1.5in; }
+                    .dg-draft-content { max-width: none !important; box-shadow: none !important; padding: 0 !important; }
+                    .dg-draft-content [data-page-break] { page-break-before: always; border-top: none !important; margin-top: 0 !important; padding-top: 0 !important; }
+                    .dg-draft-content [data-page-break]::before { display: none; }
+                  }
                 `}</style>
                 <div
-                  className="dg-draft-content"
+                  className="dg-draft-content dg-print-area"
                   style={{ background: '#fff', borderRadius: '10px', padding: '32px 40px', maxWidth: '820px', margin: '0 auto', fontSize: '13px', lineHeight: '1.7', color: '#0f172a' }}
                   dangerouslySetInnerHTML={{ __html: document.content }}
                 />

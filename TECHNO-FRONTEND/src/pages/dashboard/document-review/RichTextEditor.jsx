@@ -478,6 +478,7 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
         <button type="button" style={btnStyle} title="Insert image by URL" onClick={insertImageByUrl}>🖼 Image</button>
         <button type="button" style={btnStyle} title="Insert page break" onClick={insertPageBreak}>⤓ Page Break</button>
         <button type="button" style={btnStyle} title="Clear formatting" onClick={() => exec('removeFormat')}>Clear</button>
+        <button type="button" style={btnStyle} title="Opens your browser's print dialog, with real A4 pagination -- an accurate preview of what printing or saving as PDF actually produces" onClick={() => window.print()}>🖨 Print</button>
         {divider}
 
         <select style={selectStyle} value={marginPreset} title="Page margins" onChange={e => applyMarginPreset(e.target.value)}>
@@ -518,6 +519,19 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
       <style>{`
         .dg-draft-content [data-page-break] { margin-top: 28px; padding-top: 24px; border-top: 2px dashed #cbd5e1; position: relative; }
         .dg-draft-content [data-page-break]::before { content: "PAGE BREAK"; position: absolute; top: -9px; left: 50%; transform: translateX(-50%); background: #fff; padding: 0 10px; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; color: #94a3b8; }
+
+        /* Same print rule as the read-only viewer (DocumentReviewViewer.jsx)
+           -- lets Print be checked at any point while actively editing,
+           without saving and reopening View first. */
+        @media print {
+          body * { visibility: hidden; }
+          .dg-print-area, .dg-print-area * { visibility: visible; }
+          .dg-print-area { position: absolute; left: 0; top: 0; width: 100%; }
+          @page { size: A4; margin: 1in 1in 1in 1.5in; }
+          .dg-draft-content { max-width: none !important; box-shadow: none !important; padding: 0 !important; }
+          .dg-draft-content [data-page-break] { page-break-before: always; border-top: none !important; margin-top: 0 !important; padding-top: 0 !important; }
+          .dg-draft-content [data-page-break]::before { display: none; }
+        }
       `}</style>
       <div style={{ flex: 1, overflowY: 'auto' }}>
         <div style={{ maxWidth: '820px', margin: '0 auto 40px' }}>
@@ -528,7 +542,7 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
             onPaste={handlePaste}
             onKeyDown={handleKeyDown}
             suppressContentEditableWarning
-            className="dg-draft-content"
+            className="dg-draft-content dg-print-area"
             style={{
               boxSizing: 'border-box', background: '#fff', borderRadius: '10px',
               padding: `${margins.top}px ${margins.right}px ${margins.bottom}px ${margins.left}px`,
