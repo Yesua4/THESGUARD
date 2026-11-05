@@ -6,7 +6,6 @@ import { useRef, useEffect, useState } from 'react'
 // which doesn't match the A4 page size most local thesis templates use.
 const PAGE_W = 794   // 210mm
 const PAGE_H = 1123  // 297mm
-const GAP    = 28    // visual seam between page sheets
 const IN     = 96    // 1 inch, in px, for converting the custom-margin inputs
 
 // Default: standard Philippine thesis/binding format — wider left margin for
@@ -120,6 +119,17 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
   // this only honors breaks this editor itself created.
   const hasForcedBreakBefore = el => el.hasAttribute('data-page-break')
 
+  // WYSIWYG means what you see while editing has to actually be true of the
+  // saved document -- height-estimating where a page "should" break and
+  // showing a blank gap sized to match used to do the opposite: it guessed
+  // wrong often (different font metrics, different line-breaking than the
+  // real renderer), showed a gap the user couldn't act on, and that gap
+  // never even made it into the saved content, so what was shown and what
+  // was real were two different documents. This only ever marks a break at
+  // a point this editor actually knows is real: a manual break the user
+  // inserted, or a standard thesis section heading (see
+  // markStructuralPageBreaks) -- both of which really are in the saved
+  // content. No more guessing from paragraph height.
   const repaginate = () => {
     const root = ref.current
     if (!root) return
@@ -127,24 +137,30 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
 
     const usableH = PAGE_H - margins.top - margins.bottom
     const children = Array.from(root.children)
-    let used = 0
-    let pages = 1
-    for (const child of children) {
-      const h = outerHeight(child)
-      const forced = used > 0 && hasForcedBreakBefore(child)
-      if (forced || (used > 0 && used + h > usableH)) {
-        const spacer = document.createElement('div')
-        spacer.setAttribute('data-page-spacer', 'true')
-        spacer.contentEditable = 'false'
-        spacer.style.height = `${(usableH - used) + margins.bottom + GAP + margins.top}px`
-        spacer.style.pointerEvents = 'none'
-        root.insertBefore(spacer, child)
-        pages++
-        used = 0
-      }
-      used += h
-    }
-    setPageCount(pages)
+    let breaks = 0
+    children.forEach((child, i) => {
+      if (i === 0 || !hasForcedBreakBefore(child)) return
+      const spacer = document.createElement('div')
+      spacer.setAttribute('data-page-spacer', 'true')
+      spacer.contentEditable = 'false'
+      spacer.style.pointerEvents = 'none'
+      spacer.style.margin = '28px 0'
+      spacer.style.borderTop = '2px dashed #cbd5e1'
+      spacer.style.position = 'relative'
+      spacer.innerHTML = '<span style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:#f1f5f9;padding:0 10px;font-size:10px;font-weight:700;letter-spacing:0.05em;color:#94a3b8;">PAGE BREAK</span>'
+      root.insertBefore(spacer, child)
+      breaks++
+    })
+
+    // Still an honest estimate (total content height / usable page height),
+    // just no longer used to decide where anything visually breaks -- purely
+    // informational, and never claimed to be exact. `children` here is only
+    // ever real content blocks: the spacer cleanup above runs before this
+    // snapshot is taken, and the new spacers inserted in the loop don't
+    // retroactively appear in an already-captured array.
+    const totalH = children.reduce((sum, c) => sum + outerHeight(c), 0)
+    const heightPages = Math.max(1, Math.ceil(totalH / usableH))
+    setPageCount(Math.max(heightPages, breaks + 1))
   }
 
   const emitCleanValue = () => {
@@ -485,22 +501,20 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
         )}
 
         <div style={{ flex: 1 }} />
-        <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', flexShrink: 0 }}>
-          {pageCount} page{pageCount !== 1 ? 's' : ''}
+        <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', flexShrink: 0 }} title="Estimated from content height -- the dashed PAGE BREAK lines below are the only breaks guaranteed to be real">
+          ~{pageCount} page{pageCount !== 1 ? 's' : ''}
         </div>
       </div>
 
-      {/* Paginated paper canvas */}
+      {/* Paper canvas -- one continuous sheet, not pre-cut into fixed-height
+          page rectangles: content between real breaks can be taller or
+          shorter than one physical page, and faking page-height boundaries
+          for content that hasn't actually been measured against a real
+          layout engine is exactly the "shows something that isn't true"
+          problem this replaced. The dashed PAGE BREAK lines (from
+          repaginate) are the only breaks this editor claims are real. */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        <div style={{ position: 'relative', width: `${PAGE_W}px`, margin: '0 auto 40px' }}>
-          {Array.from({ length: pageCount }).map((_, i) => (
-            <div key={i} style={{
-              position: 'absolute', top: `${i * (PAGE_H + GAP)}px`, left: 0,
-              width: `${PAGE_W}px`, height: `${PAGE_H}px`,
-              background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.08)',
-              zIndex: 0, pointerEvents: 'none',
-            }} />
-          ))}
+        <div style={{ width: `${PAGE_W}px`, margin: '0 auto 40px' }}>
           <div
             ref={ref}
             contentEditable
@@ -509,7 +523,8 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
             onKeyDown={handleKeyDown}
             suppressContentEditableWarning
             style={{
-              position: 'relative', zIndex: 1, width: `${PAGE_W}px`, boxSizing: 'border-box',
+              width: `${PAGE_W}px`, minHeight: `${PAGE_H}px`, boxSizing: 'border-box',
+              background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.08)',
               padding: `${margins.top}px ${margins.right}px ${margins.bottom}px ${margins.left}px`,
               fontFamily: 'Arial, sans-serif', fontSize: '12pt', lineHeight: '1.6', color: '#0f172a',
               outline: 'none',
