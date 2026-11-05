@@ -80,20 +80,16 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
   }
 
   // True for a paragraph that should start a fresh page regardless of how
-  // much room is left -- either a manual break the user inserted here (see
-  // insertPageBreak), or one carried over from the original Word document.
-  // LibreOffice's HTML export maps Word's manual page breaks to
-  // page-break-before (and some versions emit the newer break-before) on
-  // the paragraph that follows the break, so honoring that here is what
-  // makes pagination match the uploaded file instead of being re-estimated
-  // from scratch by height alone.
-  const hasForcedBreakBefore = el => {
-    if (el.hasAttribute('data-page-break')) return true
-    const inline = el.style.pageBreakBefore || el.style.breakBefore || ''
-    if (/always|page/i.test(inline)) return true
-    const attr = el.getAttribute('style') || ''
-    return /page-break-before\s*:\s*always|break-before\s*:\s*page/i.test(attr)
-  }
+  // much room is left, from a manual break explicitly inserted here (see
+  // insertPageBreak). Earlier this also trusted page-break-before/
+  // break-before CSS carried over from LibreOffice's HTML export, on the
+  // theory that it reflects Word's real manual page breaks -- in practice
+  // LibreOffice emits that style on paragraphs with no corresponding break
+  // in the actual document (confirmed: a paragraph that flows continuously
+  // in the real manuscript got forced onto its own page, leaving roughly
+  // half of the previous page blank), so that signal isn't trustworthy and
+  // this only honors breaks this editor itself created.
+  const hasForcedBreakBefore = el => el.hasAttribute('data-page-break')
 
   const repaginate = () => {
     const root = ref.current
