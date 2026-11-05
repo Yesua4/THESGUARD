@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from 'react'
+import PagedPreview from './PagedPreview'
 
 // ─── Paper metrics (A4 @ 96dpi) ────────────────────────────────────────────
 // Matches the PDF viewer and the actual page size LibreOffice preserves from
@@ -100,6 +101,12 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
   const [marginPreset, setMarginPreset] = useState('thesis')
   const [customOpen, setCustomOpen] = useState(false)
   const [customVals, setCustomVals] = useState({ top: 1, right: 1, bottom: 1, left: 1.5 })
+  // 'edit': the plain continuous surface typing actually happens in --
+  // typing directly into Paged.js's own output isn't safe, since it
+  // reflows/re-splits content across page boundaries on every change,
+  // which would fight a live cursor. 'pages': a real paginated preview
+  // (see PagedPreview) of the current content, read-only.
+  const [viewMode, setViewMode] = useState('edit')
 
   const closestBlock = node => {
     let el = node.nodeType === 3 ? node.parentElement : node
@@ -187,6 +194,13 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
       document.execCommand('defaultParagraphSeparator', false, 'p')
       markStructuralPageBreaks(ref.current)
       repaginate()
+      // markStructuralPageBreaks mutates the live DOM directly (adding
+      // data-page-break to chapter/section headings) but that's invisible
+      // to the parent's controlled `value` until something propagates it
+      // back up -- without this, the parent's value (what Page View reads,
+      // and what actually gets saved) never includes the auto-detected
+      // breaks at all, only the DOM the user is looking at does.
+      emitCleanValue()
     }
     if (autoFocus) ref.current?.focus()
     return () => clearTimeout(debounceRef.current)
@@ -502,8 +516,20 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
         )}
 
         <div style={{ flex: 1 }} />
-        <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', flexShrink: 0 }} title="Estimated from content height -- the dashed PAGE BREAK lines below are the only breaks guaranteed to be real">
-          ~{pageCount} page{pageCount !== 1 ? 's' : ''}
+        {viewMode === 'edit' && (
+          <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', flexShrink: 0 }} title="Estimated from content height -- the dashed PAGE BREAK lines below are the only breaks guaranteed to be real">
+            ~{pageCount} page{pageCount !== 1 ? 's' : ''}
+          </div>
+        )}
+        <div style={{ display: 'flex', border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}>
+          <button type="button" title="Type here" onClick={() => setViewMode('edit')}
+            style={{ border: 'none', padding: '5px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', background: viewMode === 'edit' ? '#0a1f44' : '#fff', color: viewMode === 'edit' ? '#fff' : '#334155' }}>
+            ✏️ Edit
+          </button>
+          <button type="button" title="Real paginated preview -- the same layout technology print/PDF uses, not an estimate" onClick={() => setViewMode('pages')}
+            style={{ border: 'none', padding: '5px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', background: viewMode === 'pages' ? '#0a1f44' : '#fff', color: viewMode === 'pages' ? '#fff' : '#334155' }}>
+            📄 Page View
+          </button>
         </div>
       </div>
 
@@ -534,7 +560,11 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
         }
       `}</style>
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        <div style={{ maxWidth: '820px', margin: '0 auto 40px' }}>
+        {/* Kept mounted (just hidden) rather than unmounted when switching to
+            Page View -- this is the one DOM node holding the live cursor,
+            selection, and undo history; remounting it would mean re-running
+            its setup effect from scratch on every toggle back to Edit. */}
+        <div style={{ maxWidth: '820px', margin: '0 auto 40px', display: viewMode === 'edit' ? 'block' : 'none' }}>
           <div
             ref={ref}
             contentEditable
@@ -551,6 +581,11 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
             }}
           />
         </div>
+        {/* Real pagination (Paged.js), not another estimate -- see
+            PagedPreview.jsx. Read-only: typing directly into its output
+            isn't safe, since it reflows/re-splits content across page
+            boundaries on every change, which would fight a live cursor. */}
+        {viewMode === 'pages' && <PagedPreview html={value} margins={margins} />}
       </div>
     </div>
   )
