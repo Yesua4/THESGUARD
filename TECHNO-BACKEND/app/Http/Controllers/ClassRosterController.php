@@ -19,8 +19,13 @@ class ClassRosterController extends Controller {
         $user = $request->user();
         $this->assertStaff($user);
 
+        // Checked by file extension, not by sniffed content type: registrar
+        // exports are often slightly malformed old .xls files that PHP only
+        // recognises as a generic "application/CDFV2" container, which
+        // `mimes:xls` rejects. The file is never stored or served -- only
+        // parsed below, and anything that isn't a spreadsheet fails there.
         $request->validate([
-            'file'    => 'required|file|mimes:xls,xlsx,csv,txt|max:5120',
+            'file'    => 'required|file|extensions:xls,xlsx,csv,txt|max:5120',
             'section' => 'nullable|string|max:100',
         ]);
 

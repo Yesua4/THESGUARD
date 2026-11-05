@@ -209,6 +209,22 @@ class ClassRosterEnrollmentTest extends TestCase
         $this->assertSame($other->id, User::where('student_id', '2026-00009')->first()->school_id);
     }
 
+    // Registrar exports are often old .xls files PHP only sniffs as a generic
+    // "application/CDFV2" container; the upload is accepted by extension and
+    // anything that isn't really a spreadsheet fails cleanly at parse time.
+    public function test_upload_is_checked_by_extension_and_unreadable_files_fail_cleanly(): void
+    {
+        Sanctum::actingAs($this->instructor());
+
+        $junk = UploadedFile::fake()->createWithContent('Class-List.xls', 'not really a spreadsheet');
+        $this->post('/api/roster/import', ['file' => $junk], ['Accept' => 'application/json'])
+            ->assertStatus(422)->assertJsonMissingPath('errors.file'); // passed validation, rejected by the parser
+
+        $exe = UploadedFile::fake()->createWithContent('Class-List.exe', 'MZ');
+        $this->post('/api/roster/import', ['file' => $exe], ['Accept' => 'application/json'])
+            ->assertStatus(422)->assertJsonValidationErrors('file');
+    }
+
     public function test_staff_created_accounts_are_never_gated(): void
     {
         $student = User::factory()->role('student')->create(); // no school, not self-registered
