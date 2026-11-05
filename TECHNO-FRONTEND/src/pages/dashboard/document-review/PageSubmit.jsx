@@ -24,6 +24,22 @@ function PageSubmit({ initialDocumentId, onConsumeInitialDocument }) {
   const [approvedProject, setApprovedProject] = useState(null)
   const [needsChoice, setNeedsChoice]   = useState(false)
   const [deletingId, setDeletingId]     = useState(null)
+  // Local-only autosave: protects against losing in-progress work (closed
+  // tab, browser crash, accidental navigation) WITHOUT touching the
+  // backend. /documents/save-draft creates a brand new Document row (a
+  // new version, status 'pending' -- goes straight into the adviser's
+  // review queue) and logs a Contribution Analytics entry every single
+  // time it's called, since that's also how a real, intentional submission
+  // is recorded for grading/participation tracking. Calling it
+  // automatically every few seconds would flood both of those with
+  // dozens of junk entries -- real Google-Docs-style autosave would need
+  // an actual separate "silent draft" endpoint on the backend that
+  // doesn't touch versioning, review, or contribution logging, which is a
+  // real design decision, not something to invent unilaterally. This is
+  // the safe subset: recoverable locally, never submitted anywhere until
+  // the user explicitly clicks Save Draft, same as always.
+  const [recoveredDraft, setRecoveredDraft] = useState(null)
+  const draftKey = form.project_id && form.type ? `thesisguard_draft_${form.project_id}_${form.type}` : null
 
   useEffect(() => {
     api.get('/projects').then(res => {
@@ -68,6 +84,34 @@ function PageSubmit({ initialDocumentId, onConsumeInitialDocument }) {
     setDocuments(myDocs)
   })
 
+  // Entering Write mode (or switching project/type while already in it) --
+  // check for a local autosave left over from an earlier session that
+  // never got explicitly saved, and offer to restore it rather than
+  // silently applying or silently discarding it.
+  useEffect(() => {
+    if (mode !== 'write' || !draftKey) { setRecoveredDraft(null); return }
+    let saved
+    try { saved = localStorage.getItem(draftKey) } catch { saved = null }
+    if (saved && saved !== content) setRecoveredDraft(saved)
+    else setRecoveredDraft(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, draftKey])
+
+  // Debounced local-only autosave while writing -- see the draftKey/
+  // recoveredDraft comment above for why this stays local instead of
+  // calling the backend. 800ms after typing stops, not on every
+  // keystroke, so it doesn't fight normal typing performance.
+  useEffect(() => {
+    if (mode !== 'write' || !draftKey) return
+    const t = setTimeout(() => {
+      try {
+        if (content && content.trim()) localStorage.setItem(draftKey, content)
+        else localStorage.removeItem(draftKey)
+      } catch { /* localStorage unavailable (private browsing, quota) -- autosave just silently doesn't happen */ }
+    }, 800)
+    return () => clearTimeout(t)
+  }, [content, mode, draftKey])
+
   // Live updates: see the status badge flip the instant an adviser/instructor
   // approves/revises a submission, a new upload appear, or a deletion (from
   // this same account on another device, an adviser, etc.) disappear --
@@ -104,6 +148,11 @@ function PageSubmit({ initialDocumentId, onConsumeInitialDocument }) {
           version_note: form.version_note, content,
         })
         setContent('')
+        // Now safely persisted as a real version -- the local safety-net
+        // copy would otherwise keep offering to "recover" already-submitted
+        // content next time this project/type is opened in Write mode.
+        try { if (draftKey) localStorage.removeItem(draftKey) } catch { /* ignore */ }
+        setRecoveredDraft(null)
       }
       setSuccess('Document submitted successfully!')
       setForm(f => ({ ...f, version_note:'' }))
@@ -230,6 +279,23 @@ function PageSubmit({ initialDocumentId, onConsumeInitialDocument }) {
             </button>
           </div>
 
+          {recoveredDraft && (
+            <div style={{
+              background:'#fef9c3', borderBottom:'1px solid #fde047', padding:'8px 24px',
+              display:'flex', alignItems:'center', gap:'12px', flexShrink:0, fontSize:'12.5px', color:'#713f12',
+            }}>
+              <span>We found unsaved work from earlier on your device for this document — it was never submitted.</span>
+              <div style={{ flex:1 }} />
+              <button type="button" onClick={() => { setContent(recoveredDraft); setRecoveredDraft(null) }}
+                style={{ background:'#713f12', color:'#fff', border:'none', borderRadius:'6px', padding:'4px 10px', fontSize:'12px', fontWeight:700, cursor:'pointer' }}>
+                Restore it
+              </button>
+              <button type="button" onClick={() => { try { if (draftKey) localStorage.removeItem(draftKey) } catch { /* ignore */ }; setRecoveredDraft(null) }}
+                style={{ background:'transparent', color:'#713f12', border:'1px solid #713f12', borderRadius:'6px', padding:'4px 10px', fontSize:'12px', fontWeight:700, cursor:'pointer' }}>
+                Discard
+              </button>
+            </div>
+          )}
           {/* Page-like writing canvas */}
           <div style={{ flex:1, overflowY:'auto', padding:'28px 24px', display:'flex', justifyContent:'center' }}>
             <div style={{ width:'100%', height:'100%' }}>
@@ -322,6 +388,23 @@ function PageSubmit({ initialDocumentId, onConsumeInitialDocument }) {
                         ⛶ Full Screen
                       </button>
                     </div>
+                    {recoveredDraft && (
+                      <div style={{
+                        background:'#fef9c3', border:'1px solid #fde047', borderRadius:'8px', padding:'8px 12px',
+                        display:'flex', alignItems:'center', gap:'10px', flexWrap:'wrap', fontSize:'11.5px', color:'#713f12', marginBottom:'8px',
+                      }}>
+                        <span>We found unsaved work from earlier on your device for this document.</span>
+                        <div style={{ flex:1 }} />
+                        <button type="button" onClick={() => { setContent(recoveredDraft); setRecoveredDraft(null) }}
+                          style={{ background:'#713f12', color:'#fff', border:'none', borderRadius:'6px', padding:'4px 10px', fontSize:'11px', fontWeight:700, cursor:'pointer' }}>
+                          Restore it
+                        </button>
+                        <button type="button" onClick={() => { try { if (draftKey) localStorage.removeItem(draftKey) } catch { /* ignore */ }; setRecoveredDraft(null) }}
+                          style={{ background:'transparent', color:'#713f12', border:'1px solid #713f12', borderRadius:'6px', padding:'4px 10px', fontSize:'11px', fontWeight:700, cursor:'pointer' }}>
+                          Discard
+                        </button>
+                      </div>
+                    )}
                     <RichTextEditor value={content} onChange={setContent} minHeight="220px" />
                   </div>
                 )}
