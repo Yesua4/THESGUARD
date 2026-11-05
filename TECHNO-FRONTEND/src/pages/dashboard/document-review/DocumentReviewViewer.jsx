@@ -53,7 +53,7 @@ function NonPdfFallback({ documentId, fileName, previewStatus }) {
 // viewer pin comments to selected text or clicked points, and lists them in
 // a sidebar with resolve/delete actions. Shared by PageDocumentReview (adviser
 // / instructor review) and PageSubmit (student's own document view).
-export default function DocumentReviewViewer({ document, onClose, canResolve = false, statusActions = null }) {
+export default function DocumentReviewViewer({ document, onClose, canResolve = false, statusActions = null, onEdit = null }) {
   const { user } = useAuth()
   const { comments, error: commentsError, addComment, deleteComment, setResolved, reload: reloadComments } = useDocumentComments(document.id)
   // Live updates: another reviewer's comment (or resolve/delete) on THIS
@@ -159,6 +159,12 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
               <button onClick={() => setShowDiff(true)}
                 style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>
                 ⇄ Compare with v{previousVersion.version}
+              </button>
+            )}
+            {onEdit && (
+              <button onClick={onEdit}
+                style={{ background: '#fff', border: 'none', color: '#0a1f44', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 700 }}>
+                ✏️ Edit
               </button>
             )}
             <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: '28px', height: '28px', borderRadius: '6px', cursor: 'pointer', fontSize: '14px' }}>✕</button>
