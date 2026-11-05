@@ -183,14 +183,26 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
       // second, immediately-empty break right after the one before it.
       const overflows = !forced && used > 0 && used + h > usableH
       if (forced || overflows) {
-        breakBefore.push(child)
+        // A forced break (a chapter heading, say) can land well before the
+        // current page is actually full -- a short title page followed
+        // immediately by "CHAPTER 1" is the normal case, not an edge case.
+        // Confirmed against the real Google Doc: its title page stays a
+        // full blank sheet all the way down and Chapter 1 starts on a
+        // genuinely new page, where this editor was shrink-wrapping the
+        // break to right after the last line of text -- a page that sizes
+        // itself to its content isn't a page, it's just a text block with a
+        // divider after it. A natural-overflow break needs no filler: the
+        // page is already full by definition (that's the only reason it
+        // broke).
+        const fillerHeight = forced ? Math.max(0, usableH - used) : 0
+        breakBefore.push({ child, fillerHeight })
         used = h
       } else {
         used += h
       }
     })
 
-    breakBefore.forEach(child => {
+    breakBefore.forEach(({ child, fillerHeight }) => {
       // The single contentEditable region's own padding (margins.top/bottom)
       // only ever applies once, at the very start and very end of the whole
       // document -- every page boundary IN BETWEEN had no margin of its own,
@@ -198,16 +210,23 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
       // after it (confirmed: a side-by-side with the real Google Doc showed
       // text touching the gap on both sides, where Docs shows a generous
       // quiet white margin before AND after the gray gutter). A page is its
-      // margins, not just its text, so each break now reproduces that: a
-      // blank run the height of the outgoing page's own bottom margin
-      // (plain, inherits the white background -- it's blank space, not a
-      // marker), then a thin gray gutter standing in for the gap between
-      // two physical sheets, then a blank run the height of the incoming
-      // page's top margin before its text starts.
+      // margins, not just its text, so each break now reproduces that: an
+      // optional blank run padding the outgoing page out to its full height
+      // (see fillerHeight above), then a blank run the height of its own
+      // bottom margin (plain, inherits the white background -- it's blank
+      // space, not a marker), then a thin gray gutter standing in for the
+      // gap between two physical sheets, then a blank run the height of the
+      // incoming page's top margin before its text starts.
       const spacer = document.createElement('div')
       spacer.setAttribute('data-page-spacer', 'true')
       spacer.contentEditable = 'false'
       spacer.style.pointerEvents = 'none'
+
+      if (fillerHeight > 0) {
+        const filler = document.createElement('div')
+        filler.style.height = `${fillerHeight}px`
+        spacer.appendChild(filler)
+      }
 
       const bottomMargin = document.createElement('div')
       bottomMargin.style.height = `${margins.bottom}px`
@@ -226,6 +245,20 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
 
       root.insertBefore(spacer, child)
     })
+
+    // The very last page has no following break to hang a filler off of,
+    // but it's just as real a page as any other -- pad it out to full
+    // height too so the document doesn't end with a sheet that's been
+    // shrink-wrapped to its last paragraph.
+    const trailingFiller = Math.max(0, usableH - used)
+    if (trailingFiller > 0 && children.length > 0) {
+      const filler = document.createElement('div')
+      filler.setAttribute('data-page-spacer', 'true')
+      filler.contentEditable = 'false'
+      filler.style.pointerEvents = 'none'
+      filler.style.height = `${trailingFiller}px`
+      root.appendChild(filler)
+    }
 
     // breakBefore.length spacers means that many page boundaries, so this is
     // now an exact count of what's actually shown -- not a separate estimate
