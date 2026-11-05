@@ -573,6 +573,16 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
           .dg-draft-content { max-width: none !important; box-shadow: none !important; padding: 0 !important; }
           .dg-draft-content [data-page-break] { page-break-before: always; border-top: none !important; margin-top: 0 !important; padding-top: 0 !important; }
           .dg-draft-content [data-page-break]::before { display: none; }
+          /* Printing while Page View is active (viewMode !== 'edit') leaves
+             the edit wrapper's inline display:none in place -- confirmed:
+             without this, the printed/PDF output is completely blank in
+             that state, since visibility:visible on a display:none
+             ancestor's children has no effect; display:none removes the
+             whole subtree from layout outright. An !important class rule
+             (unlike a plain one) beats a non-!important inline style
+             regardless of specificity, which is what's needed here since
+             the inline style itself can't be conditioned on print media. */
+          .dg-edit-wrapper { display: block !important; }
         }
       `}</style>
       <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -580,7 +590,7 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
             Page View -- this is the one DOM node holding the live cursor,
             selection, and undo history; remounting it would mean re-running
             its setup effect from scratch on every toggle back to Edit. */}
-        <div style={{ maxWidth: '820px', margin: '0 auto 40px', display: viewMode === 'edit' ? 'block' : 'none' }}>
+        <div className="dg-edit-wrapper" style={{ maxWidth: '820px', margin: '0 auto 40px', display: viewMode === 'edit' ? 'block' : 'none' }}>
           <div
             ref={ref}
             contentEditable
