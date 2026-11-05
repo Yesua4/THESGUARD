@@ -208,6 +208,28 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
   // naturally lets a manual page break (see insertPageBreak) be undone by
   // backspacing at its start, since it's marked the same way.
   const handleKeyDown = e => {
+    // Plain contentEditable has no concept of "indent" -- Tab's browser
+    // default is to move focus to the next focusable element on the page
+    // (here, out of the editor entirely, silently, since nothing visibly
+    // changes), not insert anything. Word/Docs-style behavior: inside a
+    // list item, Tab/Shift+Tab nests/un-nests it; anywhere else, Tab
+    // inserts a fixed-width tab stop.
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      const sel = window.getSelection()
+      const block = sel && sel.rangeCount ? closestBlock(sel.getRangeAt(0).startContainer) : null
+      if (block && block.tagName === 'LI') {
+        exec(e.shiftKey ? 'outdent' : 'indent')
+      } else if (!e.shiftKey) {
+        // Plain non-breaking spaces rather than an inline-block tab-stop
+        // span: a span would need contenteditable="false" to stop the
+        // browser from splitting it on edits, which reintroduces the exact
+        // "Backspace does nothing" problem just fixed for page breaks.
+        exec('insertText', '    ')
+      }
+      return
+    }
+
     if (e.key !== 'Backspace' || !paginated) return
     const sel = window.getSelection()
     if (!sel || !sel.rangeCount || !sel.isCollapsed) return
@@ -241,7 +263,17 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
 
   const applyFontSize = pt => {
     ref.current?.focus()
+    // fontSize only ever produces a <font size="7"> tag to replace with the
+    // real point size below when styleWithCSS is off -- with it on (set in
+    // the mount effect, so Bold/Italic/etc. use inline styles instead of
+    // legacy tags), the browser instead wraps the selection in
+    // <span style="font-size: xxx-large"> directly, one of only 7 fixed
+    // keyword sizes, so every size this picker offered collapsed onto
+    // whichever keyword size="7" maps to -- the querySelector below then
+    // matched nothing and the real requested size was silently dropped.
+    document.execCommand('styleWithCSS', false, false)
     document.execCommand('fontSize', false, '7')
+    document.execCommand('styleWithCSS', false, true)
     ref.current?.querySelectorAll('font[size="7"]').forEach(el => {
       el.removeAttribute('size')
       el.style.fontSize = pt
@@ -324,6 +356,7 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
           contentEditable
           onInput={afterChange}
           onPaste={handlePaste}
+          onKeyDown={handleKeyDown}
           suppressContentEditableWarning
           style={{
             border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '20px 24px',
