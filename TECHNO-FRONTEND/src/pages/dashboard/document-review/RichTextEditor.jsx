@@ -136,16 +136,28 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
   const hasForcedBreakBefore = el => el.hasAttribute('data-page-break')
 
   // WYSIWYG means what you see while editing has to actually be true of the
-  // saved document -- height-estimating where a page "should" break and
-  // showing a blank gap sized to match used to do the opposite: it guessed
-  // wrong often (different font metrics, different line-breaking than the
-  // real renderer), showed a gap the user couldn't act on, and that gap
-  // never even made it into the saved content, so what was shown and what
-  // was real were two different documents. This only ever marks a break at
-  // a point this editor actually knows is real: a manual break the user
-  // inserted, or a standard thesis section heading (see
-  // markStructuralPageBreaks) -- both of which really are in the saved
-  // content. No more guessing from paragraph height.
+  // saved document. The earlier version of this only broke pages at a point
+  // this editor explicitly knew was real -- a manual break, or a thesis
+  // section heading -- because an earlier attempt at *estimating* where a
+  // page should break (from character counts / assumed font metrics, before
+  // anything was actually laid out) guessed wrong against the real renderer
+  // and showed a blank gap that didn't correspond to anything, in the wrong
+  // place, that never made it into the saved content either.
+  //
+  // That fix was incomplete: between two section headings, a chapter's worth
+  // of body text got zero page breaks at all, no matter how long it ran --
+  // visually one giant unbroken sheet instead of several pages, nothing like
+  // Word or Docs. The difference here is MEASURING, not estimating: every
+  // top-level block is already sitting in the live DOM in its real,
+  // currently-rendered size (the exact font, the exact line-breaking, the
+  // same box the user is looking at) by the time this runs, so walking their
+  // actual offsetHeight and breaking where the running total would exceed
+  // one page's usable height can't disagree with what's on screen -- it IS
+  // what's on screen. It still won't land on the exact same line Word or
+  // LibreOffice would (different layout engine, same as before), but it
+  // can't show a gap that contradicts its own content, and now every chapter
+  // gets as many breaks as its real rendered length needs, not just the ones
+  // at a heading.
   const repaginate = () => {
     const root = ref.current
     if (!root) return
@@ -153,9 +165,32 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
 
     const usableH = PAGE_H - margins.top - margins.bottom
     const children = Array.from(root.children)
-    let breaks = 0
+    // Read every child's real rendered height up front, before any spacer
+    // is inserted -- one measurement pass, then one DOM-mutation pass below,
+    // so inserting earlier spacers can't shift what a later measurement
+    // reads (layout thrashing) and doesn't change any height being compared.
+    const heights = children.map(outerHeight)
+
+    const breakBefore = []
+    let used = 0
     children.forEach((child, i) => {
-      if (i === 0 || !hasForcedBreakBefore(child)) return
+      const h = heights[i]
+      if (i === 0) { used = h; return }
+      const forced = hasForcedBreakBefore(child)
+      // Only break mid-flow once the current page actually has something on
+      // it (used > 0) -- a block taller than one full page (a big table or
+      // image) still gets to start its own page rather than triggering a
+      // second, immediately-empty break right after the one before it.
+      const overflows = !forced && used > 0 && used + h > usableH
+      if (forced || overflows) {
+        breakBefore.push(child)
+        used = h
+      } else {
+        used += h
+      }
+    })
+
+    breakBefore.forEach(child => {
       // A real gap between two sheets, the same shape Word/Docs show --
       // not a debug-looking dashed line with a label. Bleeds past the
       // content box's own edges (negative side margins) so it reads as
@@ -172,18 +207,12 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
       spacer.style.background = '#f1f5f9'
       spacer.style.boxShadow = 'inset 0 10px 12px -10px rgba(15,23,42,0.35), inset 0 -10px 12px -10px rgba(15,23,42,0.35)'
       root.insertBefore(spacer, child)
-      breaks++
     })
 
-    // Still an honest estimate (total content height / usable page height),
-    // just no longer used to decide where anything visually breaks -- purely
-    // informational, and never claimed to be exact. `children` here is only
-    // ever real content blocks: the spacer cleanup above runs before this
-    // snapshot is taken, and the new spacers inserted in the loop don't
-    // retroactively appear in an already-captured array.
-    const totalH = children.reduce((sum, c) => sum + outerHeight(c), 0)
-    const heightPages = Math.max(1, Math.ceil(totalH / usableH))
-    setPageCount(Math.max(heightPages, breaks + 1))
+    // breakBefore.length spacers means that many page boundaries, so this is
+    // now an exact count of what's actually shown -- not a separate estimate
+    // layered on top of it.
+    setPageCount(breakBefore.length + 1)
   }
 
   const emitCleanValue = () => {
@@ -540,7 +569,7 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
 
         <div style={{ flex: 1 }} />
         {viewMode === 'edit' && (
-          <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', flexShrink: 0 }} title="Estimated from content height -- the dashed PAGE BREAK lines below are the only breaks guaranteed to be real">
+          <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', flexShrink: 0 }} title="Counts the page breaks shown below, measured from this editor's own rendered layout -- may still differ slightly from the exact page count LibreOffice or Word would produce">
             ~{pageCount} page{pageCount !== 1 ? 's' : ''}
           </div>
         )}
