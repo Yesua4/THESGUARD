@@ -5,8 +5,12 @@ use Illuminate\Database\Eloquent\Model;
 class Group extends Model {
     protected $table = 'groups';
     protected $fillable = [
-        'group_name', 'batch', 'section', 'instructor_id', 'adviser_id', 'school_id'
+        'group_name', 'batch', 'academic_term_id', 'section', 'instructor_id', 'adviser_id', 'school_id'
     ];
+
+    public function term() {
+        return $this->belongsTo(AcademicTerm::class, 'academic_term_id');
+    }
 
     public function instructor() {
         return $this->belongsTo(User::class, 'instructor_id');

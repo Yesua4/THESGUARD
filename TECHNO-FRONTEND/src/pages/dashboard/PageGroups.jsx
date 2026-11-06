@@ -4,6 +4,7 @@ import { useToast } from '../../context/ToastContext'
 import api from '../../api/axios'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { SectionField } from '../../components/dashboard/SectionPicker'
+import { useAcademicTerms } from '../../hooks/useAcademicTerms'
 
 function PageGroups() {
   const { user } = useAuth()
@@ -18,7 +19,27 @@ function PageGroups() {
   const [memberSearch, setMemberSearch] = useState('')
   const [filterAdviser, setFilterAdviser] = useState('')
   const [groupedStudents, setGroupedStudents] = useState([])
-  const [form, setForm] = useState({ group_name:'', batch:'', section:'', adviser_id:'', members:[], leader_id:'' })
+  const [form, setForm] = useState({ group_name:'', batch:'', academic_term_id:'', section:'', adviser_id:'', members:[], leader_id:'' })
+
+  // Academic year + term come from the admin's calendar, pre-set to the
+  // term today falls in (live: follows calendar edits and the date rolling
+  // into the next term).
+  const { terms, years, currentTerm } = useAcademicTerms()
+  const termDefaults = () => currentTerm
+    ? { batch: currentTerm.academic_year, academic_term_id: String(currentTerm.id) }
+    : { batch: '', academic_term_id: '' }
+  useEffect(() => {
+    if (!currentTerm) return
+    setForm(f => (f.academic_term_id || f.batch)
+      ? f
+      : { ...f, batch: currentTerm.academic_year, academic_term_id: String(currentTerm.id) })
+  }, [currentTerm])
+  const pickYear = year => {
+    const inYear = terms.filter(t => t.academic_year === year)
+    const pick = inYear.find(t => t.id === currentTerm?.id) || inYear[0]
+    setForm(f => ({ ...f, batch: year, academic_term_id: pick ? String(pick.id) : '' }))
+  }
+  const termName = g => g.term?.name
 
   const load = () => api.get('/groups').then(res => setGroups(res.data)).finally(() => setLoading(false))
 
@@ -45,8 +66,18 @@ function PageGroups() {
 
   const toggleMember = id => {
     const idStr = String(id)
-    setForm(f => ({ ...f, members: f.members.includes(idStr) ? f.members.filter(m => m !== idStr) : [...f.members, idStr] }))
+    setForm(f => {
+      const removing = f.members.includes(idStr)
+      return {
+        ...f,
+        members: removing ? f.members.filter(m => m !== idStr) : [...f.members, idStr],
+        // Unselecting the leader must clear the leader too.
+        leader_id: removing && String(f.leader_id) === idStr ? '' : f.leader_id,
+      }
+    })
   }
+
+  const initials = name => (name || '').split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase()
 
   const submit = async e => {
     e.preventDefault()
@@ -56,7 +87,7 @@ function PageGroups() {
     try {
       await api.post('/groups', form)
       setShowForm(false)
-      setForm({ group_name:'', batch:'', section:'', adviser_id:'', members:[], leader_id:'' })
+      setForm({ group_name:'', ...termDefaults(), section:'', adviser_id:'', members:[], leader_id:'' })
       setMemberSearch('')
       load()
     } catch (err) {
@@ -94,7 +125,7 @@ function PageGroups() {
                   <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.5)', fontWeight:'600', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'4px' }}>Group Details</div>
                   <div style={{ fontSize:'16px', fontWeight:'700', color:'#fff', marginBottom:'2px' }}>{selectedGroup.group_name}</div>
                   <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.55)' }}>
-                    {[selectedGroup.section, selectedGroup.batch].filter(Boolean).join(' · ') || 'No batch/section'}
+                    {[selectedGroup.section, selectedGroup.batch, termName(selectedGroup)].filter(Boolean).join(' · ') || 'No batch/section'}
                   </div>
                 </div>
                 <button onClick={() => setSelectedGroup(null)} style={{ background:'rgba(255,255,255,0.15)', border:'none', color:'#fff', width:'28px', height:'28px', borderRadius:'6px', cursor:'pointer', fontSize:'14px' }}>✕</button>
@@ -175,10 +206,32 @@ function PageGroups() {
                 <input value={form.group_name} onChange={e => setForm({...form, group_name:e.target.value})} style={inputStyle} placeholder="e.g. Group Alpha" required />
               </div>
               <div>
-                <label style={labelStyle}>Batch / Academic Year</label>
-                <input value={form.batch} onChange={e => setForm({...form, batch:e.target.value})} style={inputStyle} placeholder="e.g. 2025–2026" />
+                <label style={labelStyle}>Academic Year</label>
+                {years.length > 0 ? (
+                  <select value={form.batch} onChange={e => pickYear(e.target.value)} style={inputStyle} required>
+                    <option value="">Select academic year...</option>
+                    {years.map(y => <option key={y} value={y}>A.Y. {y.replace('-', '–')}</option>)}
+                  </select>
+                ) : (
+                  <input value={form.batch} onChange={e => setForm({...form, batch:e.target.value})} style={inputStyle} placeholder="e.g. 2025–2026" />
+                )}
               </div>
             </div>
+            {years.length > 0 ? (
+              <div>
+                <label style={labelStyle}>Semester / Term</label>
+                <select value={form.academic_term_id} onChange={e => setForm({...form, academic_term_id:e.target.value})} style={inputStyle} required disabled={!form.batch}>
+                  <option value="">{form.batch ? 'Select term...' : 'Choose the academic year first'}</option>
+                  {terms.filter(t => t.academic_year === form.batch).map(t => (
+                    <option key={t.id} value={t.id}>{t.name}{t.id === currentTerm?.id ? ' (current)' : ''}</option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'-6px' }}>
+                The administrator hasn't set the academic calendar yet, so the semester can't be picked here.
+              </div>
+            )}
             <div>
               <label style={labelStyle}>Course / Section <span style={{ color:'#cbd5e1', textTransform:'none', fontWeight:'400' }}>(optional)</span></label>
               <SectionField user={user} value={form.section} onChange={section => setForm({...form, section})} style={inputStyle} />
@@ -192,6 +245,38 @@ function PageGroups() {
             </div>
             <div>
               <label style={labelStyle}>Select Members <span style={{ color:'#cbd5e1', textTransform:'none', fontWeight:'400' }}>(check 3–4 students)</span></label>
+              {/* Selected members as chips (like tagging people in a post):
+                  × removes, clicking the name makes them the leader (★). */}
+              {form.members.length > 0 && (
+                <div style={{ display:'flex', flexWrap:'wrap', gap:'6px', marginBottom:'8px' }}>
+                  {form.members.map(id => {
+                    const s = students.find(st => String(st.id) === id)
+                    if (!s) return null
+                    const isLeader = String(form.leader_id) === id
+                    return (
+                      <span key={id} style={{
+                        display:'inline-flex', alignItems:'center', gap:'6px', maxWidth:'100%',
+                        padding:'3px 4px 3px 3px', borderRadius:'20px',
+                        background: isLeader ? '#fef3c7' : '#dbeafe',
+                        border: `1px solid ${isLeader ? '#fcd34d' : '#bfdbfe'}`,
+                      }}>
+                        <span style={{ width:'22px', height:'22px', borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'9px', fontWeight:'700', background: isLeader ? '#f59e0b' : '#1d4ed8', color:'#fff' }}>
+                          {isLeader ? '★' : initials(s.name)}
+                        </span>
+                        <button type="button" onClick={() => setForm(f => ({ ...f, leader_id: String(s.id) }))}
+                          title={isLeader ? 'Group leader' : 'Make group leader'}
+                          style={{ border:'none', background:'none', padding:0, cursor:'pointer', fontSize:'12px', fontWeight:'600', color: isLeader ? '#92400e' : '#1e3a8a', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', fontFamily:'inherit' }}>
+                          {s.name}{isLeader && <span style={{ fontWeight:'700' }}> · Leader</span>}
+                        </button>
+                        <button type="button" onClick={() => toggleMember(s.id)} aria-label={`Remove ${s.name}`}
+                          style={{ width:'18px', height:'18px', borderRadius:'50%', border:'none', flexShrink:0, background:'rgba(15,23,42,0.08)', color:'#475569', cursor:'pointer', fontSize:'12px', lineHeight:1, display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}>
+                          ×
+                        </button>
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
               <input value={memberSearch} onChange={e => setMemberSearch(e.target.value)} style={{ ...inputStyle, marginBottom:'6px' }} placeholder="Search by name, ID, or email..." />
               <div style={{ border:'1.5px solid #e2e8f0', borderRadius:'8px', overflow:'hidden', maxHeight:'180px', overflowY:'auto' }}>
                 {students.length === 0 ? (
@@ -212,7 +297,9 @@ function PageGroups() {
                     </label>
                   ))}
               </div>
-              <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>{form.members.length} selected</div>
+              <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>
+                {form.members.length} selected{form.members.length > 0 && !form.leader_id ? ' · click a name above to make them the leader' : ''}
+              </div>
             </div>
             {form.members.length > 0 && (
               <div>
@@ -271,7 +358,7 @@ function PageGroups() {
                       {String(g.adviser_id) === String(user.id) && <span style={{ fontSize:'11px', background:'#ccfbf1', color:'#0f766e', padding:'2px 8px', borderRadius:'20px', fontWeight:'600' }}>You are adviser</span>}
                     </div>
                     <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>
-                      {[g.section, g.batch].filter(Boolean).join(' · ') || 'No batch/section'}
+                      {[g.section, g.batch, termName(g)].filter(Boolean).join(' · ') || 'No batch/section'}
                     </div>
                   </div>
                   <span style={{ fontSize:'11px', background:'#f8fafc', color:'#64748b', padding:'4px 10px', borderRadius:'20px', fontWeight:'600', flexShrink:0 }}>{g.members?.length || 0} members</span>

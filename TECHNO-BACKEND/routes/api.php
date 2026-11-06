@@ -17,6 +17,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\DefenseMinutesController;
 use App\Http\Controllers\ProjectChecklistController;
 use App\Http\Controllers\ClassRosterController;
+use App\Http\Controllers\AcademicTermController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
 
@@ -56,6 +57,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // waits here until an instructor imports a class list with their
     // Student No. (see EnsureStudentEnrolled).
     Route::middleware('enrolled')->group(function () {
+    Route::get('/terms', [AcademicTermController::class, 'index']);
+    Route::post('/terms', [AcademicTermController::class, 'store']);
+    Route::put('/terms/{id}', [AcademicTermController::class, 'update']);
+    Route::delete('/terms/{id}', [AcademicTermController::class, 'destroy']);
     Route::get('/roster', [ClassRosterController::class, 'index']);
     Route::post('/roster/import', [ClassRosterController::class, 'import']);
     Route::delete('/roster/{id}', [ClassRosterController::class, 'destroy']);

@@ -67,6 +67,10 @@ return [
 
     'timezone' => 'UTC',
 
+    // Local time used to decide which academic term "today" falls in
+    // (AcademicTerm::today()). Storage stays UTC.
+    'calendar_timezone' => env('CALENDAR_TIMEZONE', 'Asia/Manila'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

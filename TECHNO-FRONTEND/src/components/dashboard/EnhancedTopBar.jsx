@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import api from '../../api/axios'
 import { ROLE_META, userRoles } from '../../constants/roles'
+import { useAcademicTerms, termLabel } from '../../hooks/useAcademicTerms'
 import UserAvatar from './UserAvatar'
 
 function EnhancedTopBar({
@@ -16,6 +17,7 @@ function EnhancedTopBar({
 
   const meta = ROLE_META[user?.role] || { label: 'User', color: '#475569', bg: '#f1f5f9' }
   const assignedRoles = userRoles(user)
+  const { currentTerm } = useAcademicTerms()
 
   // Load recent notifications for the popover
   useEffect(() => {
@@ -70,6 +72,11 @@ function EnhancedTopBar({
           <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
         </svg>
         {new Date().toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+        {currentTerm && (
+          <span title="Current term (from the academic calendar)" style={{ marginLeft: '4px', fontSize: '11px', fontWeight: '600', color: '#1e40af', background: '#eff6ff', border: '1px solid #dbeafe', padding: '2px 8px', borderRadius: '20px', whiteSpace: 'nowrap' }}>
+            {termLabel(currentTerm)}
+          </span>
+        )}
       </div>
 
       {/* Notification bell with popover */}

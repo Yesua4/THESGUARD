@@ -9,7 +9,7 @@ class GroupController extends Controller {
 
     public function index(Request $request) {
         $user  = $request->user();
-        $query = Group::with('instructor', 'adviser', 'members', 'leader', 'projects');
+        $query = Group::with('instructor', 'adviser', 'members', 'leader', 'projects', 'term');
 
         // ── School isolation ──────────────────────────────────
         if ($user->school_id) {
@@ -37,6 +37,14 @@ class GroupController extends Controller {
         abort_unless(in_array($request->user()->role, ['instructor', 'admin']), 403, 'Only instructors and admins can manage groups.');
     }
 
+    // A term from this school's own calendar, or null.
+    private function termFor(Request $request, $termId): ?\App\Models\AcademicTerm {
+        if (!$termId) return null;
+        $term = \App\Models\AcademicTerm::where('school_id', $request->user()->school_id)->find($termId);
+        abort_unless($term, 422, "That semester is not on your school's academic calendar.");
+        return $term;
+    }
+
     private function assertGroupInScope(Request $request, Group $group): void {
         abort_unless($group->isManageableBy($request->user()), 403, 'This group is not in a section you handle.');
     }
@@ -46,6 +54,7 @@ class GroupController extends Controller {
         $data = $request->validate([
             'group_name' => 'required|string|unique:groups,group_name',
             'batch'      => 'nullable|string',
+            'academic_term_id' => 'nullable|integer',
             'section'    => 'nullable|string|max:100',
             'adviser_id' => 'nullable|integer',
             'members'    => 'required|array|min:1',
@@ -80,9 +89,14 @@ class GroupController extends Controller {
             ], 422);
         }
 
+        // Picking a term from the admin's calendar sets the academic year
+        // (batch) from it, so the two can't disagree.
+        $term = $this->termFor($request, $data['academic_term_id'] ?? null);
+
         $group = Group::create([
             'group_name'    => $data['group_name'],
-            'batch'         => $data['batch'] ?? null,
+            'batch'         => $term?->academic_year ?? ($data['batch'] ?? null),
+            'academic_term_id' => $term?->id,
             'section'       => $data['section'] ?? null,
             'instructor_id' => $request->user()->id,
             'adviser_id'    => $data['adviser_id'] ?? null,
@@ -113,7 +127,13 @@ class GroupController extends Controller {
         if ($request->has('section')) {
             abort_unless($request->user()->handlesSection($request->input('section')), 403, 'You can only move groups into sections you handle.');
         }
-        $group->update($request->only(['group_name', 'batch', 'section', 'adviser_id']));
+        $changes = $request->only(['group_name', 'batch', 'section', 'adviser_id']);
+        if ($request->has('academic_term_id')) {
+            $term = $this->termFor($request, $request->input('academic_term_id'));
+            $changes['academic_term_id'] = $term?->id;
+            if ($term) $changes['batch'] = $term->academic_year;
+        }
+        $group->update($changes);
 
         // Keep every project under this group in sync with its adviser — Project.adviser_id
         // is otherwise just a one-time snapshot from creation, so assigning (or reassigning)
