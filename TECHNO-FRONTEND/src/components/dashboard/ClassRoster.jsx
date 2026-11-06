@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import api from '../../api/axios'
 import { SectionField } from './SectionPicker'
+import { useAuth } from '../../context/AuthContext'
+import { useSchoolStaffChannel } from '../../hooks/useSchoolStaffChannel'
 
 const overlay = { position:'fixed', inset:0, background:'rgba(10,31,68,0.4)', zIndex:60, display:'flex', alignItems:'center', justifyContent:'center' }
 const header  = { background:'linear-gradient(135deg,#0a1f44,#1040a0)', padding:'18px 20px', display:'flex', justifyContent:'space-between', alignItems:'center' }
@@ -108,8 +110,11 @@ export function RosterModal({ onClose }) {
   const [status, setStatus]   = useState('')
   const [error, setError]     = useState('')
 
+  const { user } = useAuth()
   const load = () => api.get('/roster').then(res => setRows(res.data)).catch(err => setError(err.response?.data?.message || 'Could not load the roster.'))
   useEffect(() => { load() }, [])
+  // Live: students flip from "Not signed up" to "Enrolled" as they register.
+  useSchoolStaffChannel(user?.school_id, true, load)
 
   const remove = async r => {
     if (!confirm(`Remove ${r.name} (${r.student_id}) from the roster?`)) return

@@ -168,6 +168,9 @@ class ClassRosterService {
             'enrolled_at'   => $entry->enrolled_at ?? now(),
         ]);
 
+        // A waiting student gets in the moment this happens.
+        app(LiveUpdateService::class)->account($student->id, 'enrolled');
+
         return $mismatch;
     }
 

@@ -47,7 +47,9 @@ class AuthController extends Controller {
         $user = User::create($data);
         $user->forceFill(['awaiting_enrollment' => true])->save();
         $user->syncRoles(['student']);
-        $roster->claimForNewStudent($user);
+        if ($entry = $roster->claimForNewStudent($user)) {
+            app(\App\Services\LiveUpdateService::class)->directory($entry->school_id, 'student_registered');
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
         $user = $user->fresh();
@@ -111,6 +113,7 @@ class AuthController extends Controller {
         if ($user->role !== $data['role']) {
             $user->role = $data['role'];
             $user->save();
+            app(\App\Services\LiveUpdateService::class)->account($user->id, 'role_switched');
         }
 
         return response()->json(['user' => $user->append(['roles', 'handled_sections'])]);
@@ -238,6 +241,10 @@ class AuthController extends Controller {
         }
         $this->applyHandledSections($user->fresh(), $handledSections);
 
+        $live = app(\App\Services\LiveUpdateService::class);
+        $live->account($user->id, 'account_updated');
+        $live->directory($user->school_id ?? $caller->school_id, 'user_updated');
+
         return response()->json($user->fresh()->append(['roles', 'handled_sections']));
     }
 
@@ -292,6 +299,7 @@ class AuthController extends Controller {
         $user = User::create($data);
         $user->syncRoles($roles);
         $this->applyHandledSections($user, $handledSections);
+        app(\App\Services\LiveUpdateService::class)->directory($user->school_id, 'user_created');
         return response()->json($user->fresh()->append(['roles', 'handled_sections']), 201);
     }
 
@@ -308,7 +316,9 @@ class AuthController extends Controller {
             $this->assertInstructorCanManage($caller, $user);
         }
 
+        $schoolId = $user->school_id;
         $user->delete();
+        app(\App\Services\LiveUpdateService::class)->directory($schoolId, 'user_deleted');
         return response()->json(['message' => 'Deleted']);
     }
 
@@ -498,6 +508,10 @@ class AuthController extends Controller {
             ->map(fn ($count, $role) => "{$count} " . \Illuminate\Support\Str::plural($role, $count))
             ->implode(', ');
         $message = "{$created} user(s) imported successfully ({$breakdown}).";
+    }
+
+    if ($created > 0) {
+        app(\App\Services\LiveUpdateService::class)->directory($admin->school_id, 'users_imported');
     }
 
     return response()->json([

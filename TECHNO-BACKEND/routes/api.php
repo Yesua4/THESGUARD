@@ -40,6 +40,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::put('profile/change-password', [AuthController::class, 'changePassword']);
 
+    // Private/presence channel authorization for Reverb. This app is
+    // API-only with Bearer-token Sanctum auth (no session cookies), so the
+    // default Broadcast::routes() helper (which assumes session auth via
+    // the 'web' middleware) isn't used -- this route sits in the same
+    // auth:sanctum group as everything else instead. It's outside the
+    // 'enrolled' group so a student waiting for enrollment can still listen
+    // on their own channel and get in the moment they're enrolled; each
+    // channel's own rule in routes/channels.php still decides access.
+    Route::post('/broadcasting/auth', function (Request $request) {
+        return Broadcast::auth($request);
+    });
+
     // Everything else needs an enrolled account: a self-registered student
     // waits here until an instructor imports a class list with their
     // Student No. (see EnsureStudentEnrolled).
@@ -105,14 +117,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/school/plan', [SchoolController::class, 'plan']);
     Route::get('/schools', [SchoolController::class, 'index']);
     Route::post('/users/import', [AuthController::class, 'importUsers']);
-
-    // Private/presence channel authorization for Reverb. This app is
-    // API-only with Bearer-token Sanctum auth (no session cookies), so the
-    // default Broadcast::routes() helper (which assumes session auth via
-    // the 'web' middleware) isn't used -- this route sits in the same
-    // auth:sanctum group as everything else instead.
-    Route::post('/broadcasting/auth', function (Request $request) {
-        return Broadcast::auth($request);
-    });
     }); // enrolled
 });

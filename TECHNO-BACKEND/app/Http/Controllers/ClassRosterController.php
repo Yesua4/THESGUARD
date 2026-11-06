@@ -57,6 +57,7 @@ class ClassRosterController extends Controller {
         }
 
         $report = $roster->enroll($user, $parsed['rows'], $section);
+        app(\App\Services\LiveUpdateService::class)->directory($user->school_id, 'roster_imported');
 
         $parts = [count($report['enrolled']) . ' enrolled'];
         if ($report['waiting'])    $parts[] = count($report['waiting']) . ' not signed up yet (they\'ll be enrolled when they register)';
@@ -106,6 +107,7 @@ class ClassRosterController extends Controller {
         abort_unless($user->handlesSection($entry->section), 403, 'This student is not in a section you handle.');
 
         $entry->delete();
+        app(\App\Services\LiveUpdateService::class)->directory($user->school_id, 'roster_updated');
         return response()->json(['message' => 'Removed from the roster.']);
     }
 }

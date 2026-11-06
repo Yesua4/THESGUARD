@@ -56,7 +56,9 @@ function DashboardShell() {
     if (!user?.id) return
     const channel = echo.private(`App.Models.User.${user.id}`)
     channel.listen('.notification.created', fetchUnread)
-    return () => echo.leave(`App.Models.User.${user.id}`)
+    // stopListening, not leave: AuthContext listens on this same channel
+    // for live account changes and must keep its subscription.
+    return () => channel.stopListening('.notification.created', fetchUnread)
   }, [user?.id, fetchUnread])
 
   // Pick up role changes the admin made since this session's login (new
@@ -302,9 +304,11 @@ function DashboardShell() {
 
       {/* Page content */}
       <div className="page-content" style={{ padding: '24px', flex: 1 }}>
-        {/* keyed by role so every page remounts and refetches for the new role */}
+        {/* keyed by role + handled sections so every page remounts and
+            refetches the moment either changes (switched here, or edited
+            live by the admin) */}
         <PageRouter
-          key={user?.role}
+          key={`${user?.role}|${(user?.handled_sections || []).join(',')}`}
           page={page} setPage={setPage} setUnreadCount={setUnreadCount} user={user}
           navTarget={navTarget} clearNavTarget={() => setNavTarget(null)}
           onNotificationNavigate={handleNotificationNavigate}

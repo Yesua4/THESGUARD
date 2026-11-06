@@ -5,6 +5,7 @@ import api from '../../api/axios'
 import { ROLE_ORDER, userRoles } from '../../constants/roles'
 import { SectionPicker, SectionField } from '../../components/dashboard/SectionPicker'
 import { ImportClassListModal, RosterModal } from '../../components/dashboard/ClassRoster'
+import { useSchoolStaffChannel } from '../../hooks/useSchoolStaffChannel'
 
 // Student and admin accounts hold only that one role; the faculty roles
 // (instructor, adviser, panelist) can be combined freely.
@@ -73,6 +74,10 @@ function PageUsers() {
   }
 
   useEffect(() => { load() }, [])
+
+  // Live: another admin/instructor edits an account, a class list is
+  // imported, or a student signs up and gets enrolled.
+  useSchoolStaffChannel(user?.school_id, ['admin', 'instructor'].includes(user?.role), load)
 
 const createUser = async e => {
   e.preventDefault(); setAddingUser(true)

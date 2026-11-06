@@ -3,14 +3,16 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 
 // Shown to a self-registered student until an instructor imports a class
-// list containing their Student No. Checks again every 30 seconds.
+// list containing their Student No. The switch to the dashboard is live
+// (AuthContext refetches /me on the account.changed broadcast); the 60s
+// check is only a fallback in case the websocket connection drops.
 export default function AwaitingEnrollment() {
   const { user, refreshUser, logout } = useAuth()
   const navigate = useNavigate()
   const [checking, setChecking] = useState(false)
 
   useEffect(() => {
-    const id = setInterval(refreshUser, 30_000)
+    const id = setInterval(refreshUser, 60_000)
     return () => clearInterval(id)
   }, [refreshUser])
 
@@ -38,7 +40,7 @@ export default function AwaitingEnrollment() {
         <div style={{ fontSize: '32px', marginBottom: '8px' }}>⏳</div>
         <div style={{ fontSize: '20px', fontWeight: 800, color: '#0a1f44', marginBottom: '8px' }}>Waiting for enrollment</div>
         <div style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.6, marginBottom: '18px' }}>
-          Your account is ready. You'll get access once your instructor imports your class list. This page checks automatically.
+          Your account is ready. You'll get access the moment your instructor imports your class list. This page updates by itself.
           If it's taking long, make sure your instructor has your correct <strong>Student No.</strong>
         </div>
         <div style={{ marginBottom: '20px' }}>

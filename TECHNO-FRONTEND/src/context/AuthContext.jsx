@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import api from '../api/axios'
+import echo from '../echo'
 
 const AuthContext = createContext()
 
@@ -78,6 +79,17 @@ export function AuthProvider({ children }) {
       if (err.response?.status === 401) logout()
     }
   }, [])
+
+  // Live: when the admin changes this account's roles or sections, a class
+  // list enrolls this student, or the role is switched on another device,
+  // the server pings the user's private channel and we refetch /me.
+  useEffect(() => {
+    if (!user?.id) return
+    const channel = echo.private(`App.Models.User.${user.id}`)
+    const listener = () => refreshUser()
+    channel.listen('.account.changed', listener)
+    return () => channel.stopListening('.account.changed', listener)
+  }, [user?.id, refreshUser])
 
   // Switch the active role to another role the admin assigned to this
   // account. The server checks the role is actually assigned.
