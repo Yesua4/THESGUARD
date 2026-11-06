@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../../context/AuthContext'
 import { useToast } from '../../../context/ToastContext'
 import api from '../../../api/axios'
+import { useSchoolActivity } from '../../../hooks/useSchoolActivity'
 import { typeLabel, statusStyle, statusLabel, fileIcon, fileStyle } from '../../../utils/documentDisplay'
 import DocumentReviewViewer from './DocumentReviewViewer'
 import { useProjectsChannel } from '../../../hooks/useProjectChannel'
@@ -60,6 +61,8 @@ function PageDocumentReview({ initialDocumentId, onConsumeInitialDocument }) {
   // in this list refreshes it, so a fresh submission shows up (and an
   // approve/revise decision reflects) without a manual reload.
   useProjectsChannel(projects.map(p => p.id), () => load())
+  // Live: documents on projects that weren't on screen yet.
+  useSchoolActivity(['documents', 'projects'], () => load())
 
   // Arrived here via a notification click — open the specific document it pointed to.
   useEffect(() => {

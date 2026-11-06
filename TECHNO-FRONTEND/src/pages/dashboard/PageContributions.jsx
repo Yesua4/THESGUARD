@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../api/axios'
+import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
 
 function PageContributions() {
@@ -15,8 +16,8 @@ function PageContributions() {
 
   const colors = ['#1d4ed8','#0891b2','#059669','#d97706','#dc2626']
 
-  const load = (pid='') => {
-    setLoading(true)
+  const load = (pid='', silent=false) => {
+    if (!silent) setLoading(true)
     api.get(pid ? `/contributions/${pid}` : '/contributions')
       .then(res => setData(res.data))
       .finally(() => setLoading(false))
@@ -34,7 +35,13 @@ function PageContributions() {
   // when any of them fire on a project this list knows about. Staff-only:
   // students don't get a `projects` list here, and the student contribution
   // response doesn't expose project ids to subscribe to.
-  useProjectsChannel(projects.map(p => p.id), () => load(selectedProject))
+  useProjectsChannel(projects.map(p => p.id), () => load(selectedProject, true))
+  // Live: new tasks/contribution entries and new projects, school-wide.
+  useSchoolActivity(['contributions', 'tasks', 'projects'], () => {
+    load(selectedProject, true)
+    if (['admin','adviser','instructor'].includes(user?.role))
+      api.get('/projects').then(res => setProjects(res.data))
+  })
   
   const fetchGithub = async (repoUrl) => {
   setGithubLoading(true)

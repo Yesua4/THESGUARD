@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../api/axios'
+import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import SimilarityBreakdown from './SimilarityBreakdown'
 import { similarityBadgeStyle } from '../../utils/similarityColors'
 import { useToast } from '../../context/ToastContext'
@@ -26,6 +27,8 @@ function PageTitleApproval() {
   // Live updates: a title edit or another reviewer's decision on any listed
   // project refreshes it without a manual reload.
   useProjectsChannel(projects.map(p => p.id), () => load())
+  // Live: newly submitted proposals appear for approval right away.
+  useSchoolActivity(['projects'], () => load())
 
   const approve = async (id) => {
     setSaving(true)

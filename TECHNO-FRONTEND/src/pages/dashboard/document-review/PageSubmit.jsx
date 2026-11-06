@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../../context/AuthContext'
 import api from '../../../api/axios'
+import { useSchoolActivity } from '../../../hooks/useSchoolActivity'
 import { typeLabel, statusStyle, fileIcon, fileStyle } from '../../../utils/documentDisplay'
 import DocumentReviewViewer from './DocumentReviewViewer'
 import RichTextEditor from './RichTextEditor'
@@ -39,6 +40,10 @@ function PageSubmit({ initialDocumentId, onConsumeInitialDocument }) {
   // the safe subset: recoverable locally, never submitted anywhere until
   // the user explicitly clicks Save Draft, same as always.
   const [recoveredDraft, setRecoveredDraft] = useState(null)
+  // Live: title approved / chosen as final, or documents changed by a
+  // groupmate -- re-runs the project/document load below.
+  const [liveTick, setLiveTick] = useState(0)
+  useSchoolActivity(['projects', 'documents'], () => setLiveTick(t => t + 1))
   const draftKey = form.project_id && form.type ? `thesisguard_draft_${form.project_id}_${form.type}` : null
 
   useEffect(() => {
@@ -61,7 +66,7 @@ function PageSubmit({ initialDocumentId, onConsumeInitialDocument }) {
         })
       }
     })
-  }, [])
+  }, [liveTick])
 
   // Arrived here via a notification click — open the specific document it pointed to.
   useEffect(() => {

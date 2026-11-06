@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import api from '../../api/axios'
+import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useProjectChannel } from '../../hooks/useProjectChannel'
 
 function PageEvaluate() {
@@ -17,11 +18,18 @@ function PageEvaluate() {
     presentation_score:'', technical_score:'', documentation_score:'', qa_score:'', remarks:'', recommendation:'revision'
   })
 
-  useEffect(() => {
-    api.get('/projects').then(res => {
-      setProjects(res.data.filter(p => p.status === 'for_defense' || p.status === 'approved'))
-    }).finally(() => setLoading(false))
-  }, [])
+  const loadProjects = () => api.get('/projects').then(res => {
+    setProjects(res.data.filter(p => p.status === 'for_defense' || p.status === 'approved'))
+  }).finally(() => setLoading(false))
+
+  useEffect(() => { loadProjects() }, [])
+
+  // Live: projects moving to/from "for defense", and evaluations on the
+  // open project, from anyone in the school.
+  useSchoolActivity(['projects', 'evaluations', 'schedules'], () => {
+    loadProjects()
+    if (selected?.id) api.get(`/evaluations/project/${selected.id}`).then(res => setEvaluations(res.data))
+  })
 
   // Live updates while a project is open: see other panelists' evaluations
   // land in real time, so it's clear when everyone's submitted without

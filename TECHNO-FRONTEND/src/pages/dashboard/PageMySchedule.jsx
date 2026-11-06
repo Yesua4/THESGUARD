@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../../api/axios'
+import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
 
 function PageMySchedule() {
@@ -16,6 +17,8 @@ function PageMySchedule() {
   // instructor/adviser just scheduling or rescheduling a defense actually
   // broadcasts to. Without this, finding out meant reloading the page.
   useProjectsChannel(schedules.flatMap(s => (s.group?.projects || []).map(p => p.id)), load)
+  // Live: a first defense being booked (no project ids to listen on yet).
+  useSchoolActivity(['schedules', 'groups'], load)
 
   const formatDate = d => !d ? '—' : new Date(d).toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'})
   const formatTime = t => {

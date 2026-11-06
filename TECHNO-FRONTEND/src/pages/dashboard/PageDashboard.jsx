@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import api from '../../api/axios'
+import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import MiniCalendar from '../../components/dashboard/MiniCalendar'
 import QuickActionsWidget from '../../components/dashboard/QuickActionsWidget'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
@@ -64,6 +65,8 @@ function PageDashboard({ user, onNavigate }) {
   // login -- refresh them whenever any project currently counted here
   // changes, instead of only on the next full page load.
   useProjectsChannel(projectIds, load)
+  // Live: overview numbers follow new projects, groups and schedules.
+  useSchoolActivity(['projects', 'groups', 'schedules', 'documents', 'evaluations'], load)
 
   // Build display stats per role
   const buildStats = () => {

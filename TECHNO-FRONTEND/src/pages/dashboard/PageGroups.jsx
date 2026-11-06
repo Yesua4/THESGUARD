@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import api from '../../api/axios'
+import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { SectionField } from '../../components/dashboard/SectionPicker'
 
 function PageGroups() {
@@ -21,7 +22,7 @@ function PageGroups() {
 
   const load = () => api.get('/groups').then(res => setGroups(res.data)).finally(() => setLoading(false))
 
-  useEffect(() => {
+  const loadAll = () => {
     load()
     if (user?.role === 'instructor') {
       api.get('/students').then(res => setStudents(res.data))
@@ -34,7 +35,13 @@ function PageGroups() {
     if (user?.role === 'instructor' || user?.role === 'admin') {
       api.get('/advisers').then(res => setAdvisers(res.data))
     }
-  }, [])
+  }
+
+  useEffect(() => { loadAll() }, [])
+
+  // Live: groups created/edited/deleted, members moved, advisers assigned,
+  // new students enrolled -- by anyone in the school.
+  useSchoolActivity(['groups', 'users'], loadAll)
 
   const toggleMember = id => {
     const idStr = String(id)

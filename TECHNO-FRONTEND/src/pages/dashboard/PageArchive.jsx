@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, Fragment } from 'react'
 import api from '../../api/axios'
+import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
@@ -35,6 +36,8 @@ function PageArchive() {
   // being archived for the FIRST time -- that needs a reload, same as
   // before, since there's no school-wide feed to learn its id from.
   useProjectsChannel(projects.map(p => p.id), load)
+  // Live: a project newly archived (or imported) appears without a reload.
+  useSchoolActivity(['projects'], load)
 
   const importCSV = async e => {
     e.preventDefault()

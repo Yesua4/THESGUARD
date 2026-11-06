@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import api from '../../api/axios'
+import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { similarityBadgeStyle } from '../../utils/similarityColors'
 import { useToast } from '../../context/ToastContext'
 
@@ -12,8 +13,8 @@ function PageReports() {
   const [loading, setLoading]       = useState(false)
   const [generated, setGenerated]   = useState(false)
 
-  const generate = async () => {
-    setLoading(true); setGenerated(false)
+  const generate = async (silent = false) => {
+    if (!silent) { setLoading(true); setGenerated(false) }
     try {
       const url = reportType==='projects' ? `/reports/projects${batch?`?batch=${batch}`:''}`
         : reportType==='similarity' ? `/reports/similarity?threshold=${threshold}`
@@ -25,6 +26,11 @@ function PageReports() {
     } catch { showToast('Error generating report.') }
     finally { setLoading(false) }
   }
+
+  // Live: a report on screen re-runs itself when its data changes.
+  useSchoolActivity(['projects', 'schedules', 'contributions', 'tasks', 'documents', 'evaluations'], () => {
+    if (generated) generate(true)
+  })
 
   const exportCSV = () => {
     if (!data.length) return
@@ -170,7 +176,7 @@ const exportPDF = () => {
             </div>
           )}
           <div>
-            <button onClick={generate} disabled={loading} style={{ width:'100%', padding:'11px', borderRadius:'8px', border:'none', background:loading?'#cbd5e1':'linear-gradient(135deg,#0a1f44,#1040a0)', color:'#fff', fontSize:'13px', fontWeight:'700', cursor:loading?'not-allowed':'pointer' }}>
+            <button onClick={() => generate()} disabled={loading} style={{ width:'100%', padding:'11px', borderRadius:'8px', border:'none', background:loading?'#cbd5e1':'linear-gradient(135deg,#0a1f44,#1040a0)', color:'#fff', fontSize:'13px', fontWeight:'700', cursor:loading?'not-allowed':'pointer' }}>
               {loading ? 'Generating...' : 'Generate Report'}
             </button>
           </div>

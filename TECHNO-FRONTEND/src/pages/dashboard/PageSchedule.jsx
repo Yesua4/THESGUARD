@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import api from '../../api/axios'
+import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
 
 function PageSchedule() {
@@ -23,12 +24,21 @@ function PageSchedule() {
   const load = () => api.get('/schedules').then(res => setSchedules(res.data)).finally(() => setLoading(false))
   const loadGroups = () => api.get('/groups').then(res => setGroups(res.data))
 
+  const loadPanelists = () => api.get('/users?role=panelist').then(res => setPanelists(res.data))
+  const loadRooms = () => api.get('/rooms').then(res => setRooms(res.data))
+
   useEffect(() => {
     load()
     loadGroups()
-    api.get('/users?role=panelist').then(res => setPanelists(res.data))
-    api.get('/rooms').then(res => setRooms(res.data))
+    loadPanelists()
+    loadRooms()
   }, [])
+
+  // Live: defenses booked/moved/cancelled by anyone, new groups, new
+  // panelists, rooms added or renamed.
+  useSchoolActivity(['schedules', 'groups'], () => { load(); loadGroups() })
+  useSchoolActivity(['users'], loadPanelists)
+  useSchoolActivity(['rooms'], loadRooms)
 
   // Live updates: schedules have no page of their own to broadcast on --
   // they're keyed by group, not project -- so the backend broadcasts

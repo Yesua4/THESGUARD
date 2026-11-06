@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import api from '../../api/axios'
+import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { useProjectChannel } from '../../hooks/useProjectChannel'
@@ -139,6 +140,7 @@ function MinutesTab({ projectId, user }) {
   // just never listened for, so a panel comment or action-taken update
   // from another reviewer needed a manual reload to show up.
   useProjectChannel(projectId, type => { if (type === 'minutes_updated') load() })
+  useSchoolActivity(['minutes'], load)
 
   const createDefense = async e => {
     e.preventDefault()
@@ -253,6 +255,7 @@ function ChecklistTab({ projectId, type, user }) {
   // ProjectChecklistController on every toggle/add -- this just listens
   // for it, so another reviewer ticking an item shows up without a reload.
   useProjectChannel(projectId, t => { if (t === 'checklist_updated') load() })
+  useSchoolActivity(['checklists'], load)
 
   const toggle = async item => {
     try { await api.put(`/checklist-items/${item.id}`, { is_done: !item.is_done }); load() }
@@ -339,15 +342,23 @@ function PageMinutes() {
   const [tab, setTab] = useState('minutes')
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  const loadProjects = useCallback(() => {
     api.get('/projects').then(res => {
       const list = user.role === 'student'
         ? res.data.filter(p => p.members?.some(m => m.user_id === user.id) && p.title_status === 'approved')
         : res.data.filter(p => p.title_status === 'approved' && p.status !== 'archived')
       setProjects(list)
-      setProjectId((list.find(p => p.is_final_title) || list[0])?.id ?? null)
+      // Keep the project the user is looking at if it's still in the list.
+      setProjectId(current => list.some(p => p.id === current)
+        ? current
+        : ((list.find(p => p.is_final_title) || list[0])?.id ?? null))
     }).finally(() => setLoading(false))
   }, [user.id, user.role])
+
+  useEffect(() => { loadProjects() }, [loadProjects])
+
+  // Live: a newly approved title shows up in the project picker.
+  useSchoolActivity(['projects'], loadProjects)
 
   if (loading) return <div style={{ textAlign:'center', padding:'60px', color:'#94a3b8', fontSize:'13px' }}>Loading...</div>
 

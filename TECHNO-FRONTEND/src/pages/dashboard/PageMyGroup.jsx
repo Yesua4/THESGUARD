@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../api/axios'
+import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
 
 function PageMyGroup() {
@@ -20,6 +21,8 @@ function PageMyGroup() {
   // actually its project's status/title/documents, which already
   // broadcast -- refresh when any of those fire instead of reloading.
   useProjectsChannel((group?.projects || []).map(p => p.id), load)
+  // Live: being added to/removed from a group, adviser or members changing.
+  useSchoolActivity(['groups', 'projects'], load)
 
   if (loading) return <div style={{ textAlign:'center', padding:'60px', color:'#94a3b8', fontSize:'13px' }}>Loading...</div>
 

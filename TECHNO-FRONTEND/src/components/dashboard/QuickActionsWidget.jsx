@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react'
 import api from '../../api/axios'
+import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 
 function QuickActionsWidget({ user, onNavigate }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
+  // Live: the "needs your attention" counts follow changes school-wide.
+  const [liveTick, setLiveTick] = useState(0)
+  useSchoolActivity(['projects', 'documents', 'groups'], () => setLiveTick(t => t + 1))
 
   useEffect(() => {
     const tasks = []
@@ -69,7 +73,7 @@ function QuickActionsWidget({ user, onNavigate }) {
       setItems(tasks)
       setLoading(false)
     })
-  }, [user])
+  }, [user, liveTick])
 
   if (loading) return null
   if (items.length === 0) return (

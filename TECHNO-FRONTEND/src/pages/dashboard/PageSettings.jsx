@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../../api/axios'
+import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useToast } from '../../context/ToastContext'
 
 function PageSettings() {
@@ -16,6 +17,9 @@ function PageSettings() {
   }
 
   useEffect(() => { loadAll() }, [])
+
+  // Live: rooms and panelists edited from another session.
+  useSchoolActivity(['rooms', 'users'], loadAll)
 
   const submitRoom = async e => {
     e.preventDefault(); setSavingR(true)

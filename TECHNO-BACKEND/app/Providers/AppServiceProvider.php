@@ -12,7 +12,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // One instance per request: it collects every model change and
+        // flushes a single combined live update when the request ends.
+        $this->app->singleton(\App\Services\LiveUpdateService::class);
     }
 
     /**
@@ -29,5 +31,12 @@ class AppServiceProvider extends ServiceProvider
             $frontend = rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/');
             return "{$frontend}/reset-password?token={$token}&email=" . urlencode($user->email);
         });
+
+        // Realtime by default: any save/delete of a school's data tells the
+        // pages showing it to refetch (see LiveUpdateService::MODEL_TYPES).
+        foreach (array_keys(\App\Services\LiveUpdateService::MODEL_TYPES) as $model) {
+            $model::saved(fn ($m) => app(\App\Services\LiveUpdateService::class)->modelChanged($m));
+            $model::deleted(fn ($m) => app(\App\Services\LiveUpdateService::class)->modelChanged($m));
+        }
     }
 }

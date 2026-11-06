@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../api/axios'
+import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import SimilarityBreakdown from './SimilarityBreakdown'
 import { useProjectChannel } from '../../hooks/useProjectChannel'
 
@@ -30,6 +31,9 @@ function PageProgress() {
   // progress snapshot (documents, status, similarity) when any of them
   // fire, instead of needing a manual reload to see a chapter get approved.
   useProjectChannel(project?.id, load)
+  // Live: group/title/schedule/document changes, including before this
+  // student has a project id to listen on.
+  useSchoolActivity(['projects', 'groups', 'schedules', 'documents'], load)
 
   if (loading) return <div style={{ textAlign:'center', padding:'60px', color:'#94a3b8', fontSize:'13px' }}>Loading your progress...</div>
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../../api/axios'
+import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useToast } from '../../context/ToastContext'
 
 const panelLabelStyle = { fontSize: '10px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '6px', display: 'block' }
@@ -13,12 +14,15 @@ function ProjectTasks({ project, user, canAssign }) {
   const [form, setForm] = useState({ title: '', assigned_to: '', due_date: '' })
   const [saving, setSaving] = useState(false)
 
-  const load = () => {
-    setLoading(true)
+  const load = (silent = false) => {
+    if (!silent) setLoading(true)
     api.get(`/projects/${project.id}/tasks`).then(res => setTasks(res.data)).finally(() => setLoading(false))
   }
 
   useEffect(() => { load() }, [project.id])
+
+  // Live: tasks added, ticked off or removed by groupmates.
+  useSchoolActivity(['tasks'], () => load(true))
 
   const addTask = async (e) => {
     e.preventDefault()

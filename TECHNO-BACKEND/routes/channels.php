@@ -7,6 +7,13 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
 
+// Everyone in a school: "these kinds of data changed, refetch" signals
+// (SchoolActivity). Carries no data, only type names -- each page refetches
+// through its own permission-checked endpoint.
+Broadcast::channel('School.{id}', function ($user, $id) {
+    return $user->school_id && (int) $user->school_id === (int) $id;
+});
+
 // A school's admins and instructors: live refresh of User Accounts and the
 // Class Roster when accounts are created/edited/enrolled. Checks the ACTIVE
 // role, so a faculty member switched to panelist stops receiving these.

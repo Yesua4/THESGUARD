@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import api from '../../api/axios'
+import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import GroupAwareProposalForm from './GroupAwareProposalForm'
 import ProjectTasks from './ProjectTasks'
 import { similarityScoreColor, similarityBadgeStyle } from '../../utils/similarityColors'
@@ -28,7 +29,13 @@ function PageProjects() {
     api.get('/projects').then(res => setProjects(res.data)).finally(() => setLoading(false))
   }
 
-  useEffect(() => { load(); api.get('/users').then(res => setUsers(res.data)) }, [])
+  const loadUsers = () => api.get('/users').then(res => setUsers(res.data))
+  useEffect(() => { load(); loadUsers() }, [])
+
+  // Live: new proposals, status changes, archive/withdraw -- school-wide,
+  // including projects that weren't on screen yet.
+  useSchoolActivity(['projects', 'groups'], load)
+  useSchoolActivity(['users'], loadUsers)
 
   // Live updates: a status/title change, new document, or evaluation on any
   // project currently in this list refreshes it, instead of needing a
