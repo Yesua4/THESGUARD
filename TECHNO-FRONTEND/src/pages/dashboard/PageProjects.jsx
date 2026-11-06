@@ -6,6 +6,7 @@ import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import GroupAwareProposalForm from './GroupAwareProposalForm'
 import ProjectTasks from './ProjectTasks'
 import FinalAbstractPanel from '../../components/dashboard/FinalAbstractPanel'
+import SimilarityBreakdown from './SimilarityBreakdown'
 import { similarityScoreColor, similarityBadgeStyle } from '../../utils/similarityColors'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
 
@@ -233,6 +234,12 @@ function PageProjects() {
 
             <ProjectTasks project={selectedProject} user={user} canAssign={['adviser','instructor','admin'].includes(user?.role) || isProjectLeader(selectedProject)} />
 
+            {/* Similarity report: every proposal, for students too */}
+            <div style={{ padding:'14px 20px', borderBottom:'1px solid #f8fafc' }}>
+              <div style={panelLabelStyle}>Similarity Report</div>
+              <SimilarityBreakdown key={selectedProject.id} projectId={selectedProject.id} overallScore={selectedProject.similarity_score ?? 0} forStudent={user?.role === 'student'} />
+            </div>
+
             <FinalAbstractPanel project={selectedProject} labelStyle={panelLabelStyle} onSaved={load}
               canEdit={['adviser','instructor','admin'].includes(user?.role) || (selectedProject.members || []).some(m => m.user_id === user?.id)} />
             <div style={{ padding:'14px 20px', borderBottom:'1px solid #f8fafc' }}>
@@ -286,8 +293,12 @@ function PageProjects() {
           <div style={{ fontSize:'13px', fontWeight:'600', color: lastResult.status==='flagged'?'#9f1239':'#065f46', marginBottom:'4px' }}>
             {lastResult.status==='flagged' ? '🚩 Proposal flagged — high similarity detected' : '✅ Proposal submitted! Awaiting instructor title approval.'}
           </div>
-          <div style={{ fontSize:'12px', color:'#64748b' }}>
-            Similarity score: <span style={{ fontWeight:'700', color: similarityScoreColor(lastResult.similarity_score) }}>{lastResult.similarity_score}%</span>
+          <div style={{ fontSize:'12px', color:'#64748b', display:'flex', alignItems:'center', gap:'10px', flexWrap:'wrap' }}>
+            <span>Similarity score: <span style={{ fontWeight:'700', color: similarityScoreColor(lastResult.similarity_score) }}>{lastResult.similarity_score}%</span></span>
+            <button type="button" onClick={() => openProject(lastResult.id)}
+              style={{ fontSize:'12px', fontWeight:'700', color:'#1d4ed8', background:'#fff', border:'1.5px solid #bfdbfe', borderRadius:'8px', padding:'4px 10px', cursor:'pointer' }}>
+              See similarity results →
+            </button>
           </div>
         </div>
       )}

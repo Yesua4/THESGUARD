@@ -1,7 +1,36 @@
 import { useState, useEffect, useMemo } from 'react'
 import api from '../../api/axios'
 import { highlightOverlap } from '../../utils/textOverlap'
-import { similarityBarColor, similarityScoreColor, similarityBadgeStyle } from '../../utils/similarityColors'
+import { similarityBarColor, similarityScoreColor, similarityBadgeStyle, SIMILARITY_MODERATE, SIMILARITY_HIGH } from '../../utils/similarityColors'
+
+// Plain-language "how to read this" for students, so faculty don't have to
+// explain the similarity check every time.
+function HowToRead({ score }) {
+  const [open, setOpen] = useState(false)
+  const verdict = score >= SIMILARITY_HIGH
+    ? 'Your proposal is very close to an existing project. Your instructor will review it before approving -- consider changing your approach, scope, or features.'
+    : score >= SIMILARITY_MODERATE
+      ? 'Some parts overlap with existing projects. Check the matches below and make your description and objectives clearly different.'
+      : 'Your proposal looks original compared with past projects.'
+  return (
+    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px', marginBottom: '12px', fontSize: '12px', color: '#334155' }}>
+      <div style={{ fontWeight: 600 }}>{verdict}</div>
+      <button type="button" onClick={() => setOpen(v => !v)} aria-expanded={open}
+        style={{ marginTop: '6px', fontSize: '11px', fontWeight: 700, color: '#1d4ed8', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+        {open ? '▲ Hide' : 'ⓘ How is this computed?'}
+      </button>
+      {open && (
+        <ul style={{ margin: '8px 0 0', paddingLeft: '18px', lineHeight: 1.7, color: '#475569' }}>
+          <li>Your <strong>title</strong>, <strong>project description</strong> and <strong>objectives</strong> are compared with every past project of your school (their final abstracts when available).</li>
+          <li>Each comparison checks <strong>shared words and terms</strong> and also <strong>meaning</strong> -- so the same idea written in different words is still caught.</li>
+          <li>Overall = title 40% + description 35% + objectives 25%.</li>
+          <li><span style={{ color: '#059669', fontWeight: 700 }}>Below {SIMILARITY_MODERATE}%</span>: low · <span style={{ color: '#d97706', fontWeight: 700 }}>{SIMILARITY_MODERATE}–{SIMILARITY_HIGH - 1}%</span>: moderate, revise overlapping parts · <span style={{ color: '#dc2626', fontWeight: 700 }}>{SIMILARITY_HIGH}% and up</span>: needs review by your instructor.</li>
+          <li>A high score doesn't automatically reject your title -- your instructor and adviser make the final decision.</li>
+        </ul>
+      )}
+    </div>
+  )
+}
 
 // Shows verbatim-overlap highlighting + SBERT semantic-match boxes for one
 // field (abstract or objectives). Critically, when BOTH come back empty --
@@ -157,21 +186,24 @@ function MatchRow({ match, rank }) {
   )
 }
 
+// Most similar past projects, ranked. The top 5 show right away.
 function AllMatches({ matches, ownAbstract, ownObjectives }) {
-  const [open, setOpen] = useState(false)
+  const [showAll, setShowAll] = useState(false)
   if (!matches || matches.length === 0) return null
+  const shown = showAll ? matches : matches.slice(0, 5)
 
   return (
     <div style={{ marginBottom: '10px' }}>
-      <button onClick={() => setOpen(v => !v)} style={{ fontSize: '12px', color: '#1d4ed8', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700', padding: 0 }}>
-        {open ? '▲ Hide' : '▼ View'} all {matches.length} match{matches.length !== 1 ? 'es' : ''} (ranked)
-      </button>
-      {open && (
-        <div style={{ marginTop: '8px' }}>
-          {matches.map((m, i) => (
-            <MatchRow key={m.compared_to_id} rank={i + 1} match={{ ...m, ownAbstract, ownObjectives }} />
-          ))}
-        </div>
+      <div style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '6px' }}>
+        Most similar past projects (ranked) · click one to compare
+      </div>
+      {shown.map((m, i) => (
+        <MatchRow key={m.compared_to_id} rank={i + 1} match={{ ...m, ownAbstract, ownObjectives }} />
+      ))}
+      {matches.length > 5 && (
+        <button onClick={() => setShowAll(v => !v)} style={{ fontSize: '12px', color: '#1d4ed8', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700', padding: 0 }}>
+          {showAll ? '▲ Show top 5 only' : `▼ Show all ${matches.length} matches`}
+        </button>
       )}
     </div>
   )
@@ -208,9 +240,10 @@ function SimilarityBreakdown({ projectId, overallScore, forStudent = false }) {
       <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'14px' }}>
         <div style={{ fontSize:'28px', fontWeight:'800', ...scoreStyle(overallScore) }}>{overallScore}%</div>
         <span style={{ fontSize:'11px', padding:'4px 10px', borderRadius:'20px', fontWeight:'700', ...badgeStyle(overallScore) }}>
-          {overallScore>=60 ? 'High — review carefully' : overallScore>=30 ? 'Moderate' : 'Low — acceptable'}
+          {overallScore>=SIMILARITY_HIGH ? 'High — review carefully' : overallScore>=SIMILARITY_MODERATE ? 'Moderate' : 'Low — acceptable'}
         </span>
       </div>
+      {forStudent && <HowToRead score={overallScore} />}
 
       {scores.title_score !== null ? (
         <div style={{ display:'flex', flexDirection:'column', gap:'8px', marginBottom:'12px' }}>
@@ -256,11 +289,11 @@ function SimilarityBreakdown({ projectId, overallScore, forStudent = false }) {
 
       <AllMatches matches={scores.all_matches} ownAbstract={scores.own_abstract} ownObjectives={scores.own_objectives} />
 
-      {overallScore >= 30 && (
+      {overallScore >= SIMILARITY_MODERATE && (
         <div style={{ background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'8px', padding:'8px 12px', fontSize:'12px', color:'#92400e' }}>
           {forStudent
-            ? '⚠ Compare your abstract and objectives with the matches above. Your adviser may ask you to revise overlapping parts.'
-            : '⚠ Review the abstract and objectives carefully before approving.'}
+            ? '⚠ Compare your project description and objectives with the matches above. Your adviser may ask you to revise overlapping parts.'
+            : '⚠ Review the project description and objectives carefully before approving.'}
         </div>
       )}
     </div>
