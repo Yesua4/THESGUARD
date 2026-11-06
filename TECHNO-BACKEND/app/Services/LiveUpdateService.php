@@ -42,7 +42,8 @@ class LiveUpdateService {
         Models\UserRole::class             => ['users'],
         Models\InstructorSection::class    => ['users'],
         Models\ClassRosterEntry::class     => ['roster'],
-        Models\AcademicTerm::class         => ['terms'],
+        Models\AcademicTerm::class         => ['terms', 'groups'],
+        Models\CapstoneStage::class        => ['terms', 'groups'],
     ];
 
     /** @var array<int, array<string, true>> school id => set of types */

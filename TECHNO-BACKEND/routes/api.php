@@ -57,6 +57,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // waits here until an instructor imports a class list with their
     // Student No. (see EnsureStudentEnrolled).
     Route::middleware('enrolled')->group(function () {
+    Route::get('/capstone-stages', [\App\Http\Controllers\CapstoneStageController::class, 'index']);
+    Route::post('/capstone-stages', [\App\Http\Controllers\CapstoneStageController::class, 'store']);
+    Route::put('/capstone-stages/{id}', [\App\Http\Controllers\CapstoneStageController::class, 'update']);
+    Route::delete('/capstone-stages/{id}', [\App\Http\Controllers\CapstoneStageController::class, 'destroy']);
     Route::get('/terms', [AcademicTermController::class, 'index']);
     Route::post('/terms', [AcademicTermController::class, 'store']);
     Route::put('/terms/{id}', [AcademicTermController::class, 'update']);

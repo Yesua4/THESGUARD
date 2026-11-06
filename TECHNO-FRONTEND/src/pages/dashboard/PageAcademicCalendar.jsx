@@ -1,10 +1,109 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import api from '../../api/axios'
+import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useToast } from '../../context/ToastContext'
 import { useAcademicTerms } from '../../hooks/useAcademicTerms'
 
 const TERM_NAMES = ['1st Semester', '2nd Semester', 'Summer', '1st Trimester', '2nd Trimester', '3rd Trimester']
 const emptyForm = { academic_year: '', name: '', start_date: '', end_date: '' }
+
+const ORDINAL = ['1st', '2nd', '3rd', '4th', '5th', '6th']
+const EMPTY_STAGE = { name: '', year_level: '2', term_no: '2' }
+
+// Which capstone stage happens in which year level + term of the school
+// year. Groups move from one stage to the next by themselves as the
+// calendar above passes.
+function CapstonePlan({ terms }) {
+  const { showToast } = useToast()
+  const [stages, setStages] = useState([])
+  const [form, setForm] = useState(EMPTY_STAGE)
+  const [editingId, setEditingId] = useState(null)
+  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const load = useCallback(() => api.get('/capstone-stages').then(res => setStages(res.data)).catch(() => {}), [])
+  useEffect(() => { load() }, [load])
+  useSchoolActivity(['terms', 'groups'], load)
+
+  // e.g. "2nd term (2nd Semester)", using the latest school year on the calendar.
+  const latestYear = [...new Set(terms.map(t => t.academic_year))].sort().pop()
+  const termNames = terms.filter(t => t.academic_year === latestYear).sort((a, b) => a.start_date.localeCompare(b.start_date)).map(t => t.name)
+  const termLabel = n => `${ORDINAL[n - 1]} term${termNames[n - 1] ? ` (${termNames[n - 1]})` : ''}`
+
+  const save = async e => {
+    e.preventDefault()
+    setSaving(true); setError('')
+    const body = { name: form.name.trim(), year_level: Number(form.year_level), term_no: Number(form.term_no) }
+    try {
+      if (editingId) await api.put(`/capstone-stages/${editingId}`, body)
+      else await api.post('/capstone-stages', body)
+      showToast(editingId ? 'Stage updated.' : 'Stage added.', 'success')
+      setEditingId(null); setForm(EMPTY_STAGE); load()
+    } catch (err) {
+      const errs = err.response?.data?.errors
+      setError(errs ? Object.values(errs)[0][0] : (err.response?.data?.message || 'Could not save.'))
+    } finally { setSaving(false) }
+  }
+
+  const remove = async st => {
+    if (!confirm(`Delete "${st.name}" from the capstone plan?`)) return
+    try { await api.delete(`/capstone-stages/${st.id}`); load() } catch { showToast('Could not delete.') }
+  }
+
+  const input = { border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', fontSize: '13px', background: '#f8fafc', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' }
+  const label = { fontSize: '11px', fontWeight: '700', color: '#64748b', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: '5px' }
+
+  return (
+    <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8ecf2', padding: '18px', marginTop: '16px' }}>
+      <div style={{ fontSize: '14px', fontWeight: 700, color: '#0a1f44' }}>Capstone plan</div>
+      <div style={{ fontSize: '12px', color: '#64748b', margin: '2px 0 14px' }}>
+        When each capstone stage is taken. Example: Capstone 1 in 2nd year, 2nd term; Capstone 2 in 3rd year, 1st term.
+        Groups move to the next stage by themselves when the calendar reaches it.
+      </div>
+      <form onSubmit={save} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', alignItems: 'end' }}>
+        <div>
+          <label style={label} htmlFor="stage-name">Stage name</label>
+          <input id="stage-name" list="tg-stage-names" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Capstone 1" style={input} required />
+          <datalist id="tg-stage-names"><option value="Capstone 1" /><option value="Capstone 2" /></datalist>
+        </div>
+        <div>
+          <label style={label} htmlFor="stage-year">Year level</label>
+          <select id="stage-year" value={form.year_level} onChange={e => setForm({ ...form, year_level: e.target.value })} style={input}>
+            {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{ORDINAL[n - 1]} year</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={label} htmlFor="stage-term">Term of the school year</label>
+          <select id="stage-term" value={form.term_no} onChange={e => setForm({ ...form, term_no: e.target.value })} style={input}>
+            {[1, 2, 3].map(n => <option key={n} value={n}>{termLabel(n)}</option>)}
+          </select>
+        </div>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <button type="submit" disabled={saving} style={{ flex: 1, padding: '9px', background: 'linear-gradient(135deg,#0a1f44,#1040a0)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+            {saving ? 'Saving…' : editingId ? 'Save' : 'Add stage'}
+          </button>
+          {editingId && <button type="button" onClick={() => { setEditingId(null); setForm(EMPTY_STAGE) }} style={{ padding: '9px 12px', background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}>Cancel</button>}
+        </div>
+      </form>
+      {error && <div role="alert" style={{ marginTop: '10px', background: '#fee2e2', color: '#9f1239', fontSize: '12px', padding: '8px 10px', borderRadius: '8px' }}>{error}</div>}
+
+      <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        {stages.length === 0 && <div style={{ fontSize: '12px', color: '#94a3b8' }}>No stages yet.</div>}
+        {stages.map((st, i) => (
+          <div key={st.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: '#f8fafc', borderRadius: '10px' }}>
+            <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#0a1f44', color: '#fff', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i + 1}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0a1f44' }}>{st.name}</div>
+              <div style={{ fontSize: '12px', color: '#64748b' }}>{ORDINAL[st.year_level - 1]} year · {termLabel(st.term_no)}</div>
+            </div>
+            <button onClick={() => { setEditingId(st.id); setForm({ name: st.name, year_level: String(st.year_level), term_no: String(st.term_no) }) }} style={{ fontSize: '11px', padding: '5px 12px', borderRadius: '6px', border: '1.5px solid #e2e8f0', background: '#fff', cursor: 'pointer', color: '#1d4ed8', fontWeight: 600 }}>Edit</button>
+            <button onClick={() => remove(st)} style={{ fontSize: '11px', padding: '5px 12px', borderRadius: '6px', border: '1.5px solid #fecaca', background: '#fff', cursor: 'pointer', color: '#dc2626', fontWeight: 600 }}>Delete</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 const fmt = d => new Date(d + 'T00:00:00').toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
 
@@ -132,6 +231,7 @@ export default function PageAcademicCalendar() {
           ))}
         </div>
       </div>
+      <CapstonePlan terms={terms} />
     </div>
   )
 }

@@ -3,6 +3,8 @@ namespace App\Http\Controllers;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\User;
+use App\Models\AcademicTerm;
+use App\Services\CapstoneStageService;
 use Illuminate\Http\Request;
 
 class GroupController extends Controller {
@@ -25,7 +27,16 @@ class GroupController extends Controller {
             $query->whereIn('id', $groupIds);
         }
 
-        return response()->json($query->get());
+        return response()->json($this->withStages($query->get()));
+    }
+
+    // Each group's current capstone stage, worked out from the calendar.
+    private function withStages($groups) {
+        $stages = app(CapstoneStageService::class);
+        return $groups->map(function ($g) use ($stages) {
+            $g->setAttribute('capstone', $stages->forGroup($g));
+            return $g;
+        });
     }
 
     // Group creation/editing is instructor-only in the frontend (PageGroups.jsx
@@ -58,8 +69,14 @@ class GroupController extends Controller {
             'section'    => 'nullable|string|max:100',
             'adviser_id' => 'nullable|integer',
             'members'    => 'required|array|min:1',
+            'members.*'  => 'integer',
             'leader_id'  => 'required|integer',
         ]);
+
+        // The group's section comes from its members (they already have one);
+        // a typed section is only used when none of them has a section yet.
+        $data['section'] = CapstoneStageService::sectionFromMembers($data['members'])
+            ?? (User::normalizeSection($data['section'] ?? '') ?: null);
 
         // A section-scoped instructor can only create groups in their sections.
         $caller = $request->user();
@@ -91,12 +108,15 @@ class GroupController extends Controller {
 
         // Picking a term from the admin's calendar sets the academic year
         // (batch) from it, so the two can't disagree.
-        $term = $this->termFor($request, $data['academic_term_id'] ?? null);
+        // Not picked -> the term today falls in.
+        $term = $this->termFor($request, $data['academic_term_id'] ?? null)
+            ?? AcademicTerm::currentFor($caller->school_id);
 
         $group = Group::create([
             'group_name'    => $data['group_name'],
             'batch'         => $term?->academic_year ?? ($data['batch'] ?? null),
             'academic_term_id' => $term?->id,
+            'start_year_level' => CapstoneStageService::yearLevelOf($data['section']),
             'section'       => $data['section'] ?? null,
             'instructor_id' => $request->user()->id,
             'adviser_id'    => $data['adviser_id'] ?? null,
@@ -115,9 +135,9 @@ class GroupController extends Controller {
     }
 
     public function show($id) {
-        return response()->json(
-            Group::with('instructor', 'adviser', 'members', 'leader', 'projects')->findOrFail($id)
-        );
+        $group = Group::with('instructor', 'adviser', 'members', 'leader', 'projects', 'term')->findOrFail($id);
+        $group->setAttribute('capstone', app(CapstoneStageService::class)->forGroup($group));
+        return response()->json($group);
     }
 
     public function update(Request $request, $id) {

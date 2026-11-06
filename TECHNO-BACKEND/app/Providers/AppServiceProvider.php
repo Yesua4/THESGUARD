@@ -32,6 +32,12 @@ class AppServiceProvider extends ServiceProvider
             return "{$frontend}/reset-password?token={$token}&email=" . urlencode($user->email);
         });
 
+        // A student's section changed (e.g. a new class list) -> their
+        // group follows, so section-based instructor access stays right.
+        \App\Models\User::updated(function ($user) {
+            if ($user->wasChanged('section')) \App\Services\CapstoneStageService::syncSectionsForUser($user);
+        });
+
         // Realtime by default: any save/delete of a school's data tells the
         // pages showing it to refetch (see LiveUpdateService::MODEL_TYPES).
         foreach (array_keys(\App\Services\LiveUpdateService::MODEL_TYPES) as $model) {

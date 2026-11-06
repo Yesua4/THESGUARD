@@ -3,7 +3,6 @@ import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import api from '../../api/axios'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
-import { SectionField } from '../../components/dashboard/SectionPicker'
 import { useAcademicTerms } from '../../hooks/useAcademicTerms'
 
 function PageGroups() {
@@ -40,6 +39,20 @@ function PageGroups() {
     setForm(f => ({ ...f, batch: year, academic_term_id: pick ? String(pick.id) : '' }))
   }
   const termName = g => g.term?.name
+
+  // The group's section comes from its members (they already have one).
+  const normSection = v => (v || '').trim().replace(/\s+/g, ' ').toUpperCase()
+  const memberSections = students.filter(st => form.members.includes(String(st.id))).map(st => normSection(st.section)).filter(Boolean)
+  const sectionCounts = memberSections.reduce((m, sec) => ({ ...m, [sec]: (m[sec] || 0) + 1 }), {})
+  const derivedSection = Object.keys(sectionCounts).sort((a, b) => sectionCounts[b] - sectionCounts[a] || a.localeCompare(b))[0] || ''
+
+  // Current capstone stage badge (worked out by the server from the calendar).
+  const StageBadge = ({ g }) => g.capstone?.stage ? (
+    <span title={`${g.capstone.year_level ? `Year ${g.capstone.year_level} · ` : ''}${g.capstone.term || ''}`}
+      style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: '#ede9fe', color: '#5b21b6', whiteSpace: 'nowrap' }}>
+      {g.capstone.stage}
+    </span>
+  ) : null
 
   const load = () => api.get('/groups').then(res => setGroups(res.data)).finally(() => setLoading(false))
 
@@ -125,7 +138,7 @@ function PageGroups() {
                   <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.5)', fontWeight:'600', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'4px' }}>Group Details</div>
                   <div style={{ fontSize:'16px', fontWeight:'700', color:'#fff', marginBottom:'2px' }}>{selectedGroup.group_name}</div>
                   <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.55)' }}>
-                    {[selectedGroup.section, selectedGroup.batch, termName(selectedGroup)].filter(Boolean).join(' · ') || 'No batch/section'}
+                    {[selectedGroup.section, selectedGroup.batch, termName(selectedGroup)].filter(Boolean).join(' · ') || 'No batch/section'} <StageBadge g={selectedGroup} />
                   </div>
                 </div>
                 <button onClick={() => setSelectedGroup(null)} style={{ background:'rgba(255,255,255,0.15)', border:'none', color:'#fff', width:'28px', height:'28px', borderRadius:'6px', cursor:'pointer', fontSize:'14px' }}>✕</button>
@@ -233,8 +246,15 @@ function PageGroups() {
               </div>
             )}
             <div>
-              <label style={labelStyle}>Course / Section <span style={{ color:'#cbd5e1', textTransform:'none', fontWeight:'400' }}>(optional)</span></label>
-              <SectionField user={user} value={form.section} onChange={section => setForm({...form, section})} style={inputStyle} />
+              <label style={labelStyle}>Course / Section</label>
+              <div style={{ ...inputStyle, background:'#f1f5f9', color: derivedSection ? '#0a1f44' : '#94a3b8' }}>
+                {derivedSection || 'Taken from the members you select below'}
+              </div>
+              {Object.keys(sectionCounts).length > 1 && (
+                <div style={{ fontSize:'11px', color:'#b45309', marginTop:'4px' }}>
+                  ⚠ Selected students are from different sections ({Object.keys(sectionCounts).join(', ')}). The group will use {derivedSection}.
+                </div>
+              )}
             </div>
             <div>
               <label style={labelStyle}>Assign Adviser</label>
@@ -358,7 +378,7 @@ function PageGroups() {
                       {String(g.adviser_id) === String(user.id) && <span style={{ fontSize:'11px', background:'#ccfbf1', color:'#0f766e', padding:'2px 8px', borderRadius:'20px', fontWeight:'600' }}>You are adviser</span>}
                     </div>
                     <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>
-                      {[g.section, g.batch, termName(g)].filter(Boolean).join(' · ') || 'No batch/section'}
+                      {[g.section, g.batch, termName(g)].filter(Boolean).join(' · ') || 'No batch/section'} <StageBadge g={g} />
                     </div>
                   </div>
                   <span style={{ fontSize:'11px', background:'#f8fafc', color:'#64748b', padding:'4px 10px', borderRadius:'20px', fontWeight:'600', flexShrink:0 }}>{g.members?.length || 0} members</span>
