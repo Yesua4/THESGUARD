@@ -9,6 +9,7 @@
         "php": "^8.2",
         "ext-pcntl": "*",
         "ext-zip": "*",
+        "ezyang/htmlpurifier": "^4.18",
         "laravel/framework": "^12.0",
         "laravel/reverb": "*",
         "laravel/sanctum": "^4.0",

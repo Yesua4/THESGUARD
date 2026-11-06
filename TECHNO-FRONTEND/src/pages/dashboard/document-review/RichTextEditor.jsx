@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
 import { PAGE_W, IN, DEFAULT_MARGINS, MARGIN_PRESETS, markStructuralPageBreaks, paginate } from './pagination'
+import { sanitizeHtml, isSafeLinkUrl } from '../../../utils/sanitizeHtml'
 
 const BLOCK_TAGS = new Set(['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'BLOCKQUOTE', 'TABLE'])
 
@@ -80,8 +81,10 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
   }
 
   useEffect(() => {
+    // Loaded content (saved drafts, converted Word files, recovered
+    // autosaves) is cleaned before it touches the live editor.
     if (ref.current && ref.current.innerHTML !== value) {
-      ref.current.innerHTML = value || ''
+      ref.current.innerHTML = sanitizeHtml(value)
     }
     if (paginated) {
       document.execCommand('styleWithCSS', false, true)
@@ -149,7 +152,9 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
     container.querySelectorAll('script,style,meta,link').forEach(el => el.remove())
     container.querySelectorAll('[id^="docs-internal-guid"]').forEach(el => el.removeAttribute('id'))
 
-    document.execCommand('insertHTML', false, container.innerHTML)
+    // The DOMParser document above is inert, but the live editor isn't:
+    // pasted on*= handlers would run here, so clean before inserting.
+    document.execCommand('insertHTML', false, sanitizeHtml(container.innerHTML))
     afterChange()
   }
 
@@ -280,11 +285,13 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
   const insertLink = () => {
     const url = window.prompt('Enter URL (including https://):')
     if (!url) return
+    if (!isSafeLinkUrl(url)) { window.alert('Only links starting with https://, http:// or mailto: can be added.'); return }
     exec('createLink', url)
   }
 
   const insertImageByUrl = () => {
     const url = window.prompt('Enter image URL:')
+    if (url && !/^https?:\/\//i.test(url.trim())) { window.alert('Only image links starting with https:// or http:// can be added.'); return }
     if (!url) return
     exec('insertImage', url)
   }

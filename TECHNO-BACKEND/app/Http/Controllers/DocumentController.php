@@ -159,6 +159,8 @@ class DocumentController extends Controller {
         }
 
         $html = app(DocumentPreviewService::class)->convertToHtml($document->file_path);
+        // The uploaded Word file is student-supplied; strip anything executable.
+        if ($html !== null) $html = app(\App\Services\HtmlSanitizer::class)->clean($html);
         if ($html === null) {
             return response()->json(['message' => 'Could not convert this document for editing. You can still download it and edit it locally.'], 422);
         }
@@ -196,7 +198,8 @@ class DocumentController extends Controller {
             'uploaded_by'  => $request->user()->id,
             'type'         => $data['type'],
             'version'      => $lastVersion + 1,
-            'content'      => $data['content'],
+            // Cleaned: drafts are rendered to faculty as real HTML.
+            'content'      => app(\App\Services\HtmlSanitizer::class)->clean($data['content']),
             'version_note' => $data['version_note'] ?? 'Edited in-app',
             'status'       => 'pending',
         ]);

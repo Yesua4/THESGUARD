@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useAuth } from '../../../context/AuthContext'
+import { sanitizeHtml } from '../../../utils/sanitizeHtml'
 import { useDocumentComments } from '../../../hooks/useDocumentComments'
 import { useProjectChannel } from '../../../hooks/useProjectChannel'
 import api from '../../../api/axios'
@@ -73,6 +74,7 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
   const handleDelete = id => deleteComment(id).catch(() => {})
   const handleSetResolved = (id, resolved) => setResolved(id, resolved).catch(() => {})
   const isInAppDraft = !document.file_path && !!document.content
+  const safeDraftHtml = useMemo(() => (isInAppDraft ? sanitizeHtml(document.content) : ''), [isInAppDraft, document.content])
   const canPreviewFile = !!document.file_path && document.file_path.toLowerCase().endsWith('.pdf')
   // 'pending' isn't converted yet -- the backend converts it lazily on this
   // very request (see DocumentController::preview()), so it still needs to
@@ -242,7 +244,8 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
                     padding: `${DEFAULT_MARGINS.top}px ${DEFAULT_MARGINS.right}px ${DEFAULT_MARGINS.bottom}px ${DEFAULT_MARGINS.left}px`,
                     width: `${PAGE_W}px`, margin: '0 auto', fontSize: '13px', lineHeight: '1.7', color: '#0f172a',
                   }}
-                  dangerouslySetInnerHTML={{ __html: document.content }}
+                  // Student-written HTML shown to faculty: always cleaned.
+                  dangerouslySetInnerHTML={{ __html: safeDraftHtml }}
                 />
               </>
             ) : canPreview ? (
