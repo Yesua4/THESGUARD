@@ -172,7 +172,8 @@ function DashboardShell() {
       {/* Nav groups */}
       <nav style={{ flex: 1, padding: '12px 8px', overflowY: 'auto', overflowX: 'hidden' }}>
         {groups.map(group => {
-          const items = navItems.filter(item => group.ids.includes(item.id))
+          // In the order the step lists them (config/nav.jsx NAV_GROUPS).
+          const items = group.ids.map(id => navItems.find(item => item.id === id)).filter(Boolean)
           if (!items.length) return null
           return (
             <div key={group.heading} style={{ marginBottom: '6px' }}>

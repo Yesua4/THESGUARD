@@ -63,32 +63,41 @@ const NAV = {
   ],
 }
 
+// Sidebar order follows each role's actual workflow, step by step (the
+// headings are numbered so the sequence is obvious). Items appear in the
+// order listed here.
 const NAV_GROUPS = {
   admin: [
-    { heading: 'Overview',   ids: ['dashboard'] },
-    { heading: 'Management', ids: ['projects', 'users', 'calendar', 'comments', 'archive'] },
-    { heading: 'Tools',      ids: ['similarity', 'contributions', 'reports', 'minutes', 'settings'] },
+    { heading: 'Overview',            ids: ['dashboard'] },
+    { heading: '1 · Set up',          ids: ['calendar', 'users', 'settings'] },
+    { heading: '2 · Monitor',         ids: ['projects', 'comments', 'minutes'] },
+    { heading: '3 · Reports',         ids: ['similarity', 'contributions', 'reports', 'archive'] },
   ],
   instructor: [
-    { heading: 'Overview',   ids: ['dashboard'] },
-    { heading: 'Management', ids: ['groups', 'users', 'projects'] },
-    { heading: 'Academic',   ids: ['titleapproval', 'docreview', 'comments', 'schedule', 'minutes', 'settings'] },
-    { heading: 'Analytics',  ids: ['contributions', 'reports', 'archive'] },
+    { heading: 'Overview',            ids: ['dashboard'] },
+    { heading: '1 · Enroll & group',  ids: ['users', 'groups', 'settings'] },
+    { heading: '2 · Titles',          ids: ['titleapproval', 'projects'] },
+    { heading: '3 · Defense',         ids: ['schedule', 'docreview', 'comments', 'minutes'] },
+    { heading: '4 · Reports',         ids: ['contributions', 'reports', 'archive'] },
   ],
   adviser: [
-    { heading: 'Overview',   ids: ['dashboard'] },
-    { heading: 'My Work',    ids: ['groups', 'titleapproval', 'docreview', 'comments', 'minutes'] },
-    { heading: 'Tools',      ids: ['similarity', 'contributions', 'archive'] },
+    { heading: 'Overview',            ids: ['dashboard'] },
+    { heading: '1 · My groups',       ids: ['groups', 'titleapproval'] },
+    { heading: '2 · Review',          ids: ['docreview', 'comments', 'minutes'] },
+    { heading: '3 · Tools',           ids: ['similarity', 'contributions', 'archive'] },
   ],
   student: [
-    { heading: 'Overview',   ids: ['dashboard', 'progress'] },
-    { heading: 'My Capstone',ids: ['mygroup', 'projects', 'submit', 'comments'] },
-    { heading: 'Schedule',   ids: ['myschedule', 'minutes'] },
-    { heading: 'Analytics',  ids: ['mycontrib', 'archive'] },
+    { heading: 'Overview',            ids: ['dashboard'] },
+    { heading: '1 · My group & title',ids: ['mygroup', 'projects'] },
+    { heading: '2 · Write & revise',  ids: ['submit', 'comments'] },
+    { heading: '3 · Defense',         ids: ['myschedule', 'minutes'] },
+    { heading: '4 · Track',           ids: ['progress', 'mycontrib', 'archive'] },
   ],
   panelist: [
-    { heading: 'Overview',   ids: ['dashboard'] },
-    { heading: 'Projects',   ids: ['projects', 'docreview', 'comments', 'evaluate', 'minutes', 'similarity', 'archive'] },
+    { heading: 'Overview',            ids: ['dashboard'] },
+    { heading: '1 · Review',          ids: ['projects', 'docreview', 'comments'] },
+    { heading: '2 · Defense',         ids: ['evaluate', 'minutes'] },
+    { heading: '3 · Tools',           ids: ['similarity', 'archive'] },
   ],
 }
 
