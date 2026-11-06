@@ -13,14 +13,13 @@ class RoomController extends Controller {
         $data = $request->validate([
             'room_name' => 'required|string',
             'building'  => 'nullable|string',
-            'capacity'  => 'nullable|integer',
         ]);
         return response()->json(Room::create($data), 201);
     }
 
     public function update(Request $request, $id) {
         $room = Room::findOrFail($id);
-        $room->update($request->only(['room_name', 'building', 'capacity']));
+        $room->update($request->only(['room_name', 'building']));
         return response()->json($room);
     }
 

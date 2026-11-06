@@ -166,7 +166,7 @@ function PageSchedule() {
               <label style={labelStyle}>Venue / Room</label>
               <select name="venue" value={form.venue} onChange={handle} style={inputStyle}>
                 <option value="">Select room...</option>
-                {rooms.map(r => <option key={r.id} value={r.room_name}>{r.room_name}{r.building ? ` — ${r.building}` : ''}{r.capacity ? ` (${r.capacity} seats)` : ''}</option>)}
+                {rooms.map(r => <option key={r.id} value={r.room_name}>{r.room_name}{r.building ? ` — ${r.building}` : ''}</option>)}
                 <option value="__other__">Other (type manually)</option>
               </select>
               {form.venue === '__other__' && (

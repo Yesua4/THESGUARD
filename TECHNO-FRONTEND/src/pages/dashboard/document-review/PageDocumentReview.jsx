@@ -17,7 +17,9 @@ function PageDocumentReview({ initialDocumentId, initialCommentId = null, onCons
   // Opened from a comment notification: which comment to jump to.
   const [focusCommentId, setFocusCommentId] = useState(null)
   const [linkError, setLinkError] = useState('')
-  const [docTab, setDocTab]           = useState('all') // 'all' | 'class' | 'advisory'
+  // 'all' | 'class'. (No "My Advisory": an instructor who also advises
+  // switches to their Adviser role to see those groups.)
+  const [docTab, setDocTab]           = useState('all')
 
   const load = useCallback(() => {
     // Panelists are matched to projects server-side (by name, against the
@@ -133,10 +135,10 @@ function PageDocumentReview({ initialDocumentId, initialCommentId = null, onCons
 
       <div style={{ fontSize: '18px', fontWeight: '700', color: '#0a1f44', marginBottom: '16px' }}>Documents Review</div>
 
-      {/* Instructor tabs: All / My Class / My Advisory */}
+      {/* Instructor tabs: All / My Class */}
       {user?.role === 'instructor' && (
         <div style={{ display: 'flex', gap: '6px', marginBottom: '14px' }}>
-          {[['all', 'All Documents'], ['class', 'My Class'], ['advisory', 'My Advisory']].map(([val, label]) => (
+          {[['all', 'All Documents'], ['class', 'My Class']].map(([val, label]) => (
             <button key={val} onClick={() => setDocTab(val)} style={{
               fontSize: '12px', padding: '7px 14px', borderRadius: '8px', border: 'none',
               background: docTab === val ? 'linear-gradient(135deg,#0a1f44,#1040a0)' : '#fff',
@@ -155,7 +157,6 @@ function PageDocumentReview({ initialDocumentId, initialCommentId = null, onCons
           const proj = projects.find(p => p.id === d.project_id)
           if (!proj) return false
           if (docTab === 'class') return String(proj.instructor_id) === String(user.id)
-          if (docTab === 'advisory') return proj.group && String(proj.group.adviser_id) === String(user.id)
           return true
         })
         return filteredDocs.length === 0 ? (

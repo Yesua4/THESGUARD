@@ -7,7 +7,7 @@ function PageSettings() {
   const { showToast } = useToast()
   const [panelists, setPanelists] = useState([])
   const [rooms, setRooms]         = useState([])
-  const [rForm, setRForm]         = useState({ room_name:'', building:'', capacity:'' })
+  const [rForm, setRForm]         = useState({ room_name:'', building:'' })
   const [savingR, setSavingR]     = useState(false)
   const [editingR, setEditingR]   = useState(null)
 
@@ -25,13 +25,13 @@ function PageSettings() {
     e.preventDefault(); setSavingR(true)
     try {
       editingR ? await api.put(`/rooms/${editingR}`, rForm) : await api.post('/rooms', rForm)
-      setEditingR(null); setRForm({ room_name:'', building:'', capacity:'' }); loadAll()
+      setEditingR(null); setRForm({ room_name:'', building:'' }); loadAll()
     } catch { showToast('Error saving room.') }
     finally { setSavingR(false) }
   }
 
   const deleteR = async id => { if (!confirm('Delete this room?'))     return; await api.delete(`/rooms/${id}`); loadAll() }
-  const editR   = r => { setEditingR(r.id); setRForm({ room_name:r.room_name, building:r.building||'', capacity:r.capacity||'' }) }
+  const editR   = r => { setEditingR(r.id); setRForm({ room_name:r.room_name, building:r.building||'' }) }
 
   const inputStyle = { border:'1.5px solid #e2e8f0', borderRadius:'8px', padding:'8px 12px', fontSize:'13px', outline:'none', background:'#f8fafc', fontFamily:'inherit', width:'100%', boxSizing:'border-box' }
   const labelStyle = { fontSize:'11px', fontWeight:'700', color:'#64748b', letterSpacing:'0.06em', textTransform:'uppercase', display:'block', marginBottom:'5px' }
@@ -85,12 +85,11 @@ function PageSettings() {
             <form onSubmit={submitRoom} style={{ padding:'16px', display:'flex', flexDirection:'column', gap:'10px' }}>
               <div><label style={labelStyle}>Room Name</label><input value={rForm.room_name} onChange={e => setRForm({...rForm, room_name:e.target.value})} style={inputStyle} placeholder="e.g. ICT Lab 2" required /></div>
               <div><label style={labelStyle}>Building <span style={{ color:'#cbd5e1', textTransform:'none', fontWeight:'400' }}>(optional)</span></label><input value={rForm.building} onChange={e => setRForm({...rForm, building:e.target.value})} style={inputStyle} placeholder="e.g. ICT Building" /></div>
-              <div><label style={labelStyle}>Capacity <span style={{ color:'#cbd5e1', textTransform:'none', fontWeight:'400' }}>(optional)</span></label><input type="number" value={rForm.capacity} onChange={e => setRForm({...rForm, capacity:e.target.value})} style={inputStyle} placeholder="e.g. 30" /></div>
               <div style={{ display:'flex', gap:'8px' }}>
                 <button type="submit" disabled={savingR} style={{ flex:1, padding:'9px', borderRadius:'8px', border:'none', background:savingR?'#cbd5e1':'linear-gradient(135deg,#0a1f44,#1040a0)', color:'#fff', fontSize:'13px', fontWeight:'700', cursor:savingR?'not-allowed':'pointer' }}>
                   {savingR ? 'Saving...' : editingR ? 'Update' : 'Add Room'}
                 </button>
-                {editingR && <button type="button" onClick={() => { setEditingR(null); setRForm({ room_name:'', building:'', capacity:'' }) }} style={{ padding:'9px 14px', borderRadius:'8px', border:'1.5px solid #e2e8f0', background:'#fff', fontSize:'13px', cursor:'pointer', color:'#64748b' }}>Cancel</button>}
+                {editingR && <button type="button" onClick={() => { setEditingR(null); setRForm({ room_name:'', building:'' }) }} style={{ padding:'9px 14px', borderRadius:'8px', border:'1.5px solid #e2e8f0', background:'#fff', fontSize:'13px', cursor:'pointer', color:'#64748b' }}>Cancel</button>}
               </div>
             </form>
           </div>
@@ -105,7 +104,7 @@ function PageSettings() {
                 <div style={{ width:'34px', height:'34px', borderRadius:'8px', background:'#dbeafe', color:'#1d4ed8', fontSize:'11px', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'700', flexShrink:0 }}>RM</div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:'13px', fontWeight:'600', color:'#0a1f44' }}>{r.room_name}</div>
-                  <div style={{ fontSize:'11px', color:'#94a3b8' }}>{r.building || '—'}{r.capacity ? ` · ${r.capacity} seats` : ''}</div>
+                  <div style={{ fontSize:'11px', color:'#94a3b8' }}>{r.building || '—'}</div>
                 </div>
                 <div style={{ display:'flex', gap:'8px' }}>
                   <button onClick={() => editR(r)} style={{ fontSize:'11px', color:'#1d4ed8', background:'none', border:'none', cursor:'pointer', fontWeight:'600' }}>Edit</button>
