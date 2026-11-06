@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Group;
-use App\Models\Notification;
 use App\Models\Project;
 use App\Models\ProjectMember;
 use App\Models\User;
@@ -11,6 +10,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
+// Approving titles means "approved for title defense". The FINAL title is
+// set by faculty after the title defense -- never by students, never
+// automatically.
 class ChooseFinalTitleTest extends TestCase
 {
     use RefreshDatabase;
@@ -47,39 +49,59 @@ class ChooseFinalTitleTest extends TestCase
         return compact('adviser', 'instructor', 'leader', 'member', 'group', 'chosen', 'sibling');
     }
 
-    public function test_leader_choosing_a_title_finalizes_it_and_archives_the_sibling(): void
+    public function test_instructor_sets_the_final_title_and_the_others_are_archived(): void
     {
         $data = $this->makeGroupWithTwoApprovedTitles();
 
-        Sanctum::actingAs($data['leader']);
-        $response = $this->postJson("/api/projects/{$data['chosen']->id}/choose-final");
-        $response->assertStatus(200);
+        Sanctum::actingAs($data['instructor']);
+        $this->postJson("/api/projects/{$data['chosen']->id}/choose-final")->assertOk();
 
         $this->assertTrue($data['chosen']->fresh()->is_final_title);
-        $siblingFresh = $data['sibling']->fresh();
-        $this->assertFalse($siblingFresh->is_final_title);
-        $this->assertEquals('archived', $siblingFresh->status);
-
-        $this->assertDatabaseHas('notifications', [
-            'user_id' => $data['adviser']->id, 'type' => 'title_chosen', 'project_id' => $data['chosen']->id,
-        ]);
-        $this->assertDatabaseHas('notifications', [
-            'user_id' => $data['instructor']->id, 'type' => 'title_chosen', 'project_id' => $data['chosen']->id,
-        ]);
+        $sibling = $data['sibling']->fresh();
+        $this->assertFalse($sibling->is_final_title);
+        $this->assertSame('archived', $sibling->status);
+        // The group and the adviser are told; the instructor who did it isn't.
+        foreach (['leader', 'member', 'adviser'] as $who) {
+            $this->assertDatabaseHas('notifications', ['user_id' => $data[$who]->id, 'type' => 'title_chosen']);
+        }
+        $this->assertDatabaseMissing('notifications', ['user_id' => $data['instructor']->id, 'type' => 'title_chosen']);
     }
 
-    public function test_non_leader_member_cannot_choose_final_title(): void
+    public function test_adviser_can_also_set_the_final_title(): void
+    {
+        $data = $this->makeGroupWithTwoApprovedTitles();
+        Sanctum::actingAs($data['adviser']);
+        $this->postJson("/api/projects/{$data['sibling']->id}/choose-final")->assertOk();
+        $this->assertTrue($data['sibling']->fresh()->is_final_title);
+    }
+
+    public function test_students_cannot_set_the_final_title_not_even_the_leader(): void
     {
         $data = $this->makeGroupWithTwoApprovedTitles();
 
-        Sanctum::actingAs($data['member']);
-        $this->postJson("/api/projects/{$data['chosen']->id}/choose-final")
-            ->assertStatus(403);
-
+        foreach (['leader', 'member'] as $who) {
+            Sanctum::actingAs($data[$who]);
+            $this->postJson("/api/projects/{$data['chosen']->id}/choose-final")->assertStatus(403);
+        }
         $this->assertFalse($data['chosen']->fresh()->is_final_title);
     }
 
-    public function test_approving_the_only_title_for_a_group_auto_finalizes_it(): void
+    public function test_faculty_who_do_not_handle_the_group_cannot_set_it(): void
+    {
+        $data = $this->makeGroupWithTwoApprovedTitles();
+        Sanctum::actingAs(User::factory()->role('adviser')->create());
+        $this->postJson("/api/projects/{$data['chosen']->id}/choose-final")->assertStatus(403);
+    }
+
+    public function test_a_title_not_approved_for_defense_cannot_be_set_as_final(): void
+    {
+        $data = $this->makeGroupWithTwoApprovedTitles();
+        $data['chosen']->update(['title_status' => 'pending']);
+        Sanctum::actingAs($data['instructor']);
+        $this->postJson("/api/projects/{$data['chosen']->id}/choose-final")->assertStatus(422);
+    }
+
+    public function test_approving_the_only_title_does_not_make_it_final(): void
     {
         $adviser = User::factory()->role('adviser')->create();
         $group = Group::create(['group_name' => 'Solo Group', 'adviser_id' => $adviser->id]);
@@ -89,30 +111,8 @@ class ChooseFinalTitleTest extends TestCase
         ]);
 
         Sanctum::actingAs($adviser);
-        $this->putJson("/api/projects/{$project->id}", ['title_status' => 'approved'])
-            ->assertStatus(200);
+        $this->putJson("/api/projects/{$project->id}", ['title_status' => 'approved'])->assertOk();
 
-        $this->assertTrue($project->fresh()->is_final_title);
-    }
-
-    public function test_approving_a_second_title_for_a_group_does_not_auto_finalize_either(): void
-    {
-        $adviser = User::factory()->role('adviser')->create();
-        $group = Group::create(['group_name' => 'Multi Group', 'adviser_id' => $adviser->id]);
-        $first = Project::create([
-            'title' => 'First', 'group_id' => $group->id,
-            'title_status' => 'approved', 'is_final_title' => true,
-        ]);
-        $second = Project::create([
-            'title' => 'Second', 'group_id' => $group->id,
-            'title_status' => 'pending', 'is_final_title' => false,
-        ]);
-
-        Sanctum::actingAs($adviser);
-        $this->putJson("/api/projects/{$second->id}", ['title_status' => 'approved'])
-            ->assertStatus(200);
-
-        $this->assertFalse($second->fresh()->is_final_title);
-        $this->assertTrue($first->fresh()->is_final_title);
+        $this->assertFalse($project->fresh()->is_final_title, 'approved for title defense, not final');
     }
 }

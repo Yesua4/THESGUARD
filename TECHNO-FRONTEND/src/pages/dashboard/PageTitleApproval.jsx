@@ -33,12 +33,21 @@ function PageTitleApproval() {
   const approve = async (id) => {
     setSaving(true)
     try {
-      const payload = { title_status: 'approved', title_feedback: feedback || 'Title approved.' }
+      const payload = { title_status: 'approved', title_feedback: feedback || 'Approved for title defense.' }
       if (user.role === 'instructor') payload.instructor_id = user.id
       if (user.role === 'adviser') payload.adviser_id = user.id
       await api.put(`/projects/${id}`, payload)
       setSelected(null); setFeedback(''); load()
     } catch { showToast('Error approving title.') }
+    finally { setSaving(false) }
+  }
+
+  // Final title: set by faculty after the title defense (never automatic).
+  const setFinal = async (p) => {
+    if (!confirm(`Set "${p.title}" as this group's FINAL title?\n\nDo this after the title defense. The group's other approved titles will be archived.`)) return
+    setSaving(true)
+    try { await api.post(`/projects/${p.id}/choose-final`); setSelected(null); load(); showToast('Final title set.', 'success') }
+    catch (err) { showToast(err.response?.data?.message || 'Could not set the final title.') }
     finally { setSaving(false) }
   }
 
@@ -135,7 +144,7 @@ function PageTitleApproval() {
                 </div>
                 <div style={{ padding:'16px 20px', display:'flex', gap:'10px' }}>
                   <button onClick={() => approve(selected.id)} disabled={saving} style={{ flex:1, padding:'11px', borderRadius:'8px', border:'none', background:'linear-gradient(135deg,#059669,#047857)', color:'#fff', fontSize:'13px', fontWeight:'700', cursor:saving?'not-allowed':'pointer' }}>
-                    {saving ? 'Saving...' : '✓ Approve Title'}
+                    {saving ? 'Saving...' : '✓ Approve for Title Defense'}
                   </button>
                   <button onClick={() => reject(selected.id)} disabled={saving} style={{ flex:1, padding:'11px', borderRadius:'8px', border:'none', background:'linear-gradient(135deg,#dc2626,#b91c1c)', color:'#fff', fontSize:'13px', fontWeight:'700', cursor:saving?'not-allowed':'pointer' }}>
                     ✕ Reject Title
@@ -147,6 +156,18 @@ function PageTitleApproval() {
               <div style={{ padding:'14px 20px' }}>
                 <div style={panelLabelStyle}>Instructor/Adviser Feedback</div>
                 <div style={{ fontSize:'13px', color:'#334155' }}>{selected.title_feedback || '—'}</div>
+              </div>
+            )}
+            {/* After the title defense, faculty record the group's final title. */}
+            {selected.title_status === 'approved' && !selected.is_final_title && (
+              <div style={{ margin:'0 20px 16px', background:'#f5f3ff', border:'1px solid #ddd6fe', borderRadius:'10px', padding:'14px' }}>
+                <div style={{ fontSize:'13px', fontWeight:'700', color:'#4c1d95', marginBottom:'4px' }}>After the title defense</div>
+                <div style={{ fontSize:'12px', color:'#5b21b6', marginBottom:'10px' }}>
+                  When the panel has decided, set the group's final title. Their other approved titles will be archived and the group will be notified.
+                </div>
+                <button onClick={() => setFinal(selected)} disabled={saving} style={{ padding:'8px 16px', borderRadius:'8px', border:'none', background:'linear-gradient(135deg,#4c1d95,#6d28d9)', color:'#fff', fontSize:'12px', fontWeight:'700', cursor:'pointer' }}>
+                  🏆 Set as final title
+                </button>
               </div>
             )}
           </div>
@@ -193,7 +214,7 @@ function PageTitleApproval() {
                   onMouseOut={e => e.currentTarget.style.background='transparent'}>
                   <td style={{ padding:'12px 14px', fontWeight:'600', color:'#0a1f44' }}>
                     {p.title}
-                    {p.is_final_title && <span title="Chosen by the group as their final title" style={{ marginLeft:'6px' }}>🏆</span>}
+                    {p.is_final_title && <span title="Final title (set by faculty after the title defense)" style={{ marginLeft:'6px' }}>🏆</span>}
                   </td>
                   <td style={{ padding:'12px 14px', color:'#94a3b8' }}>{p.batch || '—'}</td>
                   <td style={{ padding:'12px 14px', color:'#64748b' }}>{p.members?.length || 0} member(s)</td>

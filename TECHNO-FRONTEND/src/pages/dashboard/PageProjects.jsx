@@ -187,14 +187,22 @@ function PageProjects() {
               <button onClick={() => setSelected(null)} style={{ background:'rgba(255,255,255,0.15)', border:'none', color:'#fff', width:'28px', height:'28px', borderRadius:'6px', cursor:'pointer', fontSize:'14px', flexShrink:0 }}>✕</button>
             </div>
 
-            {user?.role === 'student' && selectedProject.title_status === 'approved' && !selectedProject.is_final_title && isProjectLeader(selectedProject) && (
-              <div style={{ margin:'16px', background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:'10px', padding:'14px' }}>
-                <div style={{ fontSize:'13px', fontWeight:'700', color:'#1e3a8a', marginBottom:'4px' }}>This title is approved but not yet chosen as final</div>
-                <div style={{ fontSize:'12px', color:'#3b82f6', marginBottom:'10px' }}>Your group has more than one approved title. Choose this one to commit to it — your other approved titles will be archived, and your adviser/instructor will be notified.</div>
-                <button onClick={() => chooseFinal(selectedProject.id)} style={{ padding:'8px 16px', borderRadius:'8px', border:'none', background:'linear-gradient(135deg,#0a1f44,#1040a0)', color:'#fff', fontSize:'12px', fontWeight:'700', cursor:'pointer' }}>
-                  🏆 Choose as Final Title
-                </button>
-              </div>
+            {/* Approved = approved for title defense. Faculty set the final title after the defense. */}
+            {selectedProject.title_status === 'approved' && !selectedProject.is_final_title && (
+              user?.role === 'student' ? (
+                <div style={{ margin:'16px', background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:'10px', padding:'14px' }}>
+                  <div style={{ fontSize:'13px', fontWeight:'700', color:'#1e3a8a', marginBottom:'4px' }}>Approved for title defense</div>
+                  <div style={{ fontSize:'12px', color:'#3b82f6' }}>After your title defense, your instructor will set your final title. You'll be notified, and then you can upload chapter documents.</div>
+                </div>
+              ) : ['instructor','adviser','admin'].includes(user?.role) && (
+                <div style={{ margin:'16px', background:'#f5f3ff', border:'1px solid #ddd6fe', borderRadius:'10px', padding:'14px' }}>
+                  <div style={{ fontSize:'13px', fontWeight:'700', color:'#4c1d95', marginBottom:'4px' }}>After the title defense</div>
+                  <div style={{ fontSize:'12px', color:'#5b21b6', marginBottom:'10px' }}>Set this as the group's final title once the panel has decided. Their other approved titles will be archived and the group notified.</div>
+                  <button onClick={() => { if (confirm(`Set "${selectedProject.title}" as this group's FINAL title?`)) chooseFinal(selectedProject.id) }} style={{ padding:'8px 16px', borderRadius:'8px', border:'none', background:'linear-gradient(135deg,#4c1d95,#6d28d9)', color:'#fff', fontSize:'12px', fontWeight:'700', cursor:'pointer' }}>
+                    🏆 Set as final title
+                  </button>
+                </div>
+              )
             )}
 
             {selectedProject.title_feedback && (
@@ -350,7 +358,7 @@ function PageProjects() {
                     onMouseOut={e => e.currentTarget.style.background='transparent'}>
                     <td style={{ padding:'12px 14px', fontWeight:'600', color:'#0a1f44' }}>
                       {p.title}
-                      {p.is_final_title && <span title="Chosen as final title" style={{ marginLeft:'6px' }}>🏆</span>}
+                      {p.is_final_title && <span title="Final title (set by faculty after the title defense)" style={{ marginLeft:'6px' }}>🏆</span>}
                     </td>
                     <td style={{ padding:'12px 14px', color:'#94a3b8' }}>{p.batch||'—'}</td>
                     <td style={{ padding:'12px 14px' }}><span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...titleBadge(p.title_status) }}>{p.title_status}</span></td>

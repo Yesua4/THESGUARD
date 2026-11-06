@@ -427,27 +427,15 @@ class ProjectController extends Controller {
         if (isset($data['title_status']) && $data['title_status'] !== $oldTitleStatus) {
             $members = ProjectMember::where('project_id', $id)->get();
 
-            // A group can have more than one title proposal approved at once (e.g. they
-            // submitted a few candidates). If this is the only approved title under the
-            // group so far, there's no ambiguity — auto-finalize it so upload/review just
-            // works. If a sibling is already approved, leave both unresolved: the group
-            // leader has to explicitly pick one via chooseFinal(), since only they know
-            // which one they actually want to commit to.
-            if ($data['title_status'] === 'approved' && $project->group_id) {
-                $siblingApproved = Project::where('group_id', $project->group_id)
-                    ->where('id', '!=', $project->id)
-                    ->where('title_status', 'approved')
-                    ->exists();
-                if (!$siblingApproved) {
-                    $project->update(['is_final_title' => true]);
-                }
-            }
+            // Approving a title means "approved for title defense" -- even when
+            // it's the group's only one. The final title is set by faculty
+            // after the title defense (chooseFinal), never automatically.
 
             foreach ($members as $member) {
                 if ($data['title_status'] === 'approved') {
                     $notifications->send(
-                        $member->user_id, 'title_approved', 'Title Approved!',
-                        'Your proposal "' . $project->title . '" has been approved. You can now upload your chapter documents.',
+                        $member->user_id, 'title_approved', 'Approved for Title Defense',
+                        'Your proposal "' . $project->title . '" has been approved for the title defense. Your final title will be set by your instructor after the defense.',
                         $id
                     );
                 } elseif ($data['title_status'] === 'rejected') {
@@ -479,14 +467,14 @@ class ProjectController extends Controller {
         $project = Project::findOrFail($id);
         $user = $request->user();
 
-        abort_unless($project->title_status === 'approved', 422, 'Only an approved title can be chosen as final.');
-        abort_unless($project->group_id, 422, 'This project has no group to coordinate the choice with.');
-
-        $isLeader = ProjectMember::where('project_id', $id)
-            ->where('user_id', $user->id)
-            ->where('is_leader', true)
-            ->exists();
-        abort_unless($isLeader, 403, 'Only the group leader can choose the final title.');
+        // After the title defense the panel tells the instructor which title
+        // the group will pursue; faculty record it here. Students can't.
+        abort_unless(in_array($user->role, ['instructor', 'adviser', 'admin'], true), 403,
+            'The final title is set by your instructor or adviser after the title defense.');
+        abort_unless(\App\Http\Controllers\DocumentController::userCanAccessProject($user, $project->id), 403,
+            'You do not handle this group.');
+        abort_unless($project->title_status === 'approved', 422, 'Only a title approved for the title defense can be set as final.');
+        abort_unless($project->group_id, 422, 'This project has no group.');
 
         $siblings = Project::where('group_id', $project->group_id)
             ->where('id', '!=', $project->id)
@@ -502,13 +490,17 @@ class ProjectController extends Controller {
             'project_id'  => $project->id,
             'user_id'     => $user->id,
             'action'      => 'title_chosen',
-            'description' => 'Chose "' . $project->title . '" as the group\'s final title.',
+            'description' => 'Set "' . $project->title . '" as the group\'s final title after the title defense.',
         ]);
 
-        foreach (array_filter([$project->adviser_id, $project->instructor_id]) as $notifyId) {
+        // Tell the group, and the other faculty on the project.
+        $notifyIds = ProjectMember::where('project_id', $project->id)->pluck('user_id')
+            ->merge([$project->adviser_id, $project->instructor_id])->filter()->unique()
+            ->reject(fn ($uid) => (int) $uid === (int) $user->id);
+        foreach ($notifyIds as $notifyId) {
             $notifications->send(
-                $notifyId, 'title_chosen', 'Final Title Selected',
-                'The group has chosen "' . $project->title . '" as their final thesis title.',
+                $notifyId, 'title_chosen', '🏆 Final Title Set',
+                '"' . $project->title . '" is now the final title (set by ' . $user->name . ' after the title defense). You can start uploading chapter documents.',
                 $project->id
             );
         }

@@ -53,14 +53,12 @@ function PageSubmit({ initialDocumentId, initialCommentId = null, onConsumeIniti
     api.get('/projects').then(res => {
       const mine = res.data.filter(p => p.members?.some(m => m.user_id === user.id))
       setProjects(mine)
-      // A group can have more than one approved title at once — the one actually
-      // used for uploads is whichever one was explicitly chosen as final (or the
-      // sole approved title, which the backend auto-finalizes). Picking "the first
-      // approved one found" here would silently attach uploads to the wrong title
-      // whenever more than one was approved.
+      // Uploads go to the group's FINAL title, which faculty set after the
+      // title defense. Approved-but-not-final titles are only approved for
+      // the title defense, so uploads wait until the final one is set.
       const approved = mine.find(p => p.is_final_title)
       const approvedCount = mine.filter(p => p.title_status === 'approved').length
-      setNeedsChoice(!approved && approvedCount > 1)
+      setNeedsChoice(!approved && approvedCount >= 1)
       setApprovedProject(approved || null)
       if (approved) {
         setForm(f => ({ ...f, project_id: approved.id }))
@@ -329,8 +327,8 @@ function PageSubmit({ initialDocumentId, initialCommentId = null, onConsumeIniti
 
       {!approvedProject && needsChoice && (
         <div style={{ background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:'12px', padding:'14px 16px', marginBottom:'16px' }}>
-          <div style={{ fontSize:'13px', fontWeight:'700', color:'#1e3a8a', marginBottom:'4px' }}>Choose Your Final Title First</div>
-          <div style={{ fontSize:'12px', color:'#3b82f6' }}>More than one of your group's titles has been approved. Go to <strong>My Project</strong> and choose which one to commit to before you can upload documents.</div>
+          <div style={{ fontSize:'13px', fontWeight:'700', color:'#1e3a8a', marginBottom:'4px' }}>Waiting for your final title</div>
+          <div style={{ fontSize:'12px', color:'#3b82f6' }}>Your title is approved for the title defense. After the defense, your instructor will set your final title — then you can upload documents here.</div>
         </div>
       )}
       {!approvedProject && !needsChoice && (
