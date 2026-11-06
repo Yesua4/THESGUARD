@@ -47,6 +47,40 @@ function RoleChecks({ roles, onChange, disabled, compact }) {
   )
 }
 
+// Names come as "Juan Dela Cruz", as "DELA CRUZ, JUAN SANTOS" (registrar /
+// CSV format), or with separate first/last fields (self-registered).
+function nameParts(u) {
+  if (u.last_name || u.first_name) return { last: u.last_name || '', first: u.first_name || '' }
+  const name = (u.name || '').trim()
+  if (name.includes(',')) {
+    const [last, rest = ''] = name.split(',')
+    return { last: last.trim(), first: rest.trim().split(/\s+/)[0] || '' }
+  }
+  const words = name.split(/\s+/)
+  return { last: words.length > 1 ? words[words.length - 1] : name, first: words[0] || '' }
+}
+
+const SORTS = {
+  last:    { label: 'Last name',   asc: 'A → Z', desc: 'Z → A' },
+  first:   { label: 'First name',  asc: 'A → Z', desc: 'Z → A' },
+  section: { label: 'Section',     asc: 'A → Z', desc: 'Z → A' },
+  sid:     { label: 'Student ID',  asc: 'Lowest first', desc: 'Highest first' },
+  added:   { label: 'Date added',  asc: 'Oldest first', desc: 'Newest first' },
+}
+
+function compareUsers(a, b, key) {
+  const text = (x, y) => (x || '').localeCompare(y || '', undefined, { sensitivity: 'base', numeric: true })
+  const byLast = text(nameParts(a).last, nameParts(b).last) || text(nameParts(a).first, nameParts(b).first)
+  switch (key) {
+    case 'first':   return text(nameParts(a).first, nameParts(b).first) || byLast
+    // Accounts without a section/ID go last; ties fall back to last name.
+    case 'section': return (!a.section - !b.section) || text(a.section, b.section) || byLast
+    case 'sid':     return (!a.student_id - !b.student_id) || text(a.student_id, b.student_id) || byLast
+    case 'added':   return (new Date(a.created_at || 0) - new Date(b.created_at || 0)) || (a.id - b.id)
+    default:        return byLast
+  }
+}
+
 function PageUsers() {
   const { user } = useAuth()
   const { showToast } = useToast()
@@ -57,6 +91,10 @@ function PageUsers() {
   const [saving, setSaving]         = useState(false)
   const [search, setSearch]         = useState('')
   const [roleFilter, setRoleFilter] = useState('')
+  // Sorting -- remembered between visits.
+  const [sortKey, setSortKey] = useState(() => localStorage.getItem('tg_users_sort') || 'last')
+  const [sortDir, setSortDir] = useState(() => localStorage.getItem('tg_users_sort_dir') || 'asc')
+  useEffect(() => { localStorage.setItem('tg_users_sort', sortKey); localStorage.setItem('tg_users_sort_dir', sortDir) }, [sortKey, sortDir])
   const [showAddUser, setShowAddUser] = useState(false)
   const [newUser, setNewUser]       = useState({ name:'', email:'', password:'', roles:['student'], student_id:'', section:'', handled_sections:[] })
   const [addingUser, setAddingUser] = useState(false)
@@ -173,9 +211,9 @@ const createUser = async e => {
   const visibleUsers  = user?.role === 'instructor' ? users.filter(u => userRoles(u).includes('student')) : users
   const filteredUsers = visibleUsers.filter(u => {
     const q = search.toLowerCase()
-    return (!q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.student_id?.toLowerCase().includes(q)) &&
+    return (!q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.student_id?.toLowerCase().includes(q) || u.section?.toLowerCase().includes(q)) &&
            (!roleFilter || userRoles(u).includes(roleFilter))
-  })
+  }).sort((a, b) => (sortDir === 'desc' ? -1 : 1) * compareUsers(a, b, sortKey))
 
   const rolePill = role => ({
     admin:      { background:'#fee2e2', color:'#9f1239' },
@@ -409,15 +447,26 @@ const createUser = async e => {
           )}
 
           {/* Filters */}
-          <div style={{ display:'flex', gap:'10px', marginBottom:'12px' }}>
+          <div style={{ display:'flex', gap:'10px', marginBottom:'12px', flexWrap:'wrap', alignItems:'center' }}>
             <input value={search} onChange={e => setSearch(e.target.value)}
-              style={{ ...inputStyle, flex:1 }} placeholder="Search by name, email, or student ID..." />
+              style={{ ...inputStyle, flex:1, minWidth:'220px' }} placeholder="Search by name, email, student ID, or section..." />
             {user?.role === 'admin' && (
               <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} style={{ ...inputStyle, width:'auto' }}>
                 <option value="">All roles</option>
                 {['admin','instructor','adviser','student','panelist'].map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase()+r.slice(1)}</option>)}
               </select>
             )}
+            <label style={{ display:'flex', alignItems:'center', gap:'6px', fontSize:'12px', color:'#64748b', whiteSpace:'nowrap' }}>
+              Sort by
+              <select value={sortKey} onChange={e => setSortKey(e.target.value)} style={{ ...inputStyle, width:'auto' }} aria-label="Sort by">
+                {Object.entries(SORTS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+              </select>
+            </label>
+            <button type="button" onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
+              title="Switch the order" aria-label={`Order: ${SORTS[sortKey][sortDir]}. Click to switch.`}
+              style={{ ...inputStyle, width:'auto', whiteSpace:'nowrap', cursor:'pointer', fontWeight:600, color:'#1d4ed8' }}>
+              {sortDir === 'asc' ? '↑' : '↓'} {SORTS[sortKey][sortDir]}
+            </button>
           </div>
 
           <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', overflow:'hidden' }}>
