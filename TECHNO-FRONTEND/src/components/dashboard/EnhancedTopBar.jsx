@@ -17,6 +17,9 @@ function EnhancedTopBar({
 
   const meta = ROLE_META[user?.role] || { label: 'User', color: '#475569', bg: '#f1f5f9' }
   const assignedRoles = userRoles(user)
+  // The admin acting as another role keeps admin access; say so.
+  const actingAsAdmin = user?.base_role === 'admin' && user?.role !== 'admin'
+  const roleLabel = actingAsAdmin ? `${meta.label} · Admin` : meta.label
   const { currentTerm } = useAcademicTerms()
 
   // Load recent notifications for the popover
@@ -179,7 +182,7 @@ function EnhancedTopBar({
           <UserAvatar user={user} size={30} fontSize={11} bg={meta.bg} color={meta.color} />
           <div style={{ textAlign: 'left' }}>
             <div style={{ fontSize: '12px', fontWeight: '600', color: '#0a1f44', whiteSpace: 'nowrap', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.name}</div>
-            <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'capitalize' }}>{meta.label}</div>
+            <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'capitalize' }}>{roleLabel}</div>
           </div>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0, transform: profileOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
             <polyline points="6 9 12 15 18 9"/>
@@ -207,8 +210,13 @@ function EnhancedTopBar({
               </div>
               <div style={{ marginTop: '8px' }}>
                 <span style={{ fontSize: '10px', background: 'rgba(245,195,0,0.2)', color: '#f5c300', padding: '2px 8px', borderRadius: '20px', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                  {meta.label}
+                  {roleLabel}
                 </span>
+                {actingAsAdmin && (
+                  <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginTop: '6px', lineHeight: 1.4 }}>
+                    Viewing the {meta.label} screens with full admin access.
+                  </div>
+                )}
               </div>
             </div>
 

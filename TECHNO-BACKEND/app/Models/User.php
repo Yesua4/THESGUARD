@@ -110,9 +110,23 @@ class User extends Authenticatable {
 
     // Exposed as `roles` in JSON only where explicitly appended (login, /me,
     // user management) so nested user objects elsewhere don't trigger a
-    // query per user.
+    // query per user. The admin can switch into every role.
     public function getRolesAttribute(): array {
-        return $this->assignedRoles();
+        return $this->role === 'admin' ? self::ROLES : $this->assignedRoles();
+    }
+
+    // ── Admin acting as another role ──────────────────────────
+    // users.role stays 'admin' (all permission checks keep passing and all
+    // school data stays visible); acting_role only picks the screens.
+    public function canSwitchTo(string $role): bool {
+        return $this->role === 'admin'
+            ? in_array($role, self::ROLES, true)
+            : $this->hasRole($role);
+    }
+
+    // True if the user has this role, or is the admin currently acting as it.
+    public function actsAs(string $role): bool {
+        return $this->role === $role || ($this->role === 'admin' && $this->acting_role === $role);
     }
 
     /**
@@ -130,6 +144,7 @@ class User extends Authenticatable {
 
         if (!in_array($this->role, $roles, true)) {
             $this->role = $roles[0];
+            $this->acting_role = null; // no longer the admin
             $this->save();
         }
 

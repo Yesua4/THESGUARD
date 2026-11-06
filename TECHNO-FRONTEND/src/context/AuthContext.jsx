@@ -4,10 +4,25 @@ import echo from '../echo'
 
 const AuthContext = createContext()
 
+// The admin can act as any role (backend keeps role='admin' for access and
+// sends the screen role as acting_role). Every screen reads `user.role`, so
+// the acting role becomes `role` here, and `base_role` keeps the real one.
+// Safe to apply twice (localStorage holds the normalized form).
+const normalizeUser = u => u && ({
+  ...u,
+  role: u.acting_role || u.base_role || u.role,
+  base_role: u.acting_role ? 'admin' : (u.base_role || u.role),
+})
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(
-    () => JSON.parse(localStorage.getItem('user') || 'null')
+    () => normalizeUser(JSON.parse(localStorage.getItem('user') || 'null'))
   )
+  const storeUser = u => {
+    const nu = normalizeUser(u)
+    localStorage.setItem('user', JSON.stringify(nu))
+    setUser(nu)
+  }
   const [school, setSchool] = useState(
     () => JSON.parse(localStorage.getItem('school') || 'null')
   )
@@ -15,8 +30,7 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     const res = await api.post('/login', { email, password })
     localStorage.setItem('token', res.data.token)
-    localStorage.setItem('user', JSON.stringify(res.data.user))
-    setUser(res.data.user)
+    storeUser(res.data.user)
 
     // Store school info if returned
     if (res.data.school) {
@@ -24,20 +38,19 @@ export function AuthProvider({ children }) {
       setSchool(res.data.school)
     }
 
-    return res.data.user
+    return normalizeUser(res.data.user)
   }
 
   // Student self-registration; signs the new student straight in.
   const register = async data => {
     const res = await api.post('/register', data)
     localStorage.setItem('token', res.data.token)
-    localStorage.setItem('user', JSON.stringify(res.data.user))
-    setUser(res.data.user)
+    storeUser(res.data.user)
     if (res.data.school) {
       localStorage.setItem('school', JSON.stringify(res.data.school))
       setSchool(res.data.school)
     }
-    return res.data.user
+    return normalizeUser(res.data.user)
   }
 
   // Used by the Google OAuth callback: the backend already issued a Sanctum
@@ -46,13 +59,12 @@ export function AuthProvider({ children }) {
   const loginWithToken = async token => {
     localStorage.setItem('token', token)
     const res = await api.get('/me')
-    localStorage.setItem('user', JSON.stringify(res.data.user))
-    setUser(res.data.user)
+    storeUser(res.data.user)
     if (res.data.school) {
       localStorage.setItem('school', JSON.stringify(res.data.school))
       setSchool(res.data.school)
     }
-    return res.data.user
+    return normalizeUser(res.data.user)
   }
 
   const logout = async () => {
@@ -67,8 +79,7 @@ export function AuthProvider({ children }) {
   const refreshUser = useCallback(async () => {
     try {
       const res = await api.get('/me')
-      localStorage.setItem('user', JSON.stringify(res.data.user))
-      setUser(res.data.user)
+      storeUser(res.data.user)
       if (res.data.school) {
         localStorage.setItem('school', JSON.stringify(res.data.school))
         setSchool(res.data.school)
@@ -95,9 +106,8 @@ export function AuthProvider({ children }) {
   // account. The server checks the role is actually assigned.
   const switchRole = async role => {
     const res = await api.post('/me/switch-role', { role })
-    localStorage.setItem('user', JSON.stringify(res.data.user))
-    setUser(res.data.user)
-    return res.data.user
+    storeUser(res.data.user)
+    return normalizeUser(res.data.user)
   }
 
   return (

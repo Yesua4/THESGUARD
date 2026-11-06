@@ -108,9 +108,16 @@ class AuthController extends Controller {
         ]);
 
         $user = $request->user();
-        abort_unless($user->hasRole($data['role']), 403, 'That role is not assigned to your account.');
+        abort_unless($user->canSwitchTo($data['role']), 403, 'That role is not assigned to your account.');
 
-        if ($user->role !== $data['role']) {
+        if ($user->role === 'admin') {
+            // The admin keeps role=admin (and all access); only the screens change.
+            $acting = $data['role'] === 'admin' ? null : $data['role'];
+            if ($user->acting_role !== $acting) {
+                $user->forceFill(['acting_role' => $acting])->save();
+                app(\App\Services\LiveUpdateService::class)->account($user->id, 'role_switched');
+            }
+        } elseif ($user->role !== $data['role']) {
             $user->role = $data['role'];
             $user->save();
             app(\App\Services\LiveUpdateService::class)->account($user->id, 'role_switched');

@@ -38,7 +38,7 @@ class EvaluationController extends Controller {
     }
 
     public function store(Request $request) {
-        abort_unless($request->user()->role === 'panelist', 403, 'Only panelists can submit evaluations.');
+        abort_unless($request->user()->actsAs('panelist'), 403, 'Only panelists can submit evaluations.');
 
         $data = $request->validate([
             'project_id'           => 'required|integer',
