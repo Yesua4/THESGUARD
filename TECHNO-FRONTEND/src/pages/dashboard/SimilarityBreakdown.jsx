@@ -123,7 +123,7 @@ function MatchRow({ match, rank }) {
       {expanded && (
         <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #f1f5f9' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '8px' }}>
-            {[['Title', match.title_score], ['Abstract', match.abstract_score], ['Objectives', match.objectives_score]].map(([label, val]) => (
+            {[['Title', match.title_score], ['Description', match.abstract_score], ['Objectives', match.objectives_score]].map(([label, val]) => (
               <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '10px', color: '#94a3b8', width: '60px', flexShrink: 0, fontWeight: '600' }}>{label}</span>
                 <div style={{ flex: 1, height: '6px', background: '#f1f5f9', borderRadius: '8px', overflow: 'hidden' }}>
@@ -139,7 +139,7 @@ function MatchRow({ match, rank }) {
           ) : matchedProject && (matchedProject.abstract || matchedProject.objectives) ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {matchedProject.abstract && (
-                <FieldComparison ownText={match.ownAbstract} otherText={matchedProject.abstract} label="Abstract" otherLabel={match.matched_title} />
+                <FieldComparison ownText={match.ownAbstract} otherText={matchedProject.abstract} label="Description vs. abstract" otherLabel={match.matched_title} />
               )}
               {matchedProject.objectives && (
                 <FieldComparison ownText={match.ownObjectives} otherText={matchedProject.objectives} label="Objectives" otherLabel={match.matched_title} />
@@ -214,7 +214,7 @@ function SimilarityBreakdown({ projectId, overallScore, forStudent = false }) {
 
       {scores.title_score !== null ? (
         <div style={{ display:'flex', flexDirection:'column', gap:'8px', marginBottom:'12px' }}>
-          {[['Title', scores.title_score], ['Abstract', scores.abstract_score], ['Objectives', scores.objectives_score], ['Overall', overallScore]].map(([label, val]) => (
+          {[['Title', scores.title_score], ['Description', scores.abstract_score], ['Objectives', scores.objectives_score], ['Overall', overallScore]].map(([label, val]) => (
             <div key={label} style={{ display:'flex', alignItems:'center', gap:'10px' }}>
               <span style={{ fontSize:'11px', color:'#94a3b8', width:'70px', flexShrink:0, fontWeight:'600' }}>{label}</span>
               {bar(val)}
@@ -241,7 +241,7 @@ function SimilarityBreakdown({ projectId, overallScore, forStudent = false }) {
           {showText && (
             <div style={{ marginTop:'10px', display:'flex', flexDirection:'column', gap:'10px' }}>
               {scores.own_abstract && (
-                <FieldComparison ownText={scores.own_abstract} otherText={scores.matched_abstract} label="Abstract" otherLabel={scores.matched_title} />
+                <FieldComparison ownText={scores.own_abstract} otherText={scores.matched_abstract} label="Description vs. abstract" otherLabel={scores.matched_title} />
               )}
               {scores.own_objectives && (
                 <FieldComparison ownText={scores.own_objectives} otherText={scores.matched_objectives} label="Objectives" otherLabel={scores.matched_title} />

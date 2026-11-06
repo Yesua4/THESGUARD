@@ -35,6 +35,9 @@ class GroupController extends Controller {
         $stages = app(CapstoneStageService::class);
         return $groups->map(function ($g) use ($stages) {
             $g->setAttribute('capstone', $stages->forGroup($g));
+            // Who a proposal from this group goes to (shown on the form).
+            $instructorId = CapstoneStageService::instructorFor($g);
+            $g->setAttribute('current_instructor', $instructorId ? User::select('id', 'name')->find($instructorId) : null);
             return $g;
         });
     }

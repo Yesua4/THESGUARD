@@ -259,7 +259,7 @@ function PageArchive() {
                   {expandedId === p.id && (
                     <tr style={{ background:'#f8fafc', borderBottom:'1px solid #f1f5f9' }}>
                       <td colSpan={5} style={{ padding:'4px 14px 16px 32px' }}>
-                        {[['Abstract', p.abstract], ['Objectives', p.objectives]].map(([label, text]) => (
+                        {[[p.abstract_is_final ? 'Abstract' : 'Project Description', p.abstract], ['Objectives', p.objectives]].map(([label, text]) => (
                           <div key={label} style={{ marginBottom:'10px' }}>
                             <div style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:'4px' }}>{label}</div>
                             <div style={{ fontSize:'12px', color:'#334155', lineHeight:'1.7', whiteSpace:'pre-line' }}>{text || 'Not provided.'}</div>

@@ -57,7 +57,7 @@ class ProjectController extends Controller {
             ->when($user->school_id, fn($q) => $q->where('school_id', $user->school_id))
             ->orderByDesc('batch')
             ->orderBy('title')
-            ->get(['id', 'title', 'abstract', 'objectives', 'keywords', 'batch', 'program', 'adviser_id', 'status']);
+            ->get(['id', 'title', 'description', 'abstract', 'abstract_is_final', 'objectives', 'keywords', 'batch', 'program', 'adviser_id', 'status']);
 
         return response()->json($projects);
     }
@@ -124,6 +124,7 @@ class ProjectController extends Controller {
                 'group_id'      => null,
                 'title'         => substr($title, 0, 500),
                 'abstract'      => $abstract ?: null,
+                'abstract_is_final' => (bool) $abstract,
                 'objectives'    => $objectives ?: null,
                 'keywords'      => $keywords ? substr($keywords, 0, 500) : null,
                 'batch'         => $batch ? substr($batch, 0, 20) : null,
@@ -159,6 +160,9 @@ class ProjectController extends Controller {
     public function store(Request $request, SimilarityService $svc, NotificationService $notifications, EmbeddingService $embedder) {
         $data = $request->validate([
             'title'         => 'required|string|max:500',
+            // A proposal has no abstract yet: students write a Project
+            // Description ("abstract" still accepted from older clients).
+            'description'   => 'nullable|string',
             'abstract'      => 'nullable|string',
             'objectives'    => 'nullable|string',
             'keywords'      => 'nullable|string|max:500',
@@ -175,6 +179,18 @@ class ProjectController extends Controller {
         // ── School isolation ──────────────────────────────────
         $user = $request->user();
         $data['school_id'] = $user->school_id;
+
+        // The description is what gets compared until a final abstract exists.
+        $data['description'] = $data['description'] ?? $data['abstract'] ?? null;
+        $data['abstract'] = $data['description'];
+        $data['abstract_is_final'] = false;
+
+        // Instructor, academic year and term come from the group -- the
+        // student doesn't pick them.
+        if (!empty($data['group_id']) && ($g = \App\Models\Group::find($data['group_id']))) {
+            $data['instructor_id'] = \App\Services\CapstoneStageService::instructorFor($g) ?? ($data['instructor_id'] ?? null);
+            $data['batch'] = $g->batch ?: ($data['batch'] ?? null);
+        }
 
         // Only compare against projects from the same school
         $archived = Project::whereIn('status', ['approved', 'archived'])
@@ -293,6 +309,31 @@ class ProjectController extends Controller {
         return response()->json($project->load('members'), 201);
     }
 
+    // After passing the final defense, the group records its real abstract.
+    // From then on new proposals are compared against it (the original
+    // project description is kept).
+    public function finalAbstract(Request $request, $id, EmbeddingService $embedder, ActivityBroadcastService $activity) {
+        $user = $request->user();
+        $project = Project::findOrFail($id);
+        abort_unless(\App\Http\Controllers\DocumentController::userCanAccessProject($user, $project->id), 403, 'You do not have access to this project.');
+        abort_unless(
+            in_array($user->role, ['adviser', 'instructor', 'admin'], true) || $this->isMember($user, $project),
+            403, 'Only the group or its faculty can set the final abstract.'
+        );
+        $finished = in_array($project->status, ['approved', 'archived'], true) || $project->defense_verdict === 'passed';
+        abort_unless($finished && ($project->is_final_title || !$project->group_id), 422,
+            'The final abstract can be added once the project has passed its final defense.');
+
+        $data = $request->validate(['abstract' => 'required|string|min:50|max:10000'], [
+            'abstract.min' => 'Paste the full final abstract (at least 50 characters).',
+        ]);
+        $project->update(['abstract' => trim($data['abstract']), 'abstract_is_final' => true]);
+        $embedder->embedAndCache($project);
+        $activity->broadcast($project->id, 'project_updated', ['project' => $project]);
+
+        return response()->json($project);
+    }
+
     public function show(Request $request, $id) {
         $user    = $request->user();
         $project = Project::findOrFail($id);
@@ -303,7 +344,7 @@ class ProjectController extends Controller {
         // group's documents or schedule.
         if ($user->role === 'student' && !$this->isMember($user, $project)) {
             return response()->json($project->load('adviser:id,name')->only([
-                'id', 'title', 'abstract', 'objectives', 'keywords', 'batch', 'program', 'status', 'adviser',
+                'id', 'title', 'description', 'abstract', 'abstract_is_final', 'objectives', 'keywords', 'batch', 'program', 'status', 'adviser',
             ]));
         }
 
@@ -353,6 +394,7 @@ class ProjectController extends Controller {
 
         $data = $request->validate([
             'title'          => 'sometimes|string|max:500',
+            'description'    => 'nullable|string',
             'abstract'       => 'nullable|string',
             'objectives'     => 'nullable|string',
             'keywords'       => 'nullable|string|max:500',
@@ -366,10 +408,17 @@ class ProjectController extends Controller {
             'github_url'     => 'nullable|url|max:500',
         ]);
 
+        // Editing the description updates the comparison text -- unless the
+        // project already has its final abstract (that's set separately).
+        if (array_key_exists('description', $data) && !$project->abstract_is_final) {
+            $data['abstract'] = $data['description'];
+        }
+        if ($project->abstract_is_final) unset($data['abstract']);
+
         $oldTitleStatus = $project->title_status;
         $project->update($data);
 
-        if (array_intersect(['title', 'abstract', 'objectives'], array_keys($data))) {
+        if (array_intersect(['title', 'abstract', 'description', 'objectives'], array_keys($data))) {
             $embedder->embedAndCache($project);
         }
 

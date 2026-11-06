@@ -145,7 +145,7 @@ export default function LandingPage() {
               <div className="stat-box"><div className="stat-num">98%</div><div className="stat-label">Detection accuracy</div></div>
               <div className="stat-box"><div className="stat-num">5</div><div className="stat-label">User roles</div></div>
             </div>
-            {[['Title Similarity',61],['Abstract Similarity',42],['Objectives Similarity',28]].map(([label,pct]) => (
+            {[['Title Similarity',61],['Description Similarity',42],['Objectives Similarity',28]].map(([label,pct]) => (
               <div key={label} className="progress-item">
                 <div className="progress-label"><span>{label}</span><span style={{color:'var(--gold)'}}>{pct}%</span></div>
                 <div className="progress-bar"><div className="progress-fill" style={{width:`${pct}%`}}/></div>

@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import api from '../../api/axios'
-import { userRoles } from '../../constants/roles'
 
-function GroupAwareProposalForm({ user, users, onSubmit, saving }) {
+// Title proposal. The instructor, academic year and semester are filled in
+// from the group automatically; a proposal has no abstract yet, so students
+// write a short Project Description (compared against past projects'
+// abstracts for similarity).
+function GroupAwareProposalForm({ user, onSubmit, saving }) {
   const [myGroup, setMyGroup] = useState(null)
   const [form, setForm] = useState({
-  title:'', abstract:'', objectives:'', keywords:'', batch:'', program:'', instructor_id:'', group_id:'', github_url:'', adviser_id: ''
+  title:'', description:'', objectives:'', keywords:'', program:'', group_id:'', adviser_id: ''
 })
 
 useEffect(() => {
@@ -16,7 +19,6 @@ useEffect(() => {
       setForm(f => ({
         ...f,
         group_id: mine.id,
-        batch: mine.batch || '',
         adviser_id: mine.adviser_id || '',
       }))
     }
@@ -47,6 +49,13 @@ useEffect(() => {
               </span>
             ))}
           </div>
+          <div style={{ fontSize: '11px', color: '#3b82f6', marginTop: '6px', display: 'flex', flexWrap: 'wrap', gap: '4px 12px' }}>
+            <span>Instructor: <strong>{myGroup.current_instructor?.name || 'not assigned yet'}</strong></span>
+            <span>A.Y.: <strong>{myGroup.batch ? myGroup.batch.replace('-', '–') : '—'}</strong></span>
+            <span>Semester: <strong>{myGroup.term?.name || '—'}</strong></span>
+            {myGroup.capstone?.stage && <span>Stage: <strong>{myGroup.capstone.stage}</strong></span>}
+            <span style={{ fontSize: '10px', background: '#d1fae5', color: '#059669', padding: '1px 6px', borderRadius: '20px', fontWeight: '700' }}>Filled in automatically</span>
+          </div>
           {myGroup.adviser && (
             <div style={{ fontSize: '11px', color: '#3b82f6', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               Adviser: {myGroup.adviser.name}
@@ -63,32 +72,14 @@ useEffect(() => {
         <label style={labelStyle}>Project Title</label>
         <input name="title" value={form.title} onChange={handle} required style={inputStyle} placeholder="Enter full project title..." />
       </div>
-      <div className="dg-grid-2" style={{ display: 'grid', gap: '12px' }}>
-        <div>
-          <label style={labelStyle}>Batch / Academic Year</label>
-          <input name="batch" value={form.batch} onChange={handle} style={inputStyle} placeholder="e.g. 2025–2026" />
-        </div>
-        <div>
-          <label style={labelStyle}>Submit to (Instructor)</label>
-          <select name="instructor_id" value={form.instructor_id} onChange={handle} style={inputStyle}>
-            <option value="">Select instructor...</option>
-            {users.filter(u => userRoles(u).some(r => ['instructor','adviser','panelist'].includes(r))).map(u => (
-              <option key={u.id} value={u.id}>{u.name}</option>
-            ))}
-          </select>
-        </div>
-      </div>
       <div>
         <label style={labelStyle}>Program</label>
         <input name="program" value={form.program} onChange={handle} style={inputStyle} placeholder="e.g. BS Information Technology" />
       </div>
       <div>
-        <label style={labelStyle}>GitHub Repository <span style={{ color:'#94a3b8', fontWeight:'400' }}>(optional)</span></label>
-        <input name="github_url" value={form.github_url} onChange={handle} style={inputStyle} placeholder="e.g. https://github.com/your-team/project-repo" />
-      </div>
-      <div>
-        <label style={labelStyle}>Abstract</label>
-        <textarea name="abstract" value={form.abstract} onChange={handle} style={{ ...inputStyle, height: '80px', resize: 'none' }} placeholder="Enter project abstract..." />
+        <label style={labelStyle} htmlFor="proposal-description">Project Description</label>
+        <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '5px' }}>A brief summary of the project and the problem it solves. (The full abstract comes later, after your final defense.)</div>
+        <textarea id="proposal-description" name="description" value={form.description} onChange={handle} required style={{ ...inputStyle, height: '100px', resize: 'vertical' }} placeholder="e.g. A web system that helps teachers track attendance using QR codes and alerts parents when a student is absent." />
       </div>
       <div>
         <label style={labelStyle}>Objectives (one per line)</label>

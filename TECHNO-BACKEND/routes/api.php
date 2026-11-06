@@ -121,6 +121,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/notifications/read-all', [NotificationController::class, 'markAllRead']);
     Route::post('/projects/{id}/recheck-similarity', [ProjectController::class, 'recheckSimilarity']);
     Route::post('/projects/{id}/choose-final', [ProjectController::class, 'chooseFinal']);
+    Route::put('/projects/{id}/final-abstract', [ProjectController::class, 'finalAbstract']);
     Route::get('/reports/projects', [ReportController::class, 'projects']);
     Route::get('/reports/similarity', [ReportController::class, 'similarity']);
     Route::get('/reports/schedules', [ReportController::class, 'schedules']);

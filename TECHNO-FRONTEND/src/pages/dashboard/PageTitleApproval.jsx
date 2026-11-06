@@ -109,10 +109,10 @@ function PageTitleApproval() {
               ))}
             </div>
 
-            {/* Abstract */}
+            {/* Project description (a proposal has no abstract yet) */}
             <div style={{ padding:'14px 20px', borderBottom:'1px solid #f8fafc' }}>
-              <div style={panelLabelStyle}>Abstract</div>
-              <div style={{ fontSize:'13px', color:'#334155', lineHeight:'1.7' }}>{selected.abstract || '—'}</div>
+              <div style={panelLabelStyle}>{selected.abstract_is_final ? 'Final Abstract' : 'Project Description'}</div>
+              <div style={{ fontSize:'13px', color:'#334155', lineHeight:'1.7', whiteSpace:'pre-line' }}>{selected.abstract || '—'}</div>
             </div>
 
             {/* Objectives */}

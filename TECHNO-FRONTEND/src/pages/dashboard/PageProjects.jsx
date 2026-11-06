@@ -5,6 +5,7 @@ import api from '../../api/axios'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import GroupAwareProposalForm from './GroupAwareProposalForm'
 import ProjectTasks from './ProjectTasks'
+import FinalAbstractPanel from '../../components/dashboard/FinalAbstractPanel'
 import { similarityScoreColor, similarityBadgeStyle } from '../../utils/similarityColors'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
 
@@ -14,7 +15,6 @@ function PageProjects() {
   const [projects, setProjects]         = useState([])
   const [loading, setLoading]           = useState(true)
   const [showForm, setShowForm]         = useState(false)
-  const [users, setUsers]               = useState([])
   const [selectedProject, setSelected] = useState(null)
   const [search, setSearch]             = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -22,20 +22,18 @@ function PageProjects() {
   const [saving, setSaving]             = useState(false)
   const [lastResult, setLast]           = useState(null)
   const [editingProject, setEditingProject] = useState(null)
-  const [editForm, setEditForm] = useState({ title:'', abstract:'', objectives:'', keywords:'', batch:'', github_url:'' })
+  const [editForm, setEditForm] = useState({ title:'', description:'', objectives:'', keywords:'' })
 
   const load = () => {
     setLoading(true)
     api.get('/projects').then(res => setProjects(res.data)).finally(() => setLoading(false))
   }
 
-  const loadUsers = () => api.get('/users').then(res => setUsers(res.data))
-  useEffect(() => { load(); loadUsers() }, [])
+  useEffect(() => { load() }, [])
 
   // Live: new proposals, status changes, archive/withdraw -- school-wide,
   // including projects that weren't on screen yet.
   useSchoolActivity(['projects', 'groups'], load)
-  useSchoolActivity(['users'], loadUsers)
 
   // Live updates: a status/title change, new document, or evaluation on any
   // project currently in this list refreshes it, instead of needing a
@@ -78,7 +76,7 @@ function PageProjects() {
 
   const startEditProject = (p) => {
     setEditingProject(p)
-    setEditForm({ title: p.title||'', abstract: p.abstract||'', objectives: p.objectives||'', keywords: p.keywords||'', batch: p.batch||'', github_url: p.github_url||'' })
+    setEditForm({ title: p.title||'', description: p.description ?? (p.abstract_is_final ? '' : p.abstract) ?? '', objectives: p.objectives||'', keywords: p.keywords||'' })
   }
 
   const deleteProject = async (id) => {
@@ -140,23 +138,13 @@ function PageProjects() {
                 <label style={{ ...panelLabelStyle }}>Project Title</label>
                 <input value={editForm.title} onChange={e => setEditForm({...editForm, title:e.target.value})} required style={{ ...inputStyle, width:'100%', boxSizing:'border-box' }} />
               </div>
-              <div className="dg-grid-2" style={{ display:'grid', gap:'12px' }}>
-                <div>
-                  <label style={panelLabelStyle}>Batch</label>
-                  <input value={editForm.batch} onChange={e => setEditForm({...editForm, batch:e.target.value})} style={{ ...inputStyle, width:'100%', boxSizing:'border-box' }} />
-                </div>
-                <div>
-                  <label style={panelLabelStyle}>Keywords</label>
-                  <input value={editForm.keywords} onChange={e => setEditForm({...editForm, keywords:e.target.value})} style={{ ...inputStyle, width:'100%', boxSizing:'border-box' }} />
-                </div>
+              <div>
+                <label style={panelLabelStyle}>Keywords</label>
+                <input value={editForm.keywords} onChange={e => setEditForm({...editForm, keywords:e.target.value})} style={{ ...inputStyle, width:'100%', boxSizing:'border-box' }} />
               </div>
               <div>
-                <label style={panelLabelStyle}>GitHub Repository</label>
-                <input value={editForm.github_url} onChange={e => setEditForm({...editForm, github_url:e.target.value})} placeholder="e.g. https://github.com/your-team/project-repo" style={{ ...inputStyle, width:'100%', boxSizing:'border-box' }} />
-              </div>
-              <div>
-                <label style={panelLabelStyle}>Abstract</label>
-                <textarea value={editForm.abstract} onChange={e => setEditForm({...editForm, abstract:e.target.value})} style={{ ...inputStyle, width:'100%', boxSizing:'border-box', height:'80px', resize:'none' }} />
+                <label style={panelLabelStyle}>Project Description</label>
+                <textarea value={editForm.description} onChange={e => setEditForm({...editForm, description:e.target.value})} placeholder="A brief summary of the project and the problem it solves." style={{ ...inputStyle, width:'100%', boxSizing:'border-box', height:'90px', resize:'vertical' }} />
               </div>
               <div>
                 <label style={panelLabelStyle}>Objectives</label>
@@ -245,12 +233,12 @@ function PageProjects() {
 
             <ProjectTasks project={selectedProject} user={user} canAssign={['adviser','instructor','admin'].includes(user?.role) || isProjectLeader(selectedProject)} />
 
-            {['abstract','objectives'].map(field => (
-              <div key={field} style={{ padding:'14px 20px', borderBottom:'1px solid #f8fafc' }}>
-                <div style={panelLabelStyle}>{field.charAt(0).toUpperCase() + field.slice(1)}</div>
-                <div style={{ fontSize:'13px', color:'#334155', lineHeight:'1.65', whiteSpace:'pre-line' }}>{selectedProject[field]||'—'}</div>
-              </div>
-            ))}
+            <FinalAbstractPanel project={selectedProject} labelStyle={panelLabelStyle} onSaved={load}
+              canEdit={['adviser','instructor','admin'].includes(user?.role) || (selectedProject.members || []).some(m => m.user_id === user?.id)} />
+            <div style={{ padding:'14px 20px', borderBottom:'1px solid #f8fafc' }}>
+              <div style={panelLabelStyle}>Objectives</div>
+              <div style={{ fontSize:'13px', color:'#334155', lineHeight:'1.65', whiteSpace:'pre-line' }}>{selectedProject.objectives||'—'}</div>
+            </div>
 
             {(user?.role === 'adviser' || user?.role === 'admin' || user?.role === 'instructor') && (
               <div style={{ padding:'16px 20px' }}>
@@ -308,7 +296,7 @@ function PageProjects() {
         <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', padding:'20px', marginBottom:'16px' }}>
           <div style={{ fontSize:'14px', fontWeight:'700', color:'#0a1f44', marginBottom:'4px' }}>Submit Proposal</div>
           <div style={{ fontSize:'12px', color:'#94a3b8', marginBottom:'14px' }}>Your title will be reviewed before you can upload chapter documents.</div>
-          <GroupAwareProposalForm user={user} users={users} onSubmit={submit} saving={saving} />
+          <GroupAwareProposalForm user={user} onSubmit={submit} saving={saving} />
         </div>
       )}
 

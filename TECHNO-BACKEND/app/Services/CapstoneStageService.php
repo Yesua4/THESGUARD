@@ -46,6 +46,20 @@ class CapstoneStageService {
         }
     }
 
+    // The instructor handling the group's section (assigned by the admin in
+    // User Accounts); else whoever created the group.
+    public static function instructorFor(Group $group): ?int {
+        if ($group->section) {
+            $id = User::query()
+                ->when($group->school_id, fn ($q) => $q->where('school_id', $group->school_id))
+                ->withRole('instructor')
+                ->whereHas('sectionAssignments', fn ($q) => $q->where('section', User::normalizeSection($group->section)))
+                ->orderBy('id')->value('id');
+            if ($id) return (int) $id;
+        }
+        return $group->instructor_id ? (int) $group->instructor_id : null;
+    }
+
     private function terms(int $schoolId) {
         return $this->termsBySchool[$schoolId] ??= AcademicTerm::where('school_id', $schoolId)->orderBy('start_date')->get();
     }

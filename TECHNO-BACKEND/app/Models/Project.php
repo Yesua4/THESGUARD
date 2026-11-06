@@ -4,7 +4,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Project extends Model {
     protected $fillable = [
-        'title', 'abstract', 'objectives', 'keywords', 'group_id',
+        'title', 'description', 'abstract', 'abstract_is_final', 'objectives', 'keywords', 'group_id',
         'batch', 'program', 'adviser_id', 'instructor_id', 'status',
         'similarity_score', 'title_status', 'is_final_title', 'defense_verdict', 'github_url', 'title_feedback', 'school_id'
     ];
@@ -12,6 +12,7 @@ class Project extends Model {
         'is_final_title'       => 'boolean',
         'title_embedding'      => 'array',
         'abstract_embedding'   => 'array',
+        'abstract_is_final'    => 'boolean',
         'objectives_embedding' => 'array',
     ];
 

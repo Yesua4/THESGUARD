@@ -41,7 +41,7 @@ function PageSimilarity() {
               <input value={title} onChange={e => setTitle(e.target.value)} style={inputStyle} placeholder="Enter project title..." />
             </div>
             <div>
-              <label style={labelStyle}>Abstract</label>
+              <label style={labelStyle}>Project Description</label>
               <textarea value={abstract} onChange={e => setAbstract(e.target.value)} style={{ ...inputStyle, height:'90px', resize:'none' }} placeholder="Paste abstract..." />
             </div>
             <div>
@@ -60,7 +60,7 @@ function PageSimilarity() {
                     {result.overall_score>=60?'High similarity':result.overall_score>=30?'Moderate':'Low similarity'}
                   </span>
                 </div>
-                {[['Title', result.title_score], ['Abstract', result.abstract_score], ['Objectives', result.objectives_score]].map(([l, v]) => (
+                {[['Title', result.title_score], ['Description', result.abstract_score], ['Objectives', result.objectives_score]].map(([l, v]) => (
                   <div key={l} style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'7px' }}>
                     <span style={{ fontSize:'11px', color:'#94a3b8', width:'70px', flexShrink:0, fontWeight:'600' }}>{l}</span>
                     <div style={{ flex:1, height:'8px', background:'#e2e8f0', borderRadius:'8px', overflow:'hidden' }}>
@@ -101,7 +101,7 @@ function PageSimilarity() {
             <div style={{ fontSize:'13px', fontWeight:'700', color:'#0a1f44', marginBottom:'8px' }}>How It Works</div>
             {[
               ['📝', 'Title check', 'Compares your title against all archived and active projects.'],
-              ['📄', 'Abstract check', 'Analyzes sentence structure and keywords in the abstract.'],
+              ['📄', 'Description check', 'Compares the project description with past projects’ abstracts, by keywords and by meaning.'],
               ['🎯', 'Objectives check', 'Matches the objectives against existing project goals.'],
             ].map(([icon, label, desc]) => (
               <div key={label} style={{ display:'flex', gap:'10px', marginBottom:'10px' }}>
