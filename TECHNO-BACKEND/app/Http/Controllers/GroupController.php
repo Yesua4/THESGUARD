@@ -11,7 +11,7 @@ class GroupController extends Controller {
 
     public function index(Request $request) {
         $user  = $request->user();
-        $query = Group::with('instructor', 'adviser', 'members', 'leader', 'projects', 'term');
+        $query = Group::with('instructor', 'adviser', 'members', 'leader', 'projects', 'term', 'panel');
 
         // ── School isolation ──────────────────────────────────
         if ($user->school_id) {
@@ -138,7 +138,7 @@ class GroupController extends Controller {
     }
 
     public function show($id) {
-        $group = Group::with('instructor', 'adviser', 'members', 'leader', 'projects', 'term')->findOrFail($id);
+        $group = Group::with('instructor', 'adviser', 'members', 'leader', 'projects', 'term', 'panel')->findOrFail($id);
         $group->setAttribute('capstone', app(CapstoneStageService::class)->forGroup($group));
         return response()->json($group);
     }
@@ -178,6 +178,46 @@ class GroupController extends Controller {
         }
 
         return response()->json($group->load('members', 'adviser', 'leader'));
+    }
+
+    // The group's permanent panel (outline -> final defense), with roles:
+    // Panel Chair, Panel Member 1, Panel Member 2. Defenses from the outline
+    // on use it automatically; it can be changed any time (e.g. a panelist
+    // retires).
+    public function setPanel(Request $request, $id) {
+        $this->assertCanManageGroups($request);
+        $group = Group::findOrFail($id);
+        $this->assertGroupInScope($request, $group);
+        $caller = $request->user();
+        abort_if($caller->school_id && $group->school_id && (int) $group->school_id !== (int) $caller->school_id, 403);
+
+        $data = $request->validate([
+            'panel'           => 'present|array|max:3',
+            'panel.*.role'    => 'required|in:chair,member1,member2|distinct',
+            'panel.*.user_id' => 'required|integer|distinct|exists:users,id',
+        ]);
+        $ids = array_map(fn ($p) => (int) $p['user_id'], $data['panel']);
+
+        $valid = User::whereIn('id', $ids)
+            ->when($caller->school_id, fn ($q) => $q->where('school_id', $caller->school_id))
+            ->withRole('panelist')->pluck('id')->map(fn ($i) => (int) $i)->all();
+        if ($bad = array_diff($ids, $valid)) {
+            $msg = 'Only accounts with the Panelist role can be on a panel: ' . User::whereIn('id', $bad)->pluck('name')->implode(', ') . '.';
+            return response()->json(['message' => $msg, 'errors' => ['panel' => [$msg]]], 422);
+        }
+        if ($issues = app(\App\Services\DefenseScheduleService::class)->conflictOfInterest($group->id, $ids, [])) {
+            $msg = implode(' ', $issues[0]['reasons']);
+            return response()->json(['message' => $msg, 'errors' => ['panel' => [$msg]]], 422);
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($group, $data) {
+            \App\Models\GroupPanelist::where('group_id', $group->id)->delete();
+            foreach ($data['panel'] as $p) {
+                \App\Models\GroupPanelist::create(['group_id' => $group->id, 'user_id' => $p['user_id'], 'role' => $p['role']]);
+            }
+        });
+
+        return response()->json($group->fresh()->load('panel'));
     }
 
     public function destroy(Request $request, $id) {

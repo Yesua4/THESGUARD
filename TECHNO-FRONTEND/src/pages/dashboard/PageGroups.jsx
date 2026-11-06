@@ -4,6 +4,7 @@ import { useToast } from '../../context/ToastContext'
 import api from '../../api/axios'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useAcademicTerms } from '../../hooks/useAcademicTerms'
+import GroupPanelEditor from '../../components/dashboard/GroupPanelEditor'
 
 function PageGroups() {
   const { user } = useAuth()
@@ -156,6 +157,10 @@ function PageGroups() {
                 <div style={{ fontSize:'13px', color:'#0a1f44', fontWeight:'500' }}>{selectedGroup.adviser?.name || 'Not assigned'}</div>
               )}
             </div>
+
+            <GroupPanelEditor key={selectedGroup.id} group={selectedGroup}
+              canEdit={['instructor', 'admin'].includes(user?.role)}
+              onSaved={() => { api.get(`/groups/${selectedGroup.id}`).then(res => setSelectedGroup(res.data)); load() }} />
 
             <div style={{ padding:'14px 20px', borderBottom:'1px solid #f8fafc' }}>
               <div style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'10px' }}>Members ({selectedGroup.members?.length || 0})</div>

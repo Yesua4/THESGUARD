@@ -8,6 +8,11 @@ class Group extends Model {
         'group_name', 'batch', 'academic_term_id', 'start_year_level', 'section', 'instructor_id', 'adviser_id', 'school_id'
     ];
 
+    // Permanent panel for the outline -> final defenses.
+    public function panel() {
+        return $this->hasMany(GroupPanelist::class)->with('user:id,name')->orderBy('role'); // chair, member1, member2
+    }
+
     public function term() {
         return $this->belongsTo(AcademicTerm::class, 'academic_term_id');
     }

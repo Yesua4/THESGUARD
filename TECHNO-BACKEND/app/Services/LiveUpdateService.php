@@ -26,6 +26,8 @@ class LiveUpdateService {
         Models\Group::class                => ['groups', 'projects'],
         Models\GroupMember::class          => ['groups', 'users'],
         Models\DefenseSchedule::class      => ['schedules'],
+        Models\DefenseSchedulePanelist::class => ['schedules'],
+        Models\GroupPanelist::class        => ['groups', 'schedules'],
         Models\Room::class                 => ['rooms'],
         Models\Document::class             => ['documents'],
         Models\DocumentComment::class      => ['documents', 'comments'],

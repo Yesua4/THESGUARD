@@ -74,6 +74,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('documents/{document}/preview', [DocumentController::class, 'preview']);
     Route::post('documents/save-draft', [DocumentController::class, 'saveDraft']);
     Route::get('documents/{id}/edit-content', [DocumentController::class, 'editContent']);
+    Route::post('schedules/check', [ScheduleController::class, 'check']);
     Route::apiResource('schedules', ScheduleController::class);
     Route::get('contributions', [ContributionController::class, 'index']);
     Route::get('contributions/{project}', [ContributionController::class, 'index']);
@@ -100,6 +101,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('users/{id}', [AuthController::class, 'updateUser']);
     Route::post('/users', [AuthController::class, 'createUser']);
     Route::apiResource('groups', GroupController::class);
+    Route::put('groups/{id}/panel', [GroupController::class, 'setPanel']);
     Route::get('students', [GroupController::class, 'students']);
     Route::get('advisers', [GroupController::class, 'advisers']);
     Route::apiResource('rooms', RoomController::class);
