@@ -82,6 +82,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('documents/{document}/comments', [DocumentCommentController::class, 'store']);
     Route::put('documents/{document}/comments/{comment}/resolve', [DocumentCommentController::class, 'resolve']);
     Route::delete('documents/{document}/comments/{comment}', [DocumentCommentController::class, 'destroy']);
+    // Verified comment workflow (replies, student corrections, faculty verification).
+    Route::get('documents/{document}/comments/{comment}', [\App\Http\Controllers\CommentReviewController::class, 'show']);
+    Route::post('documents/{document}/comments/{comment}/replies', [\App\Http\Controllers\CommentReviewController::class, 'reply']);
+    Route::post('documents/{document}/comments/{comment}/start', [\App\Http\Controllers\CommentReviewController::class, 'start']);
+    Route::post('documents/{document}/comments/{comment}/submit', [\App\Http\Controllers\CommentReviewController::class, 'submit']);
+    Route::post('documents/{document}/comments/{comment}/verify', [\App\Http\Controllers\CommentReviewController::class, 'verify']);
+    Route::post('documents/{document}/comments/{comment}/reopen', [\App\Http\Controllers\CommentReviewController::class, 'reopen']);
     Route::post('similarity/check', [SimilarityController::class, 'check']);
     Route::post('similarity/explain', [SimilarityController::class, 'explain']);
     Route::get('users', [AuthController::class, 'users']);

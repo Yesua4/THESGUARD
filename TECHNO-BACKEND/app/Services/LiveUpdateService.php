@@ -28,7 +28,10 @@ class LiveUpdateService {
         Models\DefenseSchedule::class      => ['schedules'],
         Models\Room::class                 => ['rooms'],
         Models\Document::class             => ['documents'],
-        Models\DocumentComment::class      => ['documents'],
+        Models\DocumentComment::class      => ['documents', 'comments'],
+        Models\DocumentCommentReply::class => ['comments'],
+        Models\DocumentCommentAttempt::class => ['comments'],
+        Models\DocumentCommentEvent::class => ['comments'],
         Models\Evaluation::class           => ['evaluations', 'projects'],
         Models\Task::class                 => ['tasks', 'contributions'],
         Models\Contribution::class         => ['contributions'],
@@ -110,6 +113,10 @@ class LiveUpdateService {
         if ($id = $a('group_id')) return Models\Group::whereKey($id)->value('school_id');
         if ($id = $a('document_id')) {
             return Models\Project::whereKey(Models\Document::whereKey($id)->value('project_id'))->value('school_id');
+        }
+        if ($id = $a('comment_id')) {
+            $docId = Models\DocumentComment::whereKey($id)->value('document_id');
+            return Models\Project::whereKey(Models\Document::whereKey($docId)->value('project_id'))->value('school_id');
         }
         if ($id = $a('defense_minute_id')) return Models\DefenseMinute::whereKey($id)->value('school_id');
         if ($id = $a('user_id')) return Models\User::whereKey($id)->value('school_id');

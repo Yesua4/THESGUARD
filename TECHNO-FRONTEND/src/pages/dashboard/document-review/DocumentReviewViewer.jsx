@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
-import { useAuth } from '../../../context/AuthContext'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { sanitizeHtml } from '../../../utils/sanitizeHtml'
+import { useAuth } from '../../../context/AuthContext'
 import { buildQuote, locateQuote, textOffsetOf, wrapOffsets, unwrapMarks } from '../../../utils/commentAnchor'
 import { useDocumentComments } from '../../../hooks/useDocumentComments'
 import { useProjectChannel } from '../../../hooks/useProjectChannel'
@@ -62,25 +62,22 @@ const toAnnotation = (c, i) => ({
 // viewer pin comments to selected text or clicked points, and lists them in
 // a sidebar with resolve/delete actions. Shared by PageDocumentReview (adviser
 // / instructor review) and PageSubmit (student's own document view).
-export default function DocumentReviewViewer({ document, onClose, canResolve = false, statusActions = null, onEdit = null }) {
+export default function DocumentReviewViewer({ document, onClose, statusActions = null, onEdit = null }) {
   const { user } = useAuth()
-  const { comments, error: commentsError, addComment, deleteComment, setResolved, reload: reloadComments } = useDocumentComments(document.id)
+  // Faculty raise comments; students answer in the thread (the API enforces
+  // this too). Selecting text as a student just selects text.
+  const canComment = ['adviser', 'instructor', 'panelist', 'admin'].includes(user?.role)
+  const commentApi = useDocumentComments(document.id)
+  const { comments, error: commentsError, addComment, reload: reloadComments } = commentApi
   // Live updates: another reviewer's comment (or resolve/delete) on THIS
   // document shows up immediately instead of only on next open/refresh.
   useProjectChannel(document.project_id, type => {
     // Not filtered to this document id: unresolved comments carried over
     // from earlier versions of this chapter live on those versions.
-    if (type === 'comment_created' || type === 'comment_resolved' || type === 'comment_deleted') {
+    if (typeof type === 'string' && type.startsWith('comment_')) {
       reloadComments()
     }
   })
-  // deleteComment/setResolved already record failures into commentsError
-  // for the banner below to show -- these wrappers just stop that same
-  // failure from also surfacing as an unhandled promise rejection, since
-  // CommentSidebar's buttons call them fire-and-forget (no try/catch of
-  // their own).
-  const handleDelete = id => deleteComment(id).catch(() => {})
-  const handleSetResolved = (id, resolved) => setResolved(id, resolved).catch(() => {})
   const isInAppDraft = !document.file_path && !!document.content
   const safeDraftHtml = useMemo(() => (isInAppDraft ? sanitizeHtml(document.content) : ''), [isInAppDraft, document.content])
   const canPreviewFile = !!document.file_path && document.file_path.toLowerCase().endsWith('.pdf')
@@ -98,6 +95,9 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
   const [draft, setDraft] = useState(null)
   const [activeCommentId, setActiveCommentId] = useState(null)
   const [previousVersion, setPreviousVersion] = useState(null)
+  // Every saved version of this chapter -- a student's correction must point
+  // at one that's newer than where the comment was made.
+  const [chapterVersions, setChapterVersions] = useState([])
   const [showDiff, setShowDiff] = useState(false)
   // The in-app draft content (dangerouslySetInnerHTML, static) and the live
   // editor it was written in are two different DOM trees, so React can't
@@ -121,15 +121,14 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
     paginate(draftContentRef.current, DEFAULT_MARGINS)
   }, [isInAppDraft, document.content])
 
-  useEffect(() => {
-    if (document.version <= 1) { setPreviousVersion(null); return }
-    api.get('/documents').then(res => {
-      const prev = res.data.find(d =>
-        d.project_id === document.project_id && d.type === document.type && d.version === document.version - 1
-      )
-      setPreviousVersion(prev || null)
-    })
-  }, [document.id, document.project_id, document.type, document.version])
+  const loadVersions = useCallback(() => api.get('/documents').then(res => {
+    const versions = res.data.filter(d => d.project_id === document.project_id && d.type === document.type)
+    setChapterVersions(versions)
+    setPreviousVersion(versions.find(d => d.version === document.version - 1) || null)
+  }).catch(() => {}), [document.project_id, document.type, document.version])
+  useEffect(() => { loadVersions() }, [loadVersions])
+  // A new version saved while this is open shows up in "Revised version".
+  useProjectChannel(document.project_id, type => { if (type === 'document_uploaded') loadVersions() })
 
   // Comments made on THIS version keep their exact highlight; unresolved
   // ones carried over from earlier versions are located by their quoted text
@@ -166,6 +165,7 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
   const [htmlDraft, setHtmlDraft] = useState(null)
 
   const handleDraftMouseUp = () => {
+    if (!canComment) return
     const root = draftContentRef.current
     const sel = window.getSelection()
     if (!root || !sel || sel.rangeCount === 0 || sel.isCollapsed) return
@@ -246,10 +246,12 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
   }
 
   const handleSelection = ({ pageNumber: p, selectedText, anchor }) => {
+    if (!canComment) return
     setDraft({ pageNumber: p, selectedText, anchor })
   }
 
   const handlePageClick = ({ pageNumber: p, anchor }) => {
+    if (!canComment) return
     setDraft({ pageNumber: p, selectedText: null, anchor })
   }
 
@@ -411,11 +413,9 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
             <CommentSidebar
               comments={comments}
               anchorStates={anchorStates}
-              currentUserId={user.id}
-              canResolve={canResolve}
+              chapterVersions={chapterVersions}
+              actions={commentApi}
               onSelect={handleSelectComment}
-              onDelete={handleDelete}
-              onSetResolved={handleSetResolved}
               activeCommentId={activeCommentId}
             />
           </div>

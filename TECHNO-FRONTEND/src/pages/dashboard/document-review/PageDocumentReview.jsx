@@ -96,7 +96,6 @@ function PageDocumentReview({ initialDocumentId, onConsumeInitialDocument }) {
         <DocumentReviewViewer
           document={selectedDoc}
           onClose={() => setSelectedDoc(null)}
-          canResolve={user?.role === 'adviser' || user?.role === 'instructor'}
           statusActions={
             (user?.role === 'adviser' || user?.role === 'instructor') ? (
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>

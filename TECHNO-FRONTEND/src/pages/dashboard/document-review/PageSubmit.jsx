@@ -215,7 +215,6 @@ function PageSubmit({ initialDocumentId, onConsumeInitialDocument }) {
         <DocumentReviewViewer
           document={selectedDoc}
           onClose={() => setSelectedDoc(null)}
-          canResolve={['adviser', 'instructor', 'admin'].includes(user.role)}
           onEdit={
             selectedDoc.file_path && !selectedDoc.file_path.endsWith('.pdf')
               ? () => { const doc = selectedDoc; setSelectedDoc(null); startEditUpload(doc) }

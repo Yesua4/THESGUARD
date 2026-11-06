@@ -15,7 +15,7 @@ use Throwable;
 // there's no guarantee a queue worker is running in a school deployment —
 // a failed send is logged and swallowed so it never breaks the request.
 class NotificationService {
-    public function send(int $userId, string $type, string $title, string $message, ?int $projectId = null, ?int $documentId = null): Notification {
+    public function send(int $userId, string $type, string $title, string $message, ?int $projectId = null, ?int $documentId = null, ?int $commentId = null): Notification {
         $notification = Notification::create([
             'user_id'     => $userId,
             'type'        => $type,
@@ -23,6 +23,7 @@ class NotificationService {
             'message'     => $message,
             'project_id'  => $projectId,
             'document_id' => $documentId,
+            'comment_id'  => $commentId,
             'is_read'     => false,
         ]);
 

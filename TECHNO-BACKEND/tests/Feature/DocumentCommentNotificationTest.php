@@ -32,14 +32,17 @@ class DocumentCommentNotificationTest extends TestCase
             'status' => 'pending',
         ]);
 
+        // Students answer faculty comments in the thread (they no longer open
+        // top-level comments), and the commenter is notified of the reply.
+        $comment = \App\Models\DocumentComment::create(['document_id' => $document->id, 'user_id' => $adviser->id, 'page_number' => 1, 'comment' => 'Please revise the introduction.']);
         Sanctum::actingAs($student);
-        $this->postJson("/api/documents/{$document->id}/comments", [
-            'page_number' => 1,
-            'comment' => 'Please revise the introduction.',
+        $this->postJson("/api/documents/{$document->id}/comments/{$comment->id}/replies", [
+            'body' => 'Revised it, please check.',
         ])->assertStatus(201);
 
         $notification = Notification::where('user_id', $adviser->id)->where('type', 'comment')->first();
-        $this->assertNotNull($notification, 'Adviser should be notified when a student comments.');
+        $this->assertNotNull($notification, 'Adviser should be notified when a student replies.');
+        $this->assertSame($comment->id, $notification->comment_id);
         $this->assertSame($project->id, $notification->project_id);
         $this->assertSame($document->id, $notification->document_id);
         $this->assertNotNull($notification->created_at);

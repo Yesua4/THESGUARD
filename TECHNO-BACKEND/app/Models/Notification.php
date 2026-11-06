@@ -3,7 +3,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 
 class Notification extends Model {
-    protected $fillable = ['user_id', 'type', 'title', 'message', 'is_read', 'project_id', 'document_id'];
+    protected $fillable = ['user_id', 'type', 'title', 'message', 'is_read', 'project_id', 'document_id', 'comment_id'];
 
     protected $casts = [
         'created_at' => 'datetime',

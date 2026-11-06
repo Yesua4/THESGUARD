@@ -6,8 +6,11 @@ use App\Models\Document;
 use App\Models\DocumentComment;
 use App\Models\Project;
 use App\Models\ProjectMember;
+use App\Models\DocumentCommentEvent;
 use App\Services\ActivityBroadcastService;
+use App\Services\CommentReviewService;
 use App\Services\NotificationService;
+use App\Support\DocumentCommentPresenter;
 use Illuminate\Http\Request;
 
 class DocumentCommentController extends Controller {
@@ -16,6 +19,7 @@ class DocumentCommentController extends Controller {
     public function __construct(
         private NotificationService $notifications,
         private ActivityBroadcastService $activity,
+        private CommentReviewService $review,
     ) {}
 
     // This version's comments, plus still-unresolved comments made on EARLIER
@@ -32,7 +36,7 @@ class DocumentCommentController extends Controller {
             ->where('version', '<', $document->version)
             ->pluck('id');
 
-        $comments = DocumentComment::with('user', 'resolver', 'document:id,version')
+        $comments = DocumentComment::with('user:id,name,role,avatar', 'resolver:id,name,role', 'document:id,version')
             ->where(fn ($q) => $q
                 ->where('document_id', $document->id)
                 ->orWhere(fn ($c) => $c
@@ -48,12 +52,34 @@ class DocumentCommentController extends Controller {
                 return $c;
             });
 
-        return response()->json($comments->values());
+        $user = $request->user();
+        $project = Project::findOrFail($document->project_id);
+
+        // Timeline: the first time a student of the project sees a comment.
+        if ($this->review->isProjectStudent($user, $project->id) && $comments->isNotEmpty()) {
+            $seen = DocumentCommentEvent::whereIn('comment_id', $comments->pluck('id'))
+                ->where('user_id', $user->id)->where('type', 'viewed')->pluck('comment_id')->all();
+            foreach ($comments->pluck('id')->diff($seen) as $id) {
+                DocumentCommentEvent::create(['comment_id' => $id, 'user_id' => $user->id, 'type' => 'viewed']);
+            }
+        }
+
+        $out = [];
+        foreach ($comments as $c) {
+            $row = DocumentCommentPresenter::present($c, $user, $project, $this->review);
+            $row['origin_version'] = $c->origin_version;
+            $row['carried'] = $c->carried;
+            $out[] = $row;
+        }
+        return response()->json($out);
     }
 
     public function store(Request $request, $documentId) {
         $document = Document::findOrFail($documentId);
         $this->authorizeDocumentAccess($request->user(), $document->project_id);
+        // Faculty raise concerns; students answer them in the thread (replies)
+        // and by submitting corrections -- they don't open new comments.
+        abort_unless($this->review->isFaculty($request->user()), 403, 'Students respond to comments by replying in the thread.');
 
         $data = $request->validate([
             'page_number'   => 'required|integer|min:1',
@@ -75,8 +101,10 @@ class DocumentCommentController extends Controller {
         $data['document_id'] = $documentId;
         $data['user_id']     = $request->user()->id;
 
+        $data['review_status'] = CommentReviewService::OPEN;
         $comment = DocumentComment::create($data);
         $commenter = $request->user();
+        $this->review->log($comment, $commenter, 'created', null, CommentReviewService::OPEN, null, $document->id);
 
         Contribution::create([
             'project_id'  => $document->project_id,
@@ -85,7 +113,7 @@ class DocumentCommentController extends Controller {
             'description' => "Added a comment on page {$data['page_number']} of document #{$documentId}",
         ]);
 
-        $this->notifyOnComment($document, $commenter, $data['page_number']);
+        $this->notifyOnComment($document, $commenter, $data['page_number'], $comment->id);
 
         $comment->load('user');
         $this->activity->broadcast($document->project_id, 'comment_created', [
@@ -93,50 +121,62 @@ class DocumentCommentController extends Controller {
             'comment'     => $comment,
         ]);
 
-        return response()->json($comment, 201);
+        $project = Project::find($document->project_id);
+        return response()->json(DocumentCommentPresenter::present($comment, $commenter, $project, $this->review), 201);
     }
 
     /**
      * Let the "other side" of the review know new feedback landed — students
      * get notified when their adviser/instructor comments, and vice versa.
      */
-    private function notifyOnComment(Document $document, $commenter, int $pageNumber): void {
+    private function notifyOnComment(Document $document, $commenter, int $pageNumber, int $commentId): void {
         $project = Project::find($document->project_id);
         if (!$project) return;
 
-        if ($commenter->role === 'student') {
-            $notifyUserIds = array_filter([
-                $project->adviser_id,
-                $project->instructor_id,
-            ]);
-        } else {
-            $notifyUserIds = ProjectMember::where('project_id', $project->id)->pluck('user_id')->all();
-        }
-
-        foreach (array_unique($notifyUserIds) as $userId) {
+        // Only faculty create comments, so this goes to the project's students.
+        $chapter = $this->review->chapterLabel($document);
+        foreach (ProjectMember::where('project_id', $project->id)->pluck('user_id')->unique() as $userId) {
             if ($userId == $commenter->id) continue;
             $this->notifications->send(
                 $userId, 'comment', '💬 New Comment',
-                "{$commenter->name} commented on page {$pageNumber} of \"{$project->title}\".",
-                $project->id, $document->id
+                "{$commenter->name} commented on page {$pageNumber} of {$chapter} of \"{$project->title}\".",
+                $project->id, $document->id, $commentId
             );
         }
     }
 
+    // Direct resolve / reopen by the comment's verifier (its author, or the
+    // group adviser if the author is no longer assigned). Students and the
+    // admin can't; a correction awaiting verification goes through verify.
     public function resolve(Request $request, $documentId, $commentId) {
         $user = $request->user();
-        abort_unless(in_array($user->role, ['adviser', 'instructor', 'admin']), 403, 'Only advisers, instructors, or admins can resolve comments.');
-
         $document = Document::findOrFail($documentId);
         $this->authorizeDocumentAccess($user, $document->project_id);
+        $project = Project::findOrFail($document->project_id);
 
-        $comment = DocumentComment::where('document_id', $documentId)->where('id', $commentId)->firstOrFail();
-        $data = $request->validate(['status' => 'required|in:open,resolved']);
+        $comment = DocumentComment::with('user')->where('document_id', $documentId)->where('id', $commentId)->firstOrFail();
+        $data = $request->validate([
+            'status'       => 'required|in:open,resolved',
+            'lock_version' => 'sometimes|integer',
+            'note'         => 'nullable|string|max:2000',
+        ]);
+        $can = $this->review->permissions($user, $comment, $project);
+        $lock = $data['lock_version'] ?? (int) $comment->lock_version;
 
-        $comment->status      = $data['status'];
-        $comment->resolved_at = $data['status'] === 'resolved' ? now() : null;
-        $comment->resolved_by = $data['status'] === 'resolved' ? $user->id : null;
-        $comment->save();
+        if ($data['status'] === 'resolved') {
+            abort_unless($can['resolve'] || $can['verify'], 403, 'Only the person who made this comment (or the group adviser) can resolve it.');
+            [, $onBehalf] = $this->review->verifierFor($comment, $project);
+            $ok = $this->review->transition($comment, CommentReviewService::RESOLVED, $user, $lock,
+                ['type' => 'resolved', 'note' => $data['note'] ?? null],
+                $onBehalf ? ['verified_on_behalf_of' => $comment->user_id] : []);
+        } else {
+            abort_unless($can['reopen'], 403, 'Only the person who made this comment (or the group adviser) can reopen it.');
+            $ok = $this->review->transition($comment, CommentReviewService::REOPENED, $user, $lock,
+                ['type' => 'reopened', 'note' => $data['note'] ?? null]);
+        }
+        if (!$ok) {
+            return response()->json(['message' => 'Someone else just updated this comment. It has been refreshed -- check it and try again.', 'code' => 'comment_conflict'], 409);
+        }
         $comment->load('user', 'resolver');
 
         $this->activity->broadcast($document->project_id, 'comment_resolved', [
@@ -144,15 +184,18 @@ class DocumentCommentController extends Controller {
             'comment'     => $comment,
         ]);
 
-        return response()->json($comment);
+        return response()->json(DocumentCommentPresenter::present($comment, $user, $project, $this->review));
     }
 
-    public function destroy($documentId, $commentId) {
-        $comment = DocumentComment::where('document_id', $documentId)
-            ->where('id', $commentId)
-            ->where('user_id', auth()->id())
-            ->firstOrFail();
+    // Only the author, and only before anyone replied or acted on it -- after
+    // that the comment is part of the review record and is kept.
+    public function destroy(Request $request, $documentId, $commentId) {
         $document = Document::findOrFail($documentId);
+        $this->authorizeDocumentAccess($request->user(), $document->project_id);
+        $comment = DocumentComment::where('document_id', $documentId)->where('id', $commentId)->firstOrFail();
+        $project = Project::findOrFail($document->project_id);
+        abort_unless($this->review->permissions($request->user(), $comment, $project)['delete'], 403,
+            'This comment already has replies or review activity, so it is kept as part of the record. Resolve it instead.');
         $comment->delete();
 
         $this->activity->broadcast($document->project_id, 'comment_deleted', [
