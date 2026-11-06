@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from 'react'
 import { PAGE_W, IN, DEFAULT_MARGINS, MARGIN_PRESETS, markStructuralPageBreaks, paginate } from './pagination'
 import { sanitizeHtml, isSafeLinkUrl } from '../../../utils/sanitizeHtml'
+import { ensureBlockIds } from '../../../utils/commentAnchor'
 
 const BLOCK_TAGS = new Set(['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'BLOCKQUOTE', 'TABLE'])
 
@@ -67,6 +68,9 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
 
   const emitCleanValue = () => {
     if (!ref.current) return
+    // Stable paragraph ids so reviewer comments on this draft can find
+    // their paragraph again in later versions (see utils/commentAnchor.js).
+    ensureBlockIds(ref.current)
     const clone = ref.current.cloneNode(true)
     clone.querySelectorAll('[data-page-spacer]').forEach(el => el.remove())
     onChange(clone.innerHTML)

@@ -36,15 +36,16 @@ class HtmlSanitizer {
         $config->set('Cache.SerializerPath', $cacheDir);
 
         $config->set('HTML.Doctype', 'HTML 4.01 Transitional');
-        // Pagination markers written by the in-app editor (see pagination.js).
-        $pg = 'data-page-break|data-page-spacer|data-page-gutter';
+        // Pagination markers written by the in-app editor (see pagination.js)
+        // and the paragraph ids comments anchor to (utils/commentAnchor.js).
+        $pg = 'data-page-break|data-page-spacer|data-page-gutter|data-block-id';
         $config->set('HTML.Allowed', implode(',', [
             "p[style|align|{$pg}]", "div[style|align|{$pg}]", 'span[style]', 'br', 'hr',
             'b', 'strong', 'i', 'em', 'u', 's', 'strike', 'sub', 'sup', 'small', 'big',
             'font[color|face|size]',
             "h1[style|{$pg}]", "h2[style|{$pg}]", "h3[style|{$pg}]", "h4[style|{$pg}]", "h5[style|{$pg}]", "h6[style|{$pg}]",
             "ul[style|{$pg}]", "ol[style|start|type|{$pg}]", 'li[style]',
-            "blockquote[style|{$pg}]", 'pre', 'code',
+            "blockquote[style|{$pg}]", 'pre[data-block-id]', 'code',
             "table[style|border|cellpadding|cellspacing|width|{$pg}]", 'caption', 'colgroup', 'col[width|span]',
             'thead', 'tbody', 'tfoot', 'tr[style]',
             'th[style|colspan|rowspan|width|align|valign]', 'td[style|colspan|rowspan|width|align|valign]',
@@ -66,10 +67,10 @@ class HtmlSanitizer {
         // The editor's pagination markers (data-page-break / -spacer /
         // -gutter) aren't standard HTML 4 attributes; declare them.
         $config->set('HTML.DefinitionID', 'thesisguard-drafts');
-        $config->set('HTML.DefinitionRev', 2);
+        $config->set('HTML.DefinitionRev', 3);
         if ($def = $config->maybeGetRawHTMLDefinition()) {
-            foreach (['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'table', 'ul', 'ol', 'blockquote'] as $tag) {
-                foreach (['data-page-break', 'data-page-spacer', 'data-page-gutter'] as $attr) {
+            foreach (['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'table', 'ul', 'ol', 'blockquote', 'pre'] as $tag) {
+                foreach (['data-page-break', 'data-page-spacer', 'data-page-gutter', 'data-block-id'] as $attr) {
                     $def->addAttribute($tag, $attr, 'Text');
                 }
             }

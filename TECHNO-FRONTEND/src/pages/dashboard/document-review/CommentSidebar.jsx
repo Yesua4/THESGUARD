@@ -1,4 +1,12 @@
-export default function CommentSidebar({ comments, currentUserId, canResolve, onSelect, onDelete, onSetResolved, activeCommentId }) {
+// Where a comment's highlight stands in the version being viewed (see
+// DocumentReviewViewer's anchorStates). Text labels, not color alone.
+const ANCHOR_NOTE = {
+  relocated:    { text: 'Located in this version', bg: '#eff6ff', color: '#1e40af', icon: '↳' },
+  needs_review: { text: 'Original text changed — anchor needs review', bg: '#fff7ed', color: '#9a3412', icon: '⚠' },
+  locating:     { text: 'Looking for the original text…', bg: '#f8fafc', color: '#64748b', icon: '…' },
+}
+
+export default function CommentSidebar({ comments, anchorStates = {}, currentUserId, canResolve, onSelect, onDelete, onSetResolved, activeCommentId }) {
   if (comments.length === 0) {
     return <div style={{ fontSize: '13px', color: '#94a3b8', textAlign: 'center', padding: '32px 0' }}>No comments yet. Select text or click on the page to add one.</div>
   }
@@ -38,7 +46,20 @@ export default function CommentSidebar({ comments, currentUserId, canResolve, on
               </span>
             </div>
 
-            <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '6px' }}>Page {c.page_number}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', fontSize: '11px', color: '#94a3b8', marginBottom: '6px' }}>
+              <span>Page {c.page_number}{c.carried ? ` of v${c.origin_version}` : ''}</span>
+              {c.carried && (
+                <span title="Made on an earlier version of this chapter and not yet resolved" style={{ fontSize: '10px', fontWeight: 700, padding: '1px 7px', borderRadius: '20px', background: '#ede9fe', color: '#5b21b6' }}>
+                  From v{c.origin_version}
+                </span>
+              )}
+            </div>
+            {ANCHOR_NOTE[anchorStates[c.id]] && (
+              <div role="status" style={{ display: 'flex', gap: '6px', alignItems: 'flex-start', fontSize: '11px', fontWeight: 600, padding: '5px 8px', borderRadius: '6px', marginBottom: '8px', background: ANCHOR_NOTE[anchorStates[c.id]].bg, color: ANCHOR_NOTE[anchorStates[c.id]].color }}>
+                <span aria-hidden="true">{ANCHOR_NOTE[anchorStates[c.id]].icon}</span>
+                <span>{ANCHOR_NOTE[anchorStates[c.id]].text}</span>
+              </div>
+            )}
 
             {c.selected_text && (
               <div style={{ background: '#fffbeb', borderLeft: '3px solid #f5c300', padding: '6px 10px', marginBottom: '8px', fontSize: '12px', color: '#64748b', fontStyle: 'italic', borderRadius: '0 6px 6px 0' }}>

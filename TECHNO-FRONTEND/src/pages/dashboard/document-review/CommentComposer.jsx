@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { anchorRects } from '../../../utils/commentAnchor'
 
 // Popover for writing a new comment. page_number / selected_text / anchor are
 // always derived from what the user selected or clicked on the rendered PDF
@@ -31,18 +32,22 @@ export default function CommentComposer({ draft, onSubmit, onCancel }) {
     }
   }
 
-  const rects = Array.isArray(draft.anchor) ? draft.anchor : null
+  // PDF: placed under the selection, in % of the page. In-app drafts pass
+  // an explicit pixel position (draft.position) under the selected text.
+  const rects = anchorRects(draft.anchor)
   const point = rects ? rects[rects.length - 1] : draft.anchor
-  const anchorTop = point ? (point.y + (point.height || 0)) * 100 : 4
-  const anchorLeft = point ? Math.min(point.x * 100, 60) : 4
+  const anchorTop = point?.y != null ? (point.y + (point.height || 0)) * 100 : 4
+  const anchorLeft = point?.x != null ? Math.min(point.x * 100, 60) : 4
+  const top = draft.position ? `${draft.position.top}px` : `calc(${anchorTop}% + 6px)`
+  const left = draft.position ? `${draft.position.left}px` : `${anchorLeft}%`
 
   return (
     <div
       onClick={e => e.stopPropagation()}
       style={{
         position: 'absolute',
-        top: `calc(${anchorTop}% + 6px)`,
-        left: `${anchorLeft}%`,
+        top,
+        left,
         zIndex: 60,
         width: 'min(320px, 88vw)',
         background: '#fff',

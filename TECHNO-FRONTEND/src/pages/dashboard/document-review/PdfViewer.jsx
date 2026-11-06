@@ -4,6 +4,7 @@ import pdfWorkerSrc from 'pdfjs-dist/build/pdf.worker.min.js?url'
 import 'pdfjs-dist/web/pdf_viewer.css'
 import api from '../../../api/axios'
 import CommentComposer from './CommentComposer'
+import { anchorRects, anchorPoint, buildQuote, locateQuote, textOffsetOf, rangeFromOffsets } from '../../../utils/commentAnchor'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc
 
@@ -16,8 +17,13 @@ const PRELOAD_MARGIN = '1000px 0px'
 // (reported by the parent's single IntersectionObserver via `visible`).
 // Everything here is unchanged from the old single-page PdfViewer, just
 // scoped to one page's own pageNumber/refs instead of a shared one.
-function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, annotations, onAnnotationClick, activeAnnotationId, pendingDraft, onSelection, onPageClick, onSubmitDraft, onCancelDraft }) {
+function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, annotations, textHighlights = [], onAnnotationClick, activeAnnotationId, pendingDraft, onSelection, onPageClick, onSubmitDraft, onCancelDraft }) {
   const [rendered, setRendered] = useState(false)
+  // Bumped each time this page's text layer finishes drawing, so highlights
+  // located by text (comments carried over from an earlier version) can be
+  // measured against the real text spans.
+  const [textReady, setTextReady] = useState(0)
+  const [located, setLocated] = useState({})
   const [height, setHeight] = useState(null)
   const canvasRef = useRef(null)
   const textLayerRef = useRef(null)
@@ -74,6 +80,7 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
         const textContent = await page.getTextContent()
         const textLayerTask = pdfjsLib.renderTextLayer({ textContentSource: textContent, container: textLayerDiv, viewport, textDivs: [] })
         await textLayerTask.promise
+        setTextReady(n => n + 1)
       } catch (err) {
         console.error(`PDF page ${pageNumber} text layer failed:`, err)
       }
@@ -98,8 +105,38 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
     setRendered(false)
   }, [visible, rendered])
 
-  const pageAnnotations = annotations.filter(a => a.pageNumber === pageNumber)
-  const pendingRects = pendingDraft && Array.isArray(pendingDraft.anchor) ? pendingDraft.anchor : null
+  // Turns text offsets (from locating a carried comment's quote) into
+  // highlight boxes, measured from the text layer actually on screen.
+  // Measured after layout (in a frame callback), once the text layer exists.
+  const highlightsRef = useRef(textHighlights)
+  useEffect(() => { highlightsRef.current = textHighlights })
+  const highlightKey = textHighlights.map(h => `${h.id}:${h.start}-${h.end}`).join('|')
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const layer = textLayerRef.current, container = pageContainerRef.current
+      if (!textReady || !layer || !container) return
+      const box = container.getBoundingClientRect()
+      const next = {}
+      highlightsRef.current.forEach(h => {
+        const range = rangeFromOffsets(layer, h.start, h.end)
+        if (!range) return
+        const rects = Array.from(range.getClientRects()).filter(r => r.width > 0 && r.height > 0).map(r => ({
+          x: (r.left - box.left) / box.width, y: (r.top - box.top) / box.height,
+          width: r.width / box.width, height: r.height / box.height,
+        }))
+        if (rects.length) next[h.id] = rects
+      })
+      setLocated(next)
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [textReady, highlightKey])
+
+  const pageAnnotations = useMemo(() => [
+    ...annotations.filter(a => a.pageNumber === pageNumber),
+    // Located text highlights only while the page (and its text layer) is drawn.
+    ...(rendered ? textHighlights.filter(h => located[h.id]).map(h => ({ ...h, anchor: located[h.id], carried: true })) : []),
+  ], [annotations, textHighlights, located, rendered, pageNumber])
+  const pendingRects = pendingDraft ? anchorRects(pendingDraft.anchor) : null
 
   const handleMouseUp = useCallback(() => {
     const sel = window.getSelection()
@@ -118,7 +155,19 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
 
     if (rects.length === 0) return
     justSelectedRef.current = true
-    onSelection?.({ pageNumber, selectedText: text, anchor: rects })
+
+    // Also remember WHAT was selected (the text + a little context and its
+    // position in this page's text), so the comment can be found again in a
+    // later version where the boxes no longer line up.
+    let anchor = { v: 2, kind: 'pdf', rects }
+    const layer = textLayerRef.current
+    const range = sel.getRangeAt(0)
+    if (layer && layer.contains(range.startContainer) && layer.contains(range.endContainer)) {
+      const start = textOffsetOf(layer, range.startContainer, range.startOffset)
+      const end = textOffsetOf(layer, range.endContainer, range.endOffset)
+      if (end > start) anchor = { ...anchor, quote: buildQuote(layer.textContent, start, end), start, end }
+    }
+    onSelection?.({ pageNumber, selectedText: text, anchor })
     sel.removeAllRanges()
   }, [pageNumber, onSelection])
 
@@ -128,7 +177,7 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
     const x = (e.clientX - containerRect.left) / containerRect.width
     const y = (e.clientY - containerRect.top) / containerRect.height
 
-    const hit = pageAnnotations.find(a => Array.isArray(a.anchor) && a.anchor.some(r =>
+    const hit = pageAnnotations.find(a => anchorRects(a.anchor)?.some(r =>
       x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height
     ))
     if (hit) { onAnnotationClick?.(hit); return }
@@ -166,22 +215,24 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
 
       {pageAnnotations.map(a => {
         const isActive = a.id === activeAnnotationId
-        const rects = Array.isArray(a.anchor) ? a.anchor : null
+        const rects = anchorRects(a.anchor)
 
         if (rects) {
           const color = a.resolved ? '5,150,105' : '245,195,0'
+          const title = a.carried ? `From version ${a.originVersion}: ${a.title}` : a.title
           return (
             <div key={a.id}>
               {rects.map((r, i) => (
                 <div
                   key={`${i}-${isActive}`}
-                  title={a.title}
+                  title={title}
                   className={isActive ? 'annotation-pulse' : undefined}
                   style={{
                     position: 'absolute', left: `${r.x * 100}%`, top: `${r.y * 100}%`,
                     width: `${r.width * 100}%`, height: `${r.height * 100}%`,
                     background: `rgba(${color},${isActive ? 0.55 : 0.32})`,
-                    outline: isActive ? `2px solid rgba(${color},0.9)` : 'none',
+                    // Carried over from an earlier version: dashed outline.
+                    outline: isActive ? `2px solid rgba(${color},0.9)` : (a.carried ? `1px dashed rgba(${color},0.95)` : 'none'),
                     pointerEvents: 'none', zIndex: 5, borderRadius: '2px',
                   }}
                 />
@@ -205,7 +256,7 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
           )
         }
 
-        const point = a.anchor || { x: 0.5, y: 0.05 }
+        const point = anchorPoint(a.anchor) || { x: 0.5, y: 0.05 }
         return (
           <button
             key={`${a.id}-${isActive}`}
@@ -250,7 +301,7 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
 // canvas/text layer, via one shared IntersectionObserver rooted on this
 // component's own scroll container, so a long document (dozens+ of pages)
 // doesn't pay the cost of rendering everything up front.
-export default function PdfViewer({ documentId, pageNumber, onPageCountChange, onPageNumberChange, onSelection, onPageClick, annotations = [], onAnnotationClick, activeAnnotationId, pendingDraft, onSubmitDraft, onCancelDraft, scrollContainerRef }) {
+export default function PdfViewer({ documentId, pageNumber, onPageCountChange, onPageNumberChange, onSelection, onPageClick, annotations = [], carried = [], onRelocated, onAnnotationClick, activeAnnotationId, pendingDraft, onSubmitDraft, onCancelDraft, scrollContainerRef }) {
   const [pdfDoc, setPdfDoc] = useState(null)
   const [numPages, setNumPages] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -367,6 +418,48 @@ export default function PdfViewer({ documentId, pageNumber, onPageCountChange, o
     }
   }, [pageNumber])
 
+  // Comments carried over from an earlier version: find their quoted text in
+  // THIS version's pages (text only -- no rendering needed). Found ones are
+  // highlighted where the text now is; the rest are reported as not found
+  // so the sidebar can say "anchor needs review" instead of guessing.
+  const [pageTexts, setPageTexts] = useState(null)
+  const hasCarried = carried.length > 0
+  useEffect(() => {
+    if (!pdfDoc || !hasCarried) return
+    let cancelled = false
+    Promise.all(Array.from({ length: pdfDoc.numPages }, (_, i) =>
+      pdfDoc.getPage(i + 1).then(pg => pg.getTextContent()).then(tc => tc.items.map(it => it.str).join(''))))
+      .then(texts => { if (!cancelled) setPageTexts(texts) })
+      .catch(() => { if (!cancelled) setPageTexts([]) })
+    return () => { cancelled = true }
+  }, [pdfDoc, hasCarried])
+
+  const carriedKey = carried.map(c => c.id).join(',')
+  const relocations = useMemo(() => {
+    if (!pageTexts) return null
+    const out = {}
+    carried.forEach(c => {
+      const quote = c.anchor?.quote
+      let hit = null
+      if (quote && pageTexts.length) {
+        // Same page first (most edits don't move text across pages), then the rest.
+        const order = [c.pageNumber - 1, ...pageTexts.map((_, i) => i).filter(i => i !== c.pageNumber - 1)]
+        for (const i of order) {
+          if (i < 0 || i >= pageTexts.length) continue
+          const found = locateQuote(pageTexts[i], quote, i === c.pageNumber - 1 ? c.anchor.start : null)
+          if (found) { hit = { pageNumber: i + 1, ...found }; break }
+        }
+      }
+      out[c.id] = hit
+    })
+    return out
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageTexts, carriedKey])
+
+  const onRelocatedRef = useRef(onRelocated)
+  useEffect(() => { onRelocatedRef.current = onRelocated })
+  useEffect(() => { if (relocations) onRelocatedRef.current?.(relocations) }, [relocations])
+
   const handleMeasured = useCallback((n, h) => {
     setPageHeights(prev => (prev[n] === h ? prev : { ...prev, [n]: h }))
   }, [])
@@ -399,6 +492,7 @@ export default function PdfViewer({ documentId, pageNumber, onPageCountChange, o
                 fallbackHeight={typicalHeight}
                 onMeasured={handleMeasured}
                 annotations={annotations}
+                textHighlights={carried.filter(c => relocations?.[c.id]?.pageNumber === n).map(c => ({ ...c, start: relocations[c.id].start, end: relocations[c.id].end }))}
                 onAnnotationClick={onAnnotationClick}
                 activeAnnotationId={activeAnnotationId}
                 pendingDraft={pendingDraft && pendingDraft.pageNumber === n ? pendingDraft : null}

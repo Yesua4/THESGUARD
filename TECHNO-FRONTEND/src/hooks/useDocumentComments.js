@@ -1,10 +1,17 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import api from '../api/axios'
 
 export function useDocumentComments(documentId) {
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  // Comments carried over from an earlier version still belong to THAT
+  // version (they're never moved), so actions on them go to its document id.
+  const commentsRef = useRef([])
+  useEffect(() => { commentsRef.current = comments }, [comments])
+  const docOf = useCallback(
+    commentId => commentsRef.current.find(c => c.id === commentId)?.document_id ?? documentId,
+    [documentId])
 
   const load = useCallback(() => {
     if (!documentId) return Promise.resolve()
@@ -40,17 +47,17 @@ export function useDocumentComments(documentId) {
 
   const deleteComment = useCallback(async commentId => {
     try {
-      await api.delete(`/documents/${documentId}/comments/${commentId}`)
+      await api.delete(`/documents/${docOf(commentId)}/comments/${commentId}`)
       await load()
     } catch (err) {
       setError(err.response?.data?.message || 'Could not delete comment.')
       throw err
     }
-  }, [documentId, load])
+  }, [docOf, load])
 
   const setResolved = useCallback(async (commentId, resolved) => {
     try {
-      await api.put(`/documents/${documentId}/comments/${commentId}/resolve`, {
+      await api.put(`/documents/${docOf(commentId)}/comments/${commentId}/resolve`, {
         status: resolved ? 'resolved' : 'open',
       })
       await load()
@@ -58,7 +65,7 @@ export function useDocumentComments(documentId) {
       setError(err.response?.data?.message || 'Could not update comment status.')
       throw err
     }
-  }, [documentId, load])
+  }, [docOf, load])
 
   return { comments, loading, error, addComment, deleteComment, setResolved, reload: load }
 }

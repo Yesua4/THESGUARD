@@ -1,10 +1,12 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useAuth } from '../../../context/AuthContext'
 import { sanitizeHtml } from '../../../utils/sanitizeHtml'
+import { buildQuote, locateQuote, textOffsetOf, wrapOffsets, unwrapMarks } from '../../../utils/commentAnchor'
 import { useDocumentComments } from '../../../hooks/useDocumentComments'
 import { useProjectChannel } from '../../../hooks/useProjectChannel'
 import api from '../../../api/axios'
 import PdfViewer from './PdfViewer'
+import CommentComposer from './CommentComposer'
 import CommentSidebar from './CommentSidebar'
 import DocumentDiffViewer from './DocumentDiffViewer'
 import { PAGE_W, DEFAULT_MARGINS, markStructuralPageBreaks, paginate } from './pagination'
@@ -51,6 +53,11 @@ function NonPdfFallback({ documentId, fileName, previewStatus }) {
   )
 }
 
+const toAnnotation = (c, i) => ({
+  id: c.id, index: i + 1, pageNumber: c.page_number, resolved: c.status === 'resolved',
+  title: c.comment, anchor: c.anchor, originVersion: c.origin_version,
+})
+
 // Composition root for in-app document review: renders the PDF, lets the
 // viewer pin comments to selected text or clicked points, and lists them in
 // a sidebar with resolve/delete actions. Shared by PageDocumentReview (adviser
@@ -60,8 +67,9 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
   const { comments, error: commentsError, addComment, deleteComment, setResolved, reload: reloadComments } = useDocumentComments(document.id)
   // Live updates: another reviewer's comment (or resolve/delete) on THIS
   // document shows up immediately instead of only on next open/refresh.
-  useProjectChannel(document.project_id, (type, payload) => {
-    if (payload?.document_id !== document.id) return
+  useProjectChannel(document.project_id, type => {
+    // Not filtered to this document id: unresolved comments carried over
+    // from earlier versions of this chapter live on those versions.
     if (type === 'comment_created' || type === 'comment_resolved' || type === 'comment_deleted') {
       reloadComments()
     }
@@ -123,14 +131,119 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
     })
   }, [document.id, document.project_id, document.type, document.version])
 
-  const annotations = useMemo(() => comments.map((c, i) => ({
-    id: c.id,
-    index: i + 1,
-    pageNumber: c.page_number,
-    resolved: c.status === 'resolved',
-    title: c.comment,
-    anchor: c.anchor,
-  })), [comments])
+  // Comments made on THIS version keep their exact highlight; unresolved
+  // ones carried over from earlier versions are located by their quoted text
+  // (PDF: PdfViewer, drafts: the effect below) or flagged for review.
+  const annotations = useMemo(() => comments.map(toAnnotation).filter((a, i) => !comments[i].carried), [comments])
+  // Any carried comment with stored text can be looked for -- including one
+  // made on an in-app draft when this version is an uploaded PDF.
+  const carriedPdf = useMemo(() => comments.map(toAnnotation).filter((a, i) => comments[i].carried && a.anchor?.quote?.exact), [comments])
+  const [pdfRelocated, setPdfRelocated] = useState({})
+  const [htmlLocated, setHtmlLocated] = useState({})
+
+  // Per comment: 'here' (made on this version), 'relocated' (found in this
+  // version), 'needs_review' (its text can't be found), 'locating'.
+  const anchorStates = useMemo(() => {
+    const out = {}
+    comments.forEach(c => {
+      if (isInAppDraft && c.anchor?.quote?.exact) {
+        out[c.id] = htmlLocated[c.id] === undefined ? 'locating'
+          : htmlLocated[c.id] ? (c.carried ? 'relocated' : 'here') : 'needs_review'
+      } else if (!c.carried) {
+        out[c.id] = 'here'
+      } else if (isInAppDraft || !c.anchor?.quote) {
+        // Older comments stored only a position, not their text -- nothing to search for.
+        out[c.id] = 'needs_review'
+      } else {
+        out[c.id] = !(c.id in pdfRelocated) ? 'locating' : pdfRelocated[c.id] ? 'relocated' : 'needs_review'
+      }
+    })
+    return out
+  }, [comments, htmlLocated, pdfRelocated, isInAppDraft])
+
+  // ── In-app drafts: select text to comment, highlights drawn in place ──
+  const draftWrapRef = useRef(null)
+  const [htmlDraft, setHtmlDraft] = useState(null)
+
+  const handleDraftMouseUp = () => {
+    const root = draftContentRef.current
+    const sel = window.getSelection()
+    if (!root || !sel || sel.rangeCount === 0 || sel.isCollapsed) return
+    const range = sel.getRangeAt(0)
+    if (!root.contains(range.startContainer) || !root.contains(range.endContainer)) return
+    const exact = range.toString()
+    if (!exact.trim()) return
+
+    // The top-level paragraph the selection starts in, and its stable id.
+    let block = range.startContainer.nodeType === 1 ? range.startContainer : range.startContainer.parentElement
+    while (block && block.parentElement !== root) block = block.parentElement
+    const blockId = block?.getAttribute?.('data-block-id') || null
+    const start = block ? textOffsetOf(block, range.startContainer, range.startOffset) : textOffsetOf(root, range.startContainer, range.startOffset)
+    const context = block ? block.textContent : root.textContent
+    const quote = buildQuote(context, start, start + exact.length)
+
+    // Which visual page: page-spacers before this paragraph + 1.
+    let page = 1
+    for (let el = block?.previousElementSibling; el; el = el.previousElementSibling) {
+      if (el.hasAttribute('data-page-spacer')) page++
+    }
+
+    const box = range.getBoundingClientRect(), wrap = draftWrapRef.current.getBoundingClientRect()
+    setHtmlDraft({
+      pageNumber: page,
+      selectedText: exact.trim(),
+      anchor: { v: 2, kind: 'html', block_id: blockId, quote, start, end: start + exact.length },
+      position: { top: box.bottom - wrap.top + 6, left: Math.max(0, Math.min(box.left - wrap.left, wrap.width - 330)) },
+    })
+  }
+
+  const submitHtmlDraft = async ({ pageNumber: p, selectedText, anchor, comment }) => {
+    await addComment({ pageNumber: p, selectedText, anchor, comment })
+    setHtmlDraft(null)
+    window.getSelection()?.removeAllRanges()
+  }
+
+  // Draw (and re-draw) every draft comment's highlight. Runs in a frame
+  // callback, after pagination has laid the content out.
+  useEffect(() => {
+    if (!isInAppDraft) return
+    const frame = requestAnimationFrame(() => {
+      const root = draftContentRef.current
+      if (!root) return
+      unwrapMarks(root)
+      const found = {}
+      comments.forEach(c => {
+        const a = c.anchor
+        // Draft comments (by paragraph id + text) and PDF comments carried
+        // onto a draft version (by text) alike.
+        if (!a?.quote?.exact) return
+        const cls = `tg-cmark${c.status === 'resolved' ? ' tg-cmark-resolved' : ''}${c.carried ? ' tg-cmark-carried' : ''}`
+        const attrs = { 'data-comment-id': String(c.id), class: cls, title: c.comment }
+        // 1) its own paragraph (by id), 2) anywhere -- the paragraph may have moved.
+        const block = a.block_id ? root.querySelector(`[data-block-id="${CSS.escape(a.block_id)}"]`) : null
+        let hit = block ? locateQuote(block.textContent, a.quote, a.start) : null
+        if (hit) {
+          wrapOffsets(block, hit.start, hit.end, attrs)
+        } else if ((hit = locateQuote(root.textContent, a.quote))) {
+          wrapOffsets(root, hit.start, hit.end, attrs)
+        }
+        found[c.id] = !!hit
+      })
+      setHtmlLocated(found)
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [isInAppDraft, safeDraftHtml, comments])
+
+  useEffect(() => {
+    const root = draftContentRef.current
+    if (!isInAppDraft || !root) return
+    root.querySelectorAll('mark.tg-cmark').forEach(m => m.classList.toggle('tg-cmark-active', m.dataset.commentId === String(activeCommentId)))
+  }, [isInAppDraft, activeCommentId, htmlLocated])
+
+  const handleDraftClick = e => {
+    const mark = e.target.closest?.('mark[data-comment-id]')
+    if (mark) setActiveCommentId(Number(mark.dataset.commentId))
+  }
 
   const handleSelection = ({ pageNumber: p, selectedText, anchor }) => {
     setDraft({ pageNumber: p, selectedText, anchor })
@@ -152,7 +265,11 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
 
   const handleSelectComment = c => {
     setActiveCommentId(c.id)
-    setPageNumber(c.page_number)
+    if (isInAppDraft) {
+      draftContentRef.current?.querySelector(`mark[data-comment-id="${c.id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    } else {
+      setPageNumber(pdfRelocated[c.id]?.pageNumber || c.page_number)
+    }
   }
 
   return (
@@ -230,8 +347,18 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
                     .dg-draft-content [data-page-spacer] { display: none !important; }
                   }
                 `}</style>
+                <style>{`
+                  mark.tg-cmark { background: rgba(245,195,0,0.35); color: inherit; border-radius: 2px; cursor: pointer; padding: 0; }
+                  mark.tg-cmark-resolved { background: rgba(5,150,105,0.22); }
+                  mark.tg-cmark-carried { background: rgba(245,195,0,0.22); border-bottom: 2px dashed rgba(180,130,0,0.9); }
+                  mark.tg-cmark-active { background: rgba(245,195,0,0.65); outline: 2px solid rgba(217,119,6,0.9); }
+                  @media print { mark.tg-cmark { background: none !important; outline: none !important; border: none !important; } }
+                `}</style>
+                <div ref={draftWrapRef} style={{ position: 'relative', width: `${PAGE_W}px`, margin: '0 auto' }}>
                 <div
                   ref={draftContentRef}
+                  onMouseUp={handleDraftMouseUp}
+                  onClick={handleDraftClick}
                   className="dg-draft-content dg-print-area"
                   style={{
                     boxSizing: 'border-box',
@@ -247,6 +374,10 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
                   // Student-written HTML shown to faculty: always cleaned.
                   dangerouslySetInnerHTML={{ __html: safeDraftHtml }}
                 />
+                {htmlDraft && (
+                  <CommentComposer draft={htmlDraft} onSubmit={submitHtmlDraft} onCancel={() => setHtmlDraft(null)} />
+                )}
+                </div>
               </>
             ) : canPreview ? (
               <PdfViewer
@@ -258,6 +389,8 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
                 onSelection={handleSelection}
                 onPageClick={handlePageClick}
                 annotations={annotations}
+                carried={carriedPdf}
+                onRelocated={setPdfRelocated}
                 onAnnotationClick={handleAnnotationClick}
                 activeAnnotationId={activeCommentId}
                 pendingDraft={draft}
@@ -277,6 +410,7 @@ export default function DocumentReviewViewer({ document, onClose, canResolve = f
             )}
             <CommentSidebar
               comments={comments}
+              anchorStates={anchorStates}
               currentUserId={user.id}
               canResolve={canResolve}
               onSelect={handleSelectComment}

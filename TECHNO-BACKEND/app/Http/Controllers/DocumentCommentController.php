@@ -18,17 +18,37 @@ class DocumentCommentController extends Controller {
         private ActivityBroadcastService $activity,
     ) {}
 
+    // This version's comments, plus still-unresolved comments made on EARLIER
+    // versions of the same chapter. Those keep their own document_id (the
+    // version they were made on -- comments are never moved); `origin_version`
+    // tells the viewer to look for their quoted text in this version and to
+    // flag them "anchor needs review" if it can't be found.
     public function index(Request $request, $documentId) {
         $document = Document::findOrFail($documentId);
         $this->authorizeDocumentAccess($request->user(), $document->project_id);
 
-        return response()->json(
-            DocumentComment::with('user', 'resolver')
-                ->where('document_id', $documentId)
-                ->orderBy('page_number')
-                ->orderBy('created_at')
-                ->get()
-        );
+        $earlierVersionIds = Document::where('project_id', $document->project_id)
+            ->where('type', $document->type)
+            ->where('version', '<', $document->version)
+            ->pluck('id');
+
+        $comments = DocumentComment::with('user', 'resolver', 'document:id,version')
+            ->where(fn ($q) => $q
+                ->where('document_id', $document->id)
+                ->orWhere(fn ($c) => $c
+                    ->whereIn('document_id', $earlierVersionIds)
+                    ->where('status', '!=', 'resolved')))
+            ->orderBy('page_number')
+            ->orderBy('created_at')
+            ->get()
+            ->map(function ($c) use ($document) {
+                $c->origin_version = $c->document?->version;
+                $c->carried = (int) $c->document_id !== (int) $document->id;
+                $c->unsetRelation('document');
+                return $c;
+            });
+
+        return response()->json($comments->values());
     }
 
     public function store(Request $request, $documentId) {
@@ -37,9 +57,20 @@ class DocumentCommentController extends Controller {
 
         $data = $request->validate([
             'page_number'   => 'required|integer|min:1',
-            'selected_text' => 'nullable|string',
-            'anchor'        => 'nullable|array',
-            'comment'       => 'required|string',
+            'selected_text' => 'nullable|string|max:5000',
+            // Legacy: an array of highlight boxes or an {x, y} point.
+            // v2: {v, kind, quote{exact,prefix,suffix}, start, end, rects?, block_id?}
+            // (see src/utils/commentAnchor.js).
+            'anchor'        => ['nullable', 'array', function ($attr, $value, $fail) {
+                if (strlen(json_encode($value)) > 20000) $fail('The comment anchor is too large.');
+            }],
+            'anchor.kind'         => 'sometimes|in:pdf,html',
+            'anchor.quote'        => 'sometimes|array',
+            'anchor.quote.exact'  => 'sometimes|string|max:5000',
+            'anchor.quote.prefix' => 'sometimes|nullable|string|max:200',
+            'anchor.quote.suffix' => 'sometimes|nullable|string|max:200',
+            'anchor.block_id'     => 'sometimes|nullable|string|max:64',
+            'comment'       => 'required|string|max:5000',
         ]);
         $data['document_id'] = $documentId;
         $data['user_id']     = $request->user()->id;
