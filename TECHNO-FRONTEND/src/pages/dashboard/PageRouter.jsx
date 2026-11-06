@@ -20,6 +20,7 @@ import PageChangePassword from './PageChangePassword'
 import PageEditProfile from './PageEditProfile'
 import PageMinutes from './PageMinutes'
 import PageAcademicCalendar from './PageAcademicCalendar'
+import PageCommentReview from './PageCommentReview'
 
 function PageRouter({ page, setPage, setUnreadCount, user, navTarget, clearNavTarget, onNotificationNavigate }) {
   const handleNotificationsRead = () => setUnreadCount(0)
@@ -45,6 +46,7 @@ function PageRouter({ page, setPage, setUnreadCount, user, navTarget, clearNavTa
     case 'minutes':       return <PageMinutes />
     case 'reports':       return <PageReports />
     case 'settings':      return <PageSettings />
+    case 'comments':      return <PageCommentReview user={user} onOpen={onNotificationNavigate} />
     case 'calendar':      return user?.role === 'admin' ? <PageAcademicCalendar /> : null
     case 'mygroup':       return <PageMyGroup />
     case 'notifications': return <PageNotifications onRead={handleNotificationsRead} user={user} onNavigate={onNotificationNavigate} />

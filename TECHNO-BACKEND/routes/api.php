@@ -82,6 +82,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('documents/{document}/comments', [DocumentCommentController::class, 'store']);
     Route::put('documents/{document}/comments/{comment}/resolve', [DocumentCommentController::class, 'resolve']);
     Route::delete('documents/{document}/comments/{comment}', [DocumentCommentController::class, 'destroy']);
+    Route::get('comment-review', [\App\Http\Controllers\CommentDashboardController::class, 'index']);
     // Verified comment workflow (replies, student corrections, faculty verification).
     Route::get('documents/{document}/comments/{comment}', [\App\Http\Controllers\CommentReviewController::class, 'show']);
     Route::post('documents/{document}/comments/{comment}/replies', [\App\Http\Controllers\CommentReviewController::class, 'reply']);

@@ -1,15 +1,7 @@
 import { useMemo, useState } from 'react'
 import CommentCompare from './CommentCompare'
 import DocumentDiffViewer from './DocumentDiffViewer'
-
-// Review status: label + icon + colour (never colour alone).
-const STATUS = {
-  open:                  { label: 'Needs revision',        icon: '●', bg: '#fef3c7', color: '#92400e' },
-  in_progress:           { label: 'In progress',           icon: '◐', bg: '#dbeafe', color: '#1e40af' },
-  awaiting_verification: { label: 'Awaiting verification', icon: '⧗', bg: '#ede9fe', color: '#5b21b6' },
-  resolved:              { label: 'Resolved',              icon: '✓', bg: '#d1fae5', color: '#065f46' },
-  reopened:              { label: 'Reopened',              icon: '↺', bg: '#fee2e2', color: '#991b1b' },
-}
+import { COMMENT_STATUS as STATUS } from '../../../constants/commentStatus'
 
 // Where a comment's highlight stands in the version being viewed (see
 // DocumentReviewViewer's anchorStates).
