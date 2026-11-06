@@ -62,7 +62,7 @@ const toAnnotation = (c, i) => ({
 // viewer pin comments to selected text or clicked points, and lists them in
 // a sidebar with resolve/delete actions. Shared by PageDocumentReview (adviser
 // / instructor review) and PageSubmit (student's own document view).
-export default function DocumentReviewViewer({ document, onClose, statusActions = null, onEdit = null }) {
+export default function DocumentReviewViewer({ document, onClose, statusActions = null, onEdit = null, focusCommentId = null }) {
   const { user } = useAuth()
   // Faculty raise comments; students answer in the thread (the API enforces
   // this too). Selecting text as a student just selects text.
@@ -273,6 +273,21 @@ export default function DocumentReviewViewer({ document, onClose, statusActions 
       setPageNumber(pdfRelocated[c.id]?.pageNumber || c.page_number)
     }
   }
+
+  // Opened from a comment notification: jump to that comment once it (and,
+  // for drafts, its highlight) is on screen. Once only.
+  const selectRef = useRef(handleSelectComment)
+  useEffect(() => { selectRef.current = handleSelectComment })
+  const focusedRef = useRef(null)
+  useEffect(() => {
+    if (!focusCommentId || focusedRef.current === focusCommentId) return
+    const c = comments.find(x => x.id === focusCommentId)
+    if (!c) return
+    if (isInAppDraft && c.anchor?.quote && htmlLocated[c.id] === undefined) return // highlight not drawn yet
+    focusedRef.current = focusCommentId
+    const frame = requestAnimationFrame(() => selectRef.current(c))
+    return () => cancelAnimationFrame(frame)
+  }, [focusCommentId, comments, htmlLocated, isInAppDraft])
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'stretch' }}>

@@ -11,7 +11,8 @@ function destinationFor(notification, role) {
     case 'document_status':
     case 'comment':
       if (!notification.document_id) return null
-      return { page: isStudent ? 'submit' : 'docreview', documentId: notification.document_id }
+      // comment_id: jump straight to that comment's thread and highlight.
+      return { page: isStudent ? 'submit' : 'docreview', documentId: notification.document_id, commentId: notification.comment_id || null }
     case 'title_pending':
       return { page: 'titleapproval' }
     case 'title_approved':

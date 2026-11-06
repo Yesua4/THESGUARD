@@ -37,7 +37,7 @@ function PageRouter({ page, setPage, setUnreadCount, user, navTarget, clearNavTa
     case 'similarity':    return <PageSimilarity />
     case 'schedule':      return <PageSchedule />
     case 'myschedule':    return <PageMySchedule />
-    case 'submit':        return <PageSubmit initialDocumentId={target?.documentId} onConsumeInitialDocument={clearNavTarget} />
+    case 'submit':        return <PageSubmit initialDocumentId={target?.documentId} initialCommentId={target?.commentId} onConsumeInitialDocument={clearNavTarget} />
     case 'contributions': return <PageContributions />
     case 'mycontrib':     return <PageContributions />
     case 'users':         return <PageUsers />
@@ -48,7 +48,7 @@ function PageRouter({ page, setPage, setUnreadCount, user, navTarget, clearNavTa
     case 'calendar':      return user?.role === 'admin' ? <PageAcademicCalendar /> : null
     case 'mygroup':       return <PageMyGroup />
     case 'notifications': return <PageNotifications onRead={handleNotificationsRead} user={user} onNavigate={onNotificationNavigate} />
-    case 'docreview':     return <PageDocumentReview initialDocumentId={target?.documentId} onConsumeInitialDocument={clearNavTarget} />
+    case 'docreview':     return <PageDocumentReview initialDocumentId={target?.documentId} initialCommentId={target?.commentId} onConsumeInitialDocument={clearNavTarget} />
     case 'evaluate':      return <PageEvaluate />
     case 'changepassword':return <PageChangePassword />
     case 'editprofile':   return <PageEditProfile />

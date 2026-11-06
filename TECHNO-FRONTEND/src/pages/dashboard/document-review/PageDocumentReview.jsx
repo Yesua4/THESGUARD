@@ -7,13 +7,16 @@ import { typeLabel, statusStyle, statusLabel, fileIcon, fileStyle } from '../../
 import DocumentReviewViewer from './DocumentReviewViewer'
 import { useProjectsChannel } from '../../../hooks/useProjectChannel'
 
-function PageDocumentReview({ initialDocumentId, onConsumeInitialDocument }) {
+function PageDocumentReview({ initialDocumentId, initialCommentId = null, onConsumeInitialDocument }) {
   const { user } = useAuth()
   const { showToast } = useToast()
   const [documents, setDocuments]     = useState([])
   const [projects, setProjects]       = useState([])
   const [loading, setLoading]         = useState(true)
   const [selectedDoc, setSelectedDoc] = useState(null)
+  // Opened from a comment notification: which comment to jump to.
+  const [focusCommentId, setFocusCommentId] = useState(null)
+  const [linkError, setLinkError] = useState('')
   const [docTab, setDocTab]           = useState('all') // 'all' | 'class' | 'advisory'
 
   const load = useCallback(() => {
@@ -68,7 +71,13 @@ function PageDocumentReview({ initialDocumentId, onConsumeInitialDocument }) {
   useEffect(() => {
     if (!initialDocumentId || documents.length === 0) return
     const doc = documents.find(d => d.id === initialDocumentId)
-    if (doc) setSelectedDoc(doc)
+    if (doc) {
+      setFocusCommentId(initialCommentId)
+      setSelectedDoc(doc)
+    } else {
+      // Deleted, or no longer visible to this user (e.g. reassigned).
+      setLinkError('That document is no longer available to you. It may have been deleted, or you are no longer assigned to this project.')
+    }
     onConsumeInitialDocument?.()
   }, [initialDocumentId, documents])
 
@@ -92,10 +101,17 @@ function PageDocumentReview({ initialDocumentId, onConsumeInitialDocument }) {
 
   return (
     <div>
+      {linkError && (
+        <div role="alert" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412', borderRadius: '10px', padding: '10px 14px', marginBottom: '12px', fontSize: '13px' }}>
+          <span>{linkError}</span>
+          <button onClick={() => setLinkError('')} aria-label="Dismiss" style={{ background: 'none', border: 'none', color: '#9a3412', cursor: 'pointer', fontSize: '14px' }}>✕</button>
+        </div>
+      )}
       {selectedDoc && (
         <DocumentReviewViewer
           document={selectedDoc}
-          onClose={() => setSelectedDoc(null)}
+          focusCommentId={focusCommentId}
+          onClose={() => { setSelectedDoc(null); setFocusCommentId(null) }}
           statusActions={
             (user?.role === 'adviser' || user?.role === 'instructor') ? (
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>

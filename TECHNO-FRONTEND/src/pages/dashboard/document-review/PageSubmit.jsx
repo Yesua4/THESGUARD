@@ -7,7 +7,7 @@ import DocumentReviewViewer from './DocumentReviewViewer'
 import RichTextEditor from './RichTextEditor'
 import { useProjectChannel } from '../../../hooks/useProjectChannel'
 
-function PageSubmit({ initialDocumentId, onConsumeInitialDocument }) {
+function PageSubmit({ initialDocumentId, initialCommentId = null, onConsumeInitialDocument }) {
   const { user } = useAuth()
   const [projects, setProjects]         = useState([])
   const [documents, setDocuments]       = useState([])
@@ -22,6 +22,9 @@ function PageSubmit({ initialDocumentId, onConsumeInitialDocument }) {
   const [fullScreen, setFullScreen]     = useState(false)
   const [converting, setConverting]     = useState(false)
   const [selectedDoc, setSelectedDoc]   = useState(null)
+  // Opened from a comment notification: which comment to jump to.
+  const [focusCommentId, setFocusCommentId] = useState(null)
+  const [linkError, setLinkError] = useState('')
   const [approvedProject, setApprovedProject] = useState(null)
   const [needsChoice, setNeedsChoice]   = useState(false)
   const [deletingId, setDeletingId]     = useState(null)
@@ -72,7 +75,13 @@ function PageSubmit({ initialDocumentId, onConsumeInitialDocument }) {
   useEffect(() => {
     if (!initialDocumentId || documents.length === 0) return
     const doc = documents.find(d => d.id === initialDocumentId)
-    if (doc) setSelectedDoc(doc)
+    if (doc) {
+      setFocusCommentId(initialCommentId)
+      setSelectedDoc(doc)
+    } else {
+      // Deleted, or no longer visible to this user (e.g. reassigned).
+      setLinkError('That document is no longer available to you. It may have been deleted, or you are no longer assigned to this project.')
+    }
     onConsumeInitialDocument?.()
   }, [initialDocumentId, documents])
 
@@ -211,10 +220,17 @@ function PageSubmit({ initialDocumentId, onConsumeInitialDocument }) {
 
   return (
     <div>
+      {linkError && (
+        <div role="alert" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412', borderRadius: '10px', padding: '10px 14px', marginBottom: '12px', fontSize: '13px' }}>
+          <span>{linkError}</span>
+          <button onClick={() => setLinkError('')} aria-label="Dismiss" style={{ background: 'none', border: 'none', color: '#9a3412', cursor: 'pointer', fontSize: '14px' }}>✕</button>
+        </div>
+      )}
       {selectedDoc && (
         <DocumentReviewViewer
           document={selectedDoc}
-          onClose={() => setSelectedDoc(null)}
+          focusCommentId={focusCommentId}
+          onClose={() => { setSelectedDoc(null); setFocusCommentId(null) }}
           onEdit={
             selectedDoc.file_path && !selectedDoc.file_path.endsWith('.pdf')
               ? () => { const doc = selectedDoc; setSelectedDoc(null); startEditUpload(doc) }
