@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, Fragment } from 'react'
 import api from '../../api/axios'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
+import { useProjectsChannel } from '../../hooks/useProjectChannel'
 
 function PageArchive() {
   const { user } = useAuth()
@@ -28,6 +29,12 @@ function PageArchive() {
   }, [showToast])
 
   useEffect(() => { load() }, [load])
+
+  // Live updates for whatever's already shown here (e.g. a reclassified
+  // program/adviser note on an archived record). Doesn't catch a project
+  // being archived for the FIRST time -- that needs a reload, same as
+  // before, since there's no school-wide feed to learn its id from.
+  useProjectsChannel(projects.map(p => p.id), load)
 
   const importCSV = async e => {
     e.preventDefault()

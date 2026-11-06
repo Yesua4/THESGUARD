@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import api from '../../api/axios'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
+import { useProjectChannel } from '../../hooks/useProjectChannel'
 
 // Defense minutes monitoring plus the pre-deployment and final manuscript
 // routing checklists. Reviewers record panel comments; students record the
@@ -133,6 +134,12 @@ function MinutesTab({ projectId, user }) {
 
   useEffect(() => { load() }, [load])
 
+  // Live updates: the backend already broadcasts 'minutes_updated' on
+  // every create/update/delete here (DefenseMinutesController) -- this was
+  // just never listened for, so a panel comment or action-taken update
+  // from another reviewer needed a manual reload to show up.
+  useProjectChannel(projectId, type => { if (type === 'minutes_updated') load() })
+
   const createDefense = async e => {
     e.preventDefault()
     try {
@@ -241,6 +248,11 @@ function ChecklistTab({ projectId, type, user }) {
   }, [projectId, type, showToast])
 
   useEffect(() => { load() }, [load])
+
+  // Live updates: 'checklist_updated' is already broadcast by
+  // ProjectChecklistController on every toggle/add -- this just listens
+  // for it, so another reviewer ticking an item shows up without a reload.
+  useProjectChannel(projectId, t => { if (t === 'checklist_updated') load() })
 
   const toggle = async item => {
     try { await api.put(`/checklist-items/${item.id}`, { is_done: !item.is_done }); load() }

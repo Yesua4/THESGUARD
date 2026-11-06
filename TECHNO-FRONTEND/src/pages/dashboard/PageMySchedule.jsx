@@ -1,13 +1,21 @@
 import { useState, useEffect } from 'react'
 import api from '../../api/axios'
+import { useProjectsChannel } from '../../hooks/useProjectChannel'
 
 function PageMySchedule() {
   const [schedules, setSchedules] = useState([])
   const [loading, setLoading]     = useState(true)
 
-  useEffect(() => {
-    api.get('/schedules').then(res => setSchedules(res.data)).finally(() => setLoading(false))
-  }, [])
+  const load = () => api.get('/schedules').then(res => setSchedules(res.data)).finally(() => setLoading(false))
+
+  useEffect(() => { load() }, [])
+
+  // Live updates: a schedule's own project is reached through its group
+  // (see ScheduleController::broadcastToGroupProjects on the backend --
+  // schedules are keyed by group, not project), so this is what the
+  // instructor/adviser just scheduling or rescheduling a defense actually
+  // broadcasts to. Without this, finding out meant reloading the page.
+  useProjectsChannel(schedules.flatMap(s => (s.group?.projects || []).map(p => p.id)), load)
 
   const formatDate = d => !d ? '—' : new Date(d).toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'})
   const formatTime = t => {

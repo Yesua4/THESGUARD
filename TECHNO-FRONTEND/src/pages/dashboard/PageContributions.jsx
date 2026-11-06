@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../api/axios'
+import { useProjectsChannel } from '../../hooks/useProjectChannel'
 
 function PageContributions() {
   const { user } = useAuth()
@@ -26,6 +27,14 @@ function PageContributions() {
     if (['admin','adviser','instructor'].includes(user?.role))
       api.get('/projects').then(res => setProjects(res.data))
   }, [])
+
+  // Live updates: a contribution log entry is a side effect of other
+  // actions that already broadcast (a document edit, an evaluation, a
+  // scheduled defense) -- refetch whichever project is currently selected
+  // when any of them fire on a project this list knows about. Staff-only:
+  // students don't get a `projects` list here, and the student contribution
+  // response doesn't expose project ids to subscribe to.
+  useProjectsChannel(projects.map(p => p.id), () => load(selectedProject))
   
   const fetchGithub = async (repoUrl) => {
   setGithubLoading(true)

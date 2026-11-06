@@ -1,17 +1,25 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../api/axios'
+import { useProjectsChannel } from '../../hooks/useProjectChannel'
 
 function PageMyGroup() {
   const { user } = useAuth()
   const [group, setGroup]   = useState(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  const load = useCallback(() => {
     api.get('/groups').then(res => {
       setGroup(res.data.find(g => g.members?.some(m => m.user_id === user.id)) || null)
     }).finally(() => setLoading(false))
-  }, [])
+  }, [user.id])
+
+  useEffect(() => { load() }, [load])
+
+  // Live updates: most of what changes about "my group" day to day is
+  // actually its project's status/title/documents, which already
+  // broadcast -- refresh when any of those fire instead of reloading.
+  useProjectsChannel((group?.projects || []).map(p => p.id), load)
 
   if (loading) return <div style={{ textAlign:'center', padding:'60px', color:'#94a3b8', fontSize:'13px' }}>Loading...</div>
 

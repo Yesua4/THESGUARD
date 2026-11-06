@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import api from '../../api/axios'
 import MiniCalendar from '../../components/dashboard/MiniCalendar'
 import QuickActionsWidget from '../../components/dashboard/QuickActionsWidget'
+import { useProjectsChannel } from '../../hooks/useProjectChannel'
 
 function PageDashboard({ user, onNavigate }) {
   const [stats, setStats]       = useState(null)
@@ -9,11 +10,13 @@ function PageDashboard({ user, onNavigate }) {
   const [adviserStats, setAdviserStats] = useState(null)
   const [studentStats, setStudentStats] = useState(null)
   const [panelistStats, setPanelistStats] = useState(null)
+  const [projectIds, setProjectIds] = useState([])
 
-  useEffect(() => {
+  const load = useCallback(() => {
     // Always fetch projects for activity feed
     api.get('/projects').then(res => {
       const projects = res.data
+      setProjectIds(projects.map(p => p.id))
       const total    = projects.length
       const archived = projects.filter(p => p.status === 'archived').length
       const flagged  = projects.filter(p => p.similarity_score > 60).length
@@ -53,6 +56,14 @@ function PageDashboard({ user, onNavigate }) {
         }).catch(() => {})
     }
   }, [user])
+
+  useEffect(() => { load() }, [load])
+
+  // Live updates: the overview numbers (pending titles, flagged
+  // similarity, defenses scheduled) are the first thing anyone sees on
+  // login -- refresh them whenever any project currently counted here
+  // changes, instead of only on the next full page load.
+  useProjectsChannel(projectIds, load)
 
   // Build display stats per role
   const buildStats = () => {

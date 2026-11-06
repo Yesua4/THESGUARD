@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../api/axios'
 import SimilarityBreakdown from './SimilarityBreakdown'
+import { useProjectChannel } from '../../hooks/useProjectChannel'
 
 function PageProgress() {
   const { user } = useAuth()
@@ -11,7 +12,7 @@ function PageProgress() {
   const [schedule, setSchedule]   = useState(null)
   const [loading, setLoading]     = useState(true)
 
-  useEffect(() => {
+  const load = useCallback(() => {
     Promise.all([api.get('/projects'), api.get('/groups'), api.get('/documents'), api.get('/schedules')])
       .then(([projRes, groupRes, docRes, schedRes]) => {
         setProject(projRes.data.find(p => p.members?.some(m => m.user_id === user.id)) || null)
@@ -20,7 +21,15 @@ function PageProgress() {
         setDocuments(docRes.data.filter(d => d.project_id === myProject?.id))
         setSchedule(schedRes.data[0] || null)
       }).finally(() => setLoading(false))
-  }, [])
+  }, [user.id])
+
+  useEffect(() => { load() }, [load])
+
+  // Live updates: a new document, a status change, or an evaluation on
+  // this student's own project all already broadcast -- refresh the whole
+  // progress snapshot (documents, status, similarity) when any of them
+  // fire, instead of needing a manual reload to see a chapter get approved.
+  useProjectChannel(project?.id, load)
 
   if (loading) return <div style={{ textAlign:'center', padding:'60px', color:'#94a3b8', fontSize:'13px' }}>Loading your progress...</div>
 

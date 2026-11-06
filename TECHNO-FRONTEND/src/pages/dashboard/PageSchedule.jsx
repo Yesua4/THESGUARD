@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import api from '../../api/axios'
+import { useProjectsChannel } from '../../hooks/useProjectChannel'
 
 function PageSchedule() {
   const { user } = useAuth()
@@ -20,13 +21,23 @@ function PageSchedule() {
   const [form, setForm] = useState({ group_id:'', defense_date:'', defense_time:'', venue:'', panelists:'' })
 
   const load = () => api.get('/schedules').then(res => setSchedules(res.data)).finally(() => setLoading(false))
+  const loadGroups = () => api.get('/groups').then(res => setGroups(res.data))
 
   useEffect(() => {
     load()
-    api.get('/groups').then(res => setGroups(res.data))
+    loadGroups()
     api.get('/users?role=panelist').then(res => setPanelists(res.data))
     api.get('/rooms').then(res => setRooms(res.data))
   }, [])
+
+  // Live updates: schedules have no page of their own to broadcast on --
+  // they're keyed by group, not project -- so the backend broadcasts
+  // 'schedule_updated' to every project under the group instead (see
+  // ScheduleController::broadcastToGroupProjects). Subscribing to the same
+  // projects every currently-loaded group is tied to catches that, so a
+  // defense another adviser just booked (or a conflict that just appeared)
+  // shows up here without a manual reload.
+  useProjectsChannel(groups.flatMap(g => (g.projects || []).map(p => p.id)), () => { load(); loadGroups() })
 
   const handle = e => setForm({ ...form, [e.target.name]: e.target.value })
 

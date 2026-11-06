@@ -5,16 +5,34 @@ use App\Models\Contribution;
 use App\Models\DefenseSchedule;
 use App\Models\Group;
 use App\Models\GroupMember;
+use App\Services\ActivityBroadcastService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class ScheduleController extends Controller {
 
-    public function __construct(private NotificationService $notifications) {}
+    public function __construct(
+        private NotificationService $notifications,
+        private ActivityBroadcastService $activity,
+    ) {}
+
+    // Schedules are keyed by group_id, not project_id (the create form never
+    // sends one -- see store() below), so there's no single project to
+    // broadcast to directly. A group can have more than one project in the
+    // schema, but in practice it's the group's current one; resolving
+    // through the relationship reuses the existing Project.{id} channel
+    // (and its already-correct access rule) instead of standing up a new
+    // Group.{id} channel and authorization route just for this.
+    private function broadcastToGroupProjects(?int $groupId, string $type, array $payload = []): void {
+        if (!$groupId) return;
+        Group::find($groupId)?->projects?->each(
+            fn($project) => $this->activity->broadcast($project->id, $type, $payload)
+        );
+    }
 
     public function index(Request $request) {
     $user = $request->user();
-    $query = DefenseSchedule::with(['group', 'group.members', 'group.members.user', 'adviser']);
+    $query = DefenseSchedule::with(['group', 'group.members', 'group.members.user', 'group.projects', 'adviser']);
 
     if ($user->role === 'student') {
         // Get groups the student belongs to
@@ -87,6 +105,8 @@ class ScheduleController extends Controller {
         }
     }
 
+        $this->broadcastToGroupProjects($schedule->group_id, 'schedule_updated', ['schedule_id' => $schedule->id]);
+
         return response()->json($schedule->load('group', 'adviser'), 201);
     }
 
@@ -125,18 +145,23 @@ class ScheduleController extends Controller {
         }
 
         $schedule->update($data);
+        $this->broadcastToGroupProjects($schedule->group_id, 'schedule_updated', ['schedule_id' => $schedule->id]);
         return response()->json($schedule->load('group', 'adviser'));
     }
 
     public function destroy(Request $request, $id) {
         $this->assertCanManageSchedules($request);
-        DefenseSchedule::findOrFail($id)->delete();
+        $schedule = DefenseSchedule::findOrFail($id);
+        $groupId = $schedule->group_id;
+        $scheduleId = $schedule->id;
+        $schedule->delete();
+        $this->broadcastToGroupProjects($groupId, 'schedule_updated', ['schedule_id' => $scheduleId]);
         return response()->json(['message' => 'Deleted']);
     }
 
     public function show($id) {
         return response()->json(
-            DefenseSchedule::with(['group', 'adviser'])->findOrFail($id)
+            DefenseSchedule::with(['group', 'group.projects', 'adviser'])->findOrFail($id)
         );
     }
 
