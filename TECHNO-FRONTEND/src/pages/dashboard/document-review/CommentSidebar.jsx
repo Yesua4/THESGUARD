@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import CommentCompare from './CommentCompare'
+import DocumentDiffViewer from './DocumentDiffViewer'
 
 // Review status: label + icon + colour (never colour alone).
 const STATUS = {
@@ -73,7 +75,7 @@ function Timeline({ events }) {
   )
 }
 
-function CommentCard({ c, n, active, anchorState, chapterVersions, actions, onSelect }) {
+function CommentCard({ c, n, active, anchorState, chapterVersions, actions, onSelect, onCompare }) {
   const [mode, setMode] = useState(null) // reply | submit | reject | reopen
   const [text, setText] = useState('')
   const [revisionId, setRevisionId] = useState('')
@@ -145,6 +147,10 @@ function CommentCard({ c, n, active, anchorState, chapterVersions, actions, onSe
             Correction #{a.attempt_no} · {a.submitter?.name} · revised in v{a.revision?.version ?? '?'} · {fmt(a.created_at)}
           </div>
           <div style={{ color: '#334155', whiteSpace: 'pre-wrap' }}>{a.explanation}</div>
+          <button type="button" onClick={e => { e.stopPropagation(); onCompare(c, a) }}
+            style={{ marginTop: '6px', fontSize: '11px', fontWeight: 600, color: '#1d4ed8', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+            ⇄ Compare original vs revised
+          </button>
           {a.decision !== 'pending' && (
             <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px dashed #e2e8f0', color: a.decision === 'approved' ? '#065f46' : '#991b1b' }}>
               <strong>{a.decision === 'approved' ? '✓ Approved' : '↺ Further revision requested'}</strong> by {a.decider?.name} · {fmt(a.decided_at)}
@@ -223,6 +229,7 @@ function CommentCard({ c, n, active, anchorState, chapterVersions, actions, onSe
         <div onClick={stop} style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
           {can.verify && (
             <>
+              {lastAttempt && <button type="button" onClick={() => onCompare(c, lastAttempt)} style={btn('primary')}>Review correction</button>}
               <button type="button" disabled={busy} onClick={() => { if (confirm('Approve this correction and resolve the comment?')) run(() => actions.verify(c.id, 'approve')) }} style={btn('good')}>✓ Approve &amp; resolve</button>
               <button type="button" onClick={() => setMode('reject')} style={btn('warn')}>↺ Request further revision</button>
             </>
@@ -246,6 +253,9 @@ function CommentCard({ c, n, active, anchorState, chapterVersions, actions, onSe
 export default function CommentSidebar({ comments, anchorStates = {}, chapterVersions = [], actions, onSelect, activeCommentId }) {
   const [filter, setFilter] = useState('all')
   const [sort, setSort] = useState('position')
+  const [compare, setCompare] = useState(null) // { comment, attempt }
+  const [fullDiff, setFullDiff] = useState(null) // { oldDoc, newDoc }
+  const docById = id => chapterVersions.find(v => v.id === id)
 
   const numbered = useMemo(() => comments.map((c, i) => ({ c, n: i + 1 })), [comments])
   const counts = useMemo(() => {
@@ -293,8 +303,20 @@ export default function CommentSidebar({ comments, anchorStates = {}, chapterVer
       {shown.length === 0 && <div style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center', padding: '20px 0' }}>No comments match this filter.</div>}
       {shown.map(({ c, n }) => (
         <CommentCard key={c.id} c={c} n={n} active={c.id === activeCommentId} anchorState={anchorStates[c.id]}
-          chapterVersions={chapterVersions} actions={actions} onSelect={onSelect} />
+          chapterVersions={chapterVersions} actions={actions} onSelect={onSelect}
+          onCompare={(comment, attempt) => setCompare({ comment, attempt })} />
       ))}
+      {compare && (
+        <CommentCompare
+          comment={compare.comment} attempt={compare.attempt}
+          originDoc={docById(compare.comment.document_id)} revisionDoc={docById(compare.attempt.revision_document_id)}
+          canDecide={!!compare.comment.can?.verify && compare.attempt.decision === 'pending'}
+          actions={actions} onClose={() => setCompare(null)}
+          onOpenFull={() => setFullDiff({ oldDoc: docById(compare.comment.document_id), newDoc: docById(compare.attempt.revision_document_id) })} />
+      )}
+      {fullDiff?.oldDoc && fullDiff?.newDoc && (
+        <DocumentDiffViewer oldDocument={fullDiff.oldDoc} newDocument={fullDiff.newDoc} onClose={() => setFullDiff(null)} />
+      )}
     </div>
   )
 }

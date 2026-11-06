@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { diffWords } from 'diff'
-import { extractPdfText } from '../../../utils/extractPdfText'
+import { getDocumentText } from '../../../utils/revisionExcerpt'
 
 // Compares two versions of the same document type (e.g. Chapter 1 v1 vs v2)
-// as a word-level text diff, extracted client-side from each version's
-// PDF-renderable bytes — no backend changes needed, both versions already
-// go through the same authenticated /preview endpoint as the main viewer.
+// as a word-level text diff. Text comes from utils/revisionExcerpt: in-app
+// drafts from their HTML, uploaded files from their PDF preview (the same
+// authenticated /preview endpoint the main viewer uses).
 export default function DocumentDiffViewer({ oldDocument, newDocument, onClose }) {
   const [diff, setDiff] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -16,19 +16,17 @@ export default function DocumentDiffViewer({ oldDocument, newDocument, onClose }
     setLoading(true)
     setError('')
 
-    Promise.all([
-      extractPdfText(oldDocument.id),
-      extractPdfText(newDocument.id),
-    ])
+    // In-app drafts are read from their HTML, uploads from their PDF preview.
+    Promise.all([getDocumentText(oldDocument), getDocumentText(newDocument)])
       .then(([oldText, newText]) => {
         if (cancelled) return
-        setDiff(diffWords(oldText, newText))
+        setDiff(diffWords(oldText.text, newText.text))
       })
       .catch(() => { if (!cancelled) setError('Could not compare these versions — one or both documents have no text-based preview available.') })
       .finally(() => { if (!cancelled) setLoading(false) })
 
     return () => { cancelled = true }
-  }, [oldDocument.id, newDocument.id])
+  }, [oldDocument, newDocument])
 
   const added = diff?.filter(p => p.added).length ?? 0
   const removed = diff?.filter(p => p.removed).length ?? 0
