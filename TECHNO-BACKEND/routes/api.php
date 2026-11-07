@@ -117,6 +117,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/projects/{project}/minutes', [DefenseMinutesController::class, 'store']);
     Route::delete('/minutes/{id}', [DefenseMinutesController::class, 'destroy']);
     Route::post('/minutes/{id}/items', [DefenseMinutesController::class, 'storeItem']);
+    Route::post('/minutes/{id}/import-panel-comments', [DefenseMinutesController::class, 'importPanelComments']);
     Route::put('/minute-items/{id}', [DefenseMinutesController::class, 'updateItem']);
     Route::delete('/minute-items/{id}', [DefenseMinutesController::class, 'destroyItem']);
     Route::get('/projects/{project}/checklists', [ProjectChecklistController::class, 'index']);

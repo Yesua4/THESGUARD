@@ -4,6 +4,8 @@ import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { useProjectChannel } from '../../hooks/useProjectChannel'
+import PrintMinutes from '../../components/dashboard/PrintMinutes'
+import { DEFENSE_TYPE_LABEL } from '../../constants/defense'
 
 // Defense minutes monitoring plus the pre-deployment and final manuscript
 // routing checklists. Reviewers record panel comments; students record the
@@ -11,7 +13,8 @@ import { useProjectChannel } from '../../hooks/useProjectChannel'
 // role responsible for them.
 
 const STAFF = ['admin', 'instructor', 'adviser', 'panelist']
-const DEFENSE_TYPES = { outline: 'Outline Defense', pre_deployment: 'Pre-deployment Defense', final: 'Final Defense' }
+const DEFENSE_TYPES = { title: 'Title Defense', outline: 'Outline Defense', pre_deployment: 'Pre-deployment Defense', final: 'Final Defense' }
+const PANEL_ROLES = [['chair', 'Panel Chair'], ['member1', 'Panel Member 1'], ['member2', 'Panel Member 2'], ['adviser', 'Adviser']]
 const ROLE_LABELS = { student: 'Students', adviser: 'Adviser', panelist: 'Panel', instructor: 'Capstone Instructor', admin: 'Dean / Admin' }
 const STATUS_STYLE = {
   pending:   { label: 'Pending',   background: '#fef3c7', color: '#92400e' },
@@ -29,7 +32,7 @@ const inputStyle = { border:'1.5px solid #e2e8f0', borderRadius:'8px', padding:'
 const btn = (bg, color = '#fff') => ({ background:bg, color, border:'none', borderRadius:'8px', padding:'7px 14px', fontSize:'12px', fontWeight:'700', cursor:'pointer' })
 const formatDate = d => d ? new Date(d).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : ''
 
-function MinuteItemRow({ item, isStaff, onSaved, onDelete }) {
+function MinuteItemRow({ item, isStaff, canEdit, onSaved, onDelete }) {
   const { showToast } = useToast()
   const [action, setAction] = useState(item.action_taken || '')
   const [saving, setSaving] = useState(false)
@@ -76,7 +79,7 @@ function MinuteItemRow({ item, isStaff, onSaved, onDelete }) {
               <button disabled={saving} onClick={() => save({ status: 'pending' })} style={btn('#fff', '#b45309')}>Return</button>
             </>
           )}
-          {isStaff && <button onClick={() => onDelete(item.id)} style={btn('#fff', '#dc2626')}>Delete</button>}
+          {canEdit && <button onClick={() => onDelete(item.id)} style={btn('#fff', '#dc2626')}>Delete</button>}
         </div>
       </td>
       <td style={{ padding:'10px 12px' }}>
@@ -88,15 +91,21 @@ function MinuteItemRow({ item, isStaff, onSaved, onDelete }) {
   )
 }
 
-function AddCommentForm({ minuteId, defaultName, onAdded }) {
+// The adviser writes the minutes. Choosing the role fills in that person's
+// name from the defense's panel (it can still be changed).
+function AddCommentForm({ minute, project, onAdded }) {
   const { showToast } = useToast()
-  const [form, setForm] = useState({ panelist_name: defaultName, panelist_role: 'Panel Member', page_no: '', comment: '' })
+  const nameFor = role => role === 'adviser'
+    ? (project?.adviser?.name || project?.group?.adviser?.name || '')
+    : (minute.schedule?.panel?.find(p => p.role === role)?.user?.name || '')
+  const [form, setForm] = useState(() => ({ panel_role: 'chair', panelist_name: nameFor('chair'), page_no: '', comment: '' }))
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const pickRole = role => setForm(f => ({ ...f, panel_role: role, panelist_name: nameFor(role) }))
 
   const submit = async e => {
     e.preventDefault()
     try {
-      await api.post(`/minutes/${minuteId}/items`, form)
+      await api.post(`/minutes/${minute.id}/items`, { ...form, panelist_name: form.panelist_name.trim() || undefined })
       setForm(f => ({ ...f, page_no: '', comment: '' }))
       onAdded()
     } catch (err) {
@@ -106,12 +115,10 @@ function AddCommentForm({ minuteId, defaultName, onAdded }) {
 
   return (
     <form onSubmit={submit} style={{ display:'flex', gap:'8px', flexWrap:'wrap', marginTop:'10px', paddingTop:'10px', borderTop:'1px dashed #e2e8f0' }}>
-      <input value={form.panelist_name} onChange={e => set('panelist_name', e.target.value)} placeholder="Panelist name" style={{ ...inputStyle, width:'180px' }} required />
-      <select value={form.panelist_role} onChange={e => set('panelist_role', e.target.value)} style={inputStyle}>
-        <option>Panel Chairman</option>
-        <option>Panel Member</option>
-        <option>Adviser</option>
+      <select value={form.panel_role} onChange={e => pickRole(e.target.value)} style={inputStyle} aria-label="Panelist role">
+        {PANEL_ROLES.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
       </select>
+      <input value={form.panelist_name} onChange={e => set('panelist_name', e.target.value)} placeholder="Name" style={{ ...inputStyle, width:'180px' }} aria-label="Panelist name" />
       <input value={form.page_no} onChange={e => set('page_no', e.target.value)} placeholder="Page no." style={{ ...inputStyle, width:'80px' }} />
       <input value={form.comment} onChange={e => set('comment', e.target.value)} placeholder="Comment / suggestion / recommendation" style={{ ...inputStyle, flex:1, minWidth:'220px' }} required />
       <button type="submit" style={btn('linear-gradient(135deg,#0a1f44,#1040a0)')}>+ Add comment</button>
@@ -119,12 +126,18 @@ function AddCommentForm({ minuteId, defaultName, onAdded }) {
   )
 }
 
-function MinutesTab({ projectId, user }) {
+function MinutesTab({ project, user }) {
+  const projectId = project.id
   const { showToast } = useToast()
   const isStaff = STAFF.includes(user.role)
+  // The group's adviser keeps the minutes (the admin can too).
+  const isKeeper = user.role === 'admin' || (user.role === 'adviser' && [project.adviser_id, project.group?.adviser_id].includes(user.id))
   const [minutes, setMinutes] = useState([])
+  const [defenses, setDefenses] = useState([])
   const [loading, setLoading] = useState(true)
-  const [newDefense, setNewDefense] = useState({ defense_type: 'outline', defense_date: '' })
+  const [newDefense, setNewDefense] = useState({ defense_schedule_id: '', defense_type: 'outline', defense_date: '' })
+  const [printing, setPrinting] = useState(null)
+  const [importing, setImporting] = useState(null)
 
   const load = useCallback(() => {
     api.get(`/projects/${projectId}/minutes`)
@@ -133,23 +146,46 @@ function MinutesTab({ projectId, user }) {
       .finally(() => setLoading(false))
   }, [projectId, showToast])
 
-  useEffect(() => { load() }, [load])
+  // Scheduled defenses (with their panels), so the minutes can be linked to one.
+  const loadDefenses = useCallback(() => {
+    if (!isKeeper) return
+    api.get(`/projects/${projectId}/panel-comments`).then(res => setDefenses(res.data.defenses || [])).catch(() => {})
+  }, [projectId, isKeeper])
 
-  // Live updates: the backend already broadcasts 'minutes_updated' on
-  // every create/update/delete here (DefenseMinutesController) -- this was
-  // just never listened for, so a panel comment or action-taken update
-  // from another reviewer needed a manual reload to show up.
+  useEffect(() => { load() }, [load])
+  useEffect(() => { loadDefenses() }, [loadDefenses])
+
+  // Live updates: 'minutes_updated' is broadcast on every change here.
   useProjectChannel(projectId, type => { if (type === 'minutes_updated') load() })
   useSchoolActivity(['minutes'], load)
+  useSchoolActivity(['schedules'], loadDefenses)
+
+  const unlinked = defenses.filter(d => !minutes.some(m => m.defense_schedule_id === d.id))
+  const pickedDefense = newDefense.defense_schedule_id || String(unlinked[0]?.id ?? '')
 
   const createDefense = async e => {
     e.preventDefault()
+    const body = pickedDefense
+      ? { defense_schedule_id: Number(pickedDefense) }
+      : { defense_type: newDefense.defense_type, defense_date: newDefense.defense_date || null }
     try {
-      await api.post(`/projects/${projectId}/minutes`, { ...newDefense, defense_date: newDefense.defense_date || null })
+      await api.post(`/projects/${projectId}/minutes`, body)
+      setNewDefense(d => ({ ...d, defense_schedule_id: '' }))
       load()
     } catch (err) {
-      showToast(err.response?.data?.message || 'Could not record the defense.')
+      showToast(err.response?.data?.message || 'Could not create the minutes.')
     }
+  }
+
+  const importComments = async m => {
+    setImporting(m.id)
+    try {
+      const res = await api.post(`/minutes/${m.id}/import-panel-comments`)
+      showToast(res.data.imported ? `Added ${res.data.imported} comment${res.data.imported === 1 ? '' : 's'} from the panel.` : 'No new panel comments to add.', 'success')
+      load()
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Could not add the panel comments.')
+    } finally { setImporting(null) }
   }
 
   const deleteItem = async id => {
@@ -180,24 +216,39 @@ function MinutesTab({ projectId, user }) {
         ))}
       </div>
 
-      {isStaff && (
+      {isKeeper && (
         <form onSubmit={createDefense} style={{ ...card, display:'flex', gap:'10px', alignItems:'center', flexWrap:'wrap' }}>
-          <div style={{ fontSize:'13px', fontWeight:'700', color:'#0a1f44', marginRight:'6px' }}>Record a defense</div>
-          <select value={newDefense.defense_type} onChange={e => setNewDefense(d => ({ ...d, defense_type: e.target.value }))} style={inputStyle}>
-            {Object.entries(DEFENSE_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          <div style={{ fontSize:'13px', fontWeight:'700', color:'#0a1f44', marginRight:'6px' }}>Create minutes for</div>
+          <select value={pickedDefense} onChange={e => setNewDefense(d => ({ ...d, defense_schedule_id: e.target.value }))} style={inputStyle} aria-label="Defense">
+            {unlinked.map(d => (
+              <option key={d.id} value={d.id}>{DEFENSE_TYPE_LABEL[d.defense_type] || 'Defense'} — {formatDate(d.defense_date)}</option>
+            ))}
+            <option value="">A defense that isn't scheduled here…</option>
           </select>
-          <input type="date" value={newDefense.defense_date} onChange={e => setNewDefense(d => ({ ...d, defense_date: e.target.value }))} style={inputStyle} />
+          {!pickedDefense && (
+            <>
+              <select value={newDefense.defense_type} onChange={e => setNewDefense(d => ({ ...d, defense_type: e.target.value }))} style={inputStyle} aria-label="Defense type">
+                {Object.entries(DEFENSE_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+              <input type="date" value={newDefense.defense_date} onChange={e => setNewDefense(d => ({ ...d, defense_date: e.target.value }))} style={inputStyle} aria-label="Defense date" />
+            </>
+          )}
           <button type="submit" style={btn('linear-gradient(135deg,#0a1f44,#1040a0)')}>+ Create minutes</button>
         </form>
+      )}
+      {isStaff && !isKeeper && (
+        <div style={{ ...card, fontSize:'12px', color:'#64748b' }}>
+          The group's adviser writes the minutes. Panelists add their comments under <b>Panel Comments</b>; you can still verify the actions taken here.
+        </div>
       )}
 
       {minutes.length === 0 ? (
         <div style={{ ...card, textAlign:'center', padding:'40px', color:'#94a3b8', fontSize:'13px' }}>
-          No defense minutes recorded yet.{isStaff ? ' Create minutes above to start adding panel comments.' : ' Your adviser or panel will add them after your defense.'}
+          No defense minutes recorded yet.{isKeeper ? ' Create minutes above to start adding the panel\'s comments.' : ' Your adviser will add them after your defense.'}
         </div>
       ) : minutes.map(m => (
         <div key={m.id} style={card}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'10px' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'10px', gap:'8px', flexWrap:'wrap' }}>
             <div>
               <div style={{ fontSize:'14px', fontWeight:'700', color:'#0a1f44' }}>{DEFENSE_TYPES[m.defense_type] || m.defense_type} Minutes</div>
               <div style={{ fontSize:'11px', color:'#94a3b8' }}>
@@ -205,8 +256,16 @@ function MinutesTab({ projectId, user }) {
                 {m.recorder && ` · recorded by ${m.recorder.name}`}
               </div>
             </div>
-            {['admin', 'instructor'].includes(user.role) || m.recorded_by === user.id
-              ? <button onClick={() => deleteMinute(m.id)} style={btn('#fff', '#dc2626')}>Delete minutes</button> : null}
+            <div style={{ display:'flex', gap:'6px', flexWrap:'wrap' }}>
+              {isKeeper && m.defense_schedule_id && (
+                <button disabled={importing === m.id} onClick={() => importComments(m)} style={btn('#fff', '#5b21b6')} title="Copy each panelist's comments from Panel Comments into these minutes">
+                  {importing === m.id ? 'Adding…' : '⇣ Fill from panel comments'}
+                </button>
+              )}
+              <button onClick={() => setPrinting(m)} style={btn('#fff', '#0a1f44')}>🖨 Print / PDF</button>
+              {['admin', 'instructor'].includes(user.role) || m.recorded_by === user.id
+                ? <button onClick={() => deleteMinute(m.id)} style={btn('#fff', '#dc2626')}>Delete minutes</button> : null}
+            </div>
           </div>
           {(m.items || []).length === 0 ? (
             <div style={{ fontSize:'12px', color:'#94a3b8', padding:'8px 0' }}>No comments yet.</div>
@@ -222,15 +281,16 @@ function MinutesTab({ projectId, user }) {
                 </thead>
                 <tbody>
                   {m.items.map(item => (
-                    <MinuteItemRow key={`${item.id}-${item.updated_at}`} item={item} isStaff={isStaff} onSaved={load} onDelete={deleteItem} />
+                    <MinuteItemRow key={`${item.id}-${item.updated_at}`} item={item} isStaff={isStaff} canEdit={isKeeper} onSaved={load} onDelete={deleteItem} />
                   ))}
                 </tbody>
               </table>
             </div>
           )}
-          {isStaff && <AddCommentForm minuteId={m.id} defaultName={user.name} onAdded={load} />}
+          {isKeeper && <AddCommentForm key={`${m.id}-${m.schedule?.id ?? ''}`} minute={m} project={project} onAdded={load} />}
         </div>
       ))}
+      {printing && <PrintMinutes project={project} minute={minutes.find(m => m.id === printing.id) || printing} onClose={() => setPrinting(null)} />}
     </div>
   )
 }
@@ -393,7 +453,7 @@ function PageMinutes() {
           </div>
 
           {projectId && (tab === 'minutes'
-            ? <MinutesTab key={projectId} projectId={projectId} user={user} />
+            ? <MinutesTab key={projectId} project={projects.find(p => p.id === projectId)} user={user} />
             : <ChecklistTab key={`${projectId}-${tab}`} projectId={projectId} type={tab} user={user} />)}
         </>
       )}

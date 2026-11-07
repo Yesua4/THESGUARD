@@ -4,7 +4,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class MinuteItem extends Model {
     protected $fillable = [
-        'defense_minute_id', 'panelist_name', 'panelist_role', 'page_no', 'comment',
+        'defense_minute_id', 'panel_comment_id', 'panelist_name', 'panelist_role', 'panel_role', 'page_no', 'comment',
         'action_taken', 'status', 'addressed_by', 'addressed_at', 'verified_by', 'verified_at', 'created_by',
     ];
     protected $casts = [
