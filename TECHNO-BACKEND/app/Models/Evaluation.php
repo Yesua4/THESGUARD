@@ -16,7 +16,23 @@ class Evaluation extends Model
         'overall_score',
         'recommendation',
         'remarks',
+        'defense_schedule_id',
+        'individual_scores',
+        'group_documentation',
+        'group_software',
+        'group_total',
+        'verdict',
+        'comply_by',
     ];
+
+    protected $casts = [
+        'individual_scores' => 'array',
+        'comply_by'         => 'date:Y-m-d',
+    ];
+
+    public function schedule() {
+        return $this->belongsTo(DefenseSchedule::class, 'defense_schedule_id');
+    }
 
     public function panelist() {
         return $this->belongsTo(User::class, 'panelist_id');

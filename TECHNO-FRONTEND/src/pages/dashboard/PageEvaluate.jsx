@@ -1,195 +1,278 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import api from '../../api/axios'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useProjectChannel } from '../../hooks/useProjectChannel'
+import { DEFENSE_TYPE_LABEL, PANEL_ROLE_LABEL } from '../../constants/defense'
+import { INDIVIDUAL_CRITERIA, GROUP_CRITERIA, VERDICTS, VERDICT_LABEL, verdictStyle } from '../../constants/evaluation'
+import PrintEvaluationSheet from '../../components/dashboard/PrintEvaluationSheet'
+
+// Panelist evaluation, following the school's defense evaluation sheet:
+// individual grade per presenter (Disposition 30 + Delivery 70), group grade
+// (Documentation 50 + Software 50), and a verdict. One per defense.
+const blankForm = members => ({
+  individual: Object.fromEntries((members || []).map(m => [m.user_id, { disposition: '', delivery: '' }])),
+  documentation: '', software: '', verdict: '', comply_by: '', remarks: '',
+})
 
 function PageEvaluate() {
   const { user } = useAuth()
   const { showToast } = useToast()
   const [projects, setProjects] = useState([])
-  const [loading, setLoading]   = useState(true)
+  const [schedules, setSchedules] = useState([])
+  const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
+  const [scheduleId, setScheduleId] = useState('')
   const [evaluations, setEvaluations] = useState([])
-  const [saving, setSaving]     = useState(false)
-  const [success, setSuccess]   = useState('')
-  const [form, setForm] = useState({
-    presentation_score:'', technical_score:'', documentation_score:'', qa_score:'', remarks:'', recommendation:'revision'
-  })
+  const [saving, setSaving] = useState(false)
+  const [success, setSuccess] = useState('')
+  const [form, setForm] = useState(blankForm([]))
+  const [printing, setPrinting] = useState(null) // an evaluation to print
+  const [showGuide, setShowGuide] = useState(false)
 
   const loadProjects = () => api.get('/projects').then(res => {
     setProjects(res.data.filter(p => p.status === 'for_defense' || p.status === 'approved'))
   }).finally(() => setLoading(false))
+  const loadSchedules = () => api.get('/schedules').then(res => setSchedules(res.data)).catch(() => {})
+  const loadEvaluations = id => api.get(`/evaluations/project/${id}`).then(res => setEvaluations(res.data))
 
-  useEffect(() => { loadProjects() }, [])
-
-  // Live: projects moving to/from "for defense", and evaluations on the
-  // open project, from anyone in the school.
+  useEffect(() => { loadProjects(); loadSchedules() }, [])
   useSchoolActivity(['projects', 'evaluations', 'schedules'], () => {
-    loadProjects()
-    if (selected?.id) api.get(`/evaluations/project/${selected.id}`).then(res => setEvaluations(res.data))
+    loadProjects(); loadSchedules()
+    if (selected?.id) loadEvaluations(selected.id)
   })
+  useProjectChannel(selected?.id, type => { if (type === 'evaluation_submitted') loadEvaluations(selected.id) })
 
-  // Live updates while a project is open: see other panelists' evaluations
-  // land in real time, so it's clear when everyone's submitted without
-  // needing to reopen the project.
-  useProjectChannel(selected?.id, type => {
-    if (type === 'evaluation_submitted') {
-      api.get(`/evaluations/project/${selected.id}`).then(res => setEvaluations(res.data))
+  // Defenses of the open project's group, newest first; mine first.
+  const defenses = useMemo(() => !selected ? [] : schedules
+    .filter(s => (selected.group_id && s.group_id === selected.group_id) || s.project_id === selected.id)
+    .sort((a, b) => String(b.defense_date).localeCompare(String(a.defense_date))), [selected, schedules])
+  const onPanel = s => (s.panel || []).some(p => p.user_id === user.id) || (s.panelists || '').toLowerCase().split(',').map(x => x.trim()).includes((user.name || '').toLowerCase())
+  const schedule = defenses.find(s => String(s.id) === String(scheduleId))
+  const myRole = schedule?.panel?.find(p => p.user_id === user.id)?.role
+  const forThisDefense = evaluations.filter(e => String(e.defense_schedule_id) === String(scheduleId))
+  const mine = forThisDefense.find(e => e.panelist_id === user.id)
+
+  const fillFrom = (evaluation, members) => {
+    const f = blankForm(members)
+    if (evaluation) {
+      (evaluation.individual_scores || []).forEach(r => { f.individual[r.user_id] = { disposition: String(r.disposition), delivery: String(r.delivery) } })
+      Object.assign(f, {
+        documentation: String(evaluation.group_documentation ?? ''), software: String(evaluation.group_software ?? ''),
+        verdict: evaluation.verdict || '', comply_by: evaluation.comply_by || '', remarks: evaluation.remarks || '',
+      })
     }
-  })
+    setForm(f)
+  }
 
   const openProject = async p => {
     setSelected(p); setSuccess('')
     const res = await api.get(`/evaluations/project/${p.id}`)
     setEvaluations(res.data)
-    const mine = res.data.find(e => String(e.panelist_id) === String(user.id))
-    setForm(mine ? {
-      presentation_score: mine.presentation_score, technical_score: mine.technical_score,
-      documentation_score: mine.documentation_score, qa_score: mine.qa_score,
-      remarks: mine.remarks || '', recommendation: mine.recommendation
-    } : { presentation_score:'', technical_score:'', documentation_score:'', qa_score:'', remarks:'', recommendation:'revision' })
+    const mineFirst = schedules.filter(s => (p.group_id && s.group_id === p.group_id) || s.project_id === p.id)
+      .sort((a, b) => Number(onPanel(b)) - Number(onPanel(a)) || String(b.defense_date).localeCompare(String(a.defense_date)))
+    const sid = mineFirst[0]?.id ? String(mineFirst[0].id) : ''
+    setScheduleId(sid)
+    fillFrom(res.data.find(e => String(e.defense_schedule_id) === sid && e.panelist_id === user.id), p.members)
   }
+
+  const chooseDefense = sid => {
+    setScheduleId(sid); setSuccess('')
+    fillFrom(evaluations.find(e => String(e.defense_schedule_id) === sid && e.panelist_id === user.id), selected.members)
+  }
+
+  const num = v => (v === '' || v === null || v === undefined ? NaN : parseFloat(v))
+  const indivTotal = id => { const r = form.individual[id] || {}; const t = num(r.disposition) + num(r.delivery); return Number.isNaN(t) ? '—' : t.toFixed(2).replace(/\.00$/, '') }
+  const groupTotal = () => { const t = num(form.documentation) + num(form.software); return Number.isNaN(t) ? '—' : t.toFixed(2).replace(/\.00$/, '') }
 
   const submit = async e => {
-    e.preventDefault(); setSaving(true)
+    e.preventDefault()
+    if (!form.verdict) { showToast('Choose a verdict.'); return }
+    setSaving(true)
     try {
-      await api.post('/evaluations', { ...form, project_id: selected.id })
-      setSuccess('Evaluation submitted successfully!')
-      const res = await api.get(`/evaluations/project/${selected.id}`)
-      setEvaluations(res.data)
-    } catch { showToast('Error submitting evaluation.') }
-    finally { setSaving(false) }
+      await api.post('/evaluations', {
+        project_id: selected.id, defense_schedule_id: Number(scheduleId),
+        individual: (selected.members || []).map(m => ({ user_id: m.user_id, disposition: num(form.individual[m.user_id]?.disposition), delivery: num(form.individual[m.user_id]?.delivery) })),
+        documentation: num(form.documentation), software: num(form.software),
+        verdict: form.verdict, comply_by: form.verdict === 'conditional' ? form.comply_by : null, remarks: form.remarks,
+      })
+      setSuccess('Evaluation saved.')
+      loadEvaluations(selected.id)
+    } catch (err) {
+      const errs = err.response?.data?.errors
+      showToast(errs ? Object.values(errs)[0][0] : (err.response?.data?.message || 'Error submitting evaluation.'))
+    } finally { setSaving(false) }
   }
 
-  const overall = () => {
-    const vals = [parseFloat(form.presentation_score), parseFloat(form.technical_score), parseFloat(form.documentation_score), parseFloat(form.qa_score)]
-    if (vals.some(isNaN)) return '—'
-    return (vals.reduce((a,b) => a+b, 0) / 4).toFixed(2)
-  }
-
-  const scoreColor = s => s >= 90 ? '#059669' : s >= 75 ? '#1d4ed8' : s >= 60 ? '#d97706' : '#dc2626'
-  const recStyle   = r => r==='passed' ? { background:'#d1fae5',color:'#065f46' } : r==='failed' ? { background:'#fee2e2',color:'#9f1239' } : { background:'#fef3c7',color:'#92400e' }
-  const verdictLabel = { passed:'✓ Passed', failed:'✗ Failed', revision:'↩ Needs Revision', pending:'Awaiting all panelists' }
-  const verdictStyle = v => v==='passed' ? { background:'#d1fae5',color:'#065f46' } : v==='failed' ? { background:'#fee2e2',color:'#9f1239' } : v==='revision' ? { background:'#fef3c7',color:'#92400e' } : { background:'#f1f5f9',color:'#64748b' }
+  const input = { border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '7px 8px', fontSize: '13px', outline: 'none', background: '#f8fafc', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box', textAlign: 'center' }
+  const head = { fontSize: '10px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '8px' }
+  const th = { fontSize: '11px', fontWeight: 700, color: '#64748b', padding: '6px', textAlign: 'center', borderBottom: '1px solid #e2e8f0' }
+  const td = { padding: '6px', borderBottom: '1px solid #f1f5f9', fontSize: '12px', color: '#334155' }
+  const scoreInput = (value, max, onChange, label) => (
+    <input type="number" min="0" max={max} step="0.5" value={value} onChange={e => onChange(e.target.value)} required aria-label={label} style={input} />
+  )
 
   return (
     <div>
+      {printing && selected && (
+        <PrintEvaluationSheet project={selected} schedule={defenses.find(s => s.id === printing.defense_schedule_id)} evaluation={printing}
+          panelistName={printing.panelist?.name} onClose={() => setPrinting(null)} />
+      )}
+
       {selected && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(10,31,68,0.35)', zIndex:50, display:'flex', alignItems:'flex-start', justifyContent:'flex-end' }}>
-          <div style={{ width:'min(520px, 96vw)', height:'100vh', background:'#fff', overflowY:'auto', boxShadow:'-8px 0 32px rgba(0,0,0,0.12)' }}>
-
-            <div style={{ background:'linear-gradient(135deg,#0a1f44,#1040a0)', padding:'20px' }}>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                <div>
-                  <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.5)', fontWeight:'700', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'4px' }}>Evaluate Project</div>
-                  <div style={{ fontSize:'14px', fontWeight:'700', color:'#fff', lineHeight:'1.4' }}>{selected.title}</div>
-                  <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.55)', marginTop:'2px' }}>{selected.batch || 'No batch'}</div>
-                </div>
-                <button onClick={() => setSelected(null)} style={{ background:'rgba(255,255,255,0.15)', border:'none', color:'#fff', width:'28px', height:'28px', borderRadius:'6px', cursor:'pointer', fontSize:'14px', flexShrink:0 }}>✕</button>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,31,68,0.35)', zIndex: 50, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end' }}>
+          <div style={{ width: 'min(640px, 96vw)', height: '100vh', background: '#fff', overflowY: 'auto', boxShadow: '-8px 0 32px rgba(0,0,0,0.12)' }}>
+            <div style={{ background: 'linear-gradient(135deg,#0a1f44,#1040a0)', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', fontWeight: '700', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '4px' }}>Defense Evaluation</div>
+                <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', lineHeight: '1.4' }}>{selected.title}</div>
               </div>
-              <div style={{ marginTop:'10px' }}>
-                <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'700', ...verdictStyle(selected.defense_verdict) }}>
-                  🎓 Defense: {verdictLabel[selected.defense_verdict] || verdictLabel.pending}
-                </span>
-              </div>
+              <button onClick={() => setSelected(null)} aria-label="Close" style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: '28px', height: '28px', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', flexShrink: 0 }}>✕</button>
             </div>
 
-            {/* Members */}
-            <div style={{ padding:'14px 20px', borderBottom:'1px solid #f8fafc' }}>
-              <div style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'8px' }}>Group Members</div>
-              <div style={{ display:'flex', flexWrap:'wrap', gap:'6px' }}>
-                {selected.members?.map(m => (
-                  <div key={m.id} style={{ display:'flex', alignItems:'center', gap:'6px', background:'#f8fafc', borderRadius:'20px', padding:'4px 10px 4px 4px' }}>
-                    <div style={{ width:'22px', height:'22px', borderRadius:'50%', background:'#dbeafe', color:'#1d4ed8', fontSize:'9px', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'700' }}>
-                      {m.user?.name?.split(' ').map(x=>x[0]).join('').slice(0,2)}
-                    </div>
-                    <span style={{ fontSize:'12px', color:'#334155', fontWeight:'500' }}>{m.user?.name}</span>
-                    {m.is_leader && <span style={{ fontSize:'10px', color:'#6d28d9' }}>★</span>}
-                  </div>
-                ))}
-              </div>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid #f8fafc' }}>
+              <label style={head} htmlFor="ev-defense">Which defense</label>
+              {defenses.length === 0 ? (
+                <div style={{ fontSize: '12px', color: '#d97706' }}>This group has no defense scheduled yet.</div>
+              ) : (
+                <select id="ev-defense" value={scheduleId} onChange={e => chooseDefense(e.target.value)} style={{ ...input, textAlign: 'left' }}>
+                  {defenses.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {DEFENSE_TYPE_LABEL[s.defense_type] || 'Defense'} — {new Date(s.defense_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}{onPanel(s) ? '' : ' (not on your panel)'}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {schedule?.verdict && (
+                <div style={{ marginTop: '8px' }}>
+                  <span style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '20px', fontWeight: 700, ...verdictStyle(schedule.verdict) }}>Panel verdict: {VERDICT_LABEL[schedule.verdict]}</span>
+                </div>
+              )}
             </div>
 
-            {/* Scoring */}
-            <div style={{ padding:'16px 20px', borderBottom:'1px solid #f8fafc' }}>
-              <div style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'12px' }}>Scoring (0–100 per category)</div>
-              {success && <div style={{ background:'#d1fae5', border:'1px solid #a7f3d0', borderRadius:'8px', padding:'10px 14px', marginBottom:'12px', fontSize:'13px', color:'#065f46', fontWeight:'600' }}>✅ {success}</div>}
+            {schedule && (onPanel(schedule) || user.role === 'admin' || user.base_role === 'admin') ? (
+              <form onSubmit={submit} style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '16px', borderBottom: '1px solid #f8fafc' }}>
+                {myRole && <div style={{ fontSize: '12px', color: '#5b21b6', fontWeight: 600 }}>You are the {PANEL_ROLE_LABEL[myRole]} for this defense.</div>}
+                {success && <div role="status" style={{ background: '#d1fae5', border: '1px solid #a7f3d0', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#065f46', fontWeight: '600' }}>✅ {success}</div>}
 
-              <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
-                {[
-                  ['presentation_score', '🎤 Presentation & Delivery'],
-                  ['technical_score',    '⚙️ Technical Competency'],
-                  ['documentation_score','📄 Documentation Quality'],
-                  ['qa_score',          '❓ Q&A / Defense'],
-                ].map(([field, label]) => (
-                  <div key={field}>
-                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'6px' }}>
-                      <label style={{ fontSize:'12px', color:'#334155', fontWeight:'500' }}>{label}</label>
-                      <span style={{ fontSize:'14px', fontWeight:'800', color:scoreColor(parseFloat(form[field])) }}>{form[field] || '—'}</span>
-                    </div>
-                    <input type="range" min="0" max="100" step="1" value={form[field] || 0}
-                      onChange={e => setForm({...form, [field]:e.target.value})}
-                      style={{ width:'100%', accentColor:'#1d4ed8' }} />
-                    <div style={{ display:'flex', justifyContent:'space-between', fontSize:'10px', color:'#cbd5e1', marginTop:'2px' }}>
-                      <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
-                    </div>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={head}>Individual grade (100%) — per presenter</div>
+                    <button type="button" onClick={() => setShowGuide(v => !v)} aria-expanded={showGuide} style={{ fontSize: '11px', fontWeight: 700, color: '#1d4ed8', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                      {showGuide ? 'Hide criteria' : 'ⓘ Show criteria'}
+                    </button>
                   </div>
-                ))}
+                  {showGuide && (
+                    <div style={{ fontSize: '11px', color: '#475569', background: '#f8fafc', borderRadius: '8px', padding: '8px 12px', marginBottom: '8px', lineHeight: 1.6 }}>
+                      {INDIVIDUAL_CRITERIA.map(c => (
+                        <div key={c.key} style={{ marginBottom: '4px' }}>
+                          <strong>{c.label} ({c.max}%)</strong>
+                          {c.points && <div>{c.points.join(' · ')}</div>}
+                          {c.groups && c.groups.map(([g, pts]) => <div key={g}><em>{g}:</em> {pts.join(' · ')}</div>)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr>
+                        <th style={{ ...th, textAlign: 'left' }}>Presenter</th>
+                        {INDIVIDUAL_CRITERIA.map(c => <th key={c.key} style={th}>{c.label}<br /><span style={{ fontWeight: 400 }}>max {c.max}</span></th>)}
+                        <th style={th}>Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(selected.members || []).map(m => (
+                        <tr key={m.user_id}>
+                          <td style={td}>{m.user?.name}</td>
+                          {INDIVIDUAL_CRITERIA.map(c => (
+                            <td key={c.key} style={{ ...td, width: '22%' }}>
+                              {scoreInput(form.individual[m.user_id]?.[c.key] ?? '', c.max,
+                                v => setForm(f => ({ ...f, individual: { ...f.individual, [m.user_id]: { ...f.individual[m.user_id], [c.key]: v } } })),
+                                `${c.label} for ${m.user?.name}`)}
+                            </td>
+                          ))}
+                          <td style={{ ...td, textAlign: 'center', fontWeight: 800, color: '#0a1f44' }}>{indivTotal(m.user_id)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
-                {/* Overall score */}
-                <div style={{ background:'linear-gradient(135deg,#0a1f44,#1040a0)', borderRadius:'12px', padding:'16px', textAlign:'center' }}>
-                  <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)', fontWeight:'600', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:'4px' }}>Overall Score (Average)</div>
-                  <div style={{ fontSize:'36px', fontWeight:'800', color: isNaN(parseFloat(overall())) ? 'rgba(255,255,255,0.4)' : '#f5c300' }}>
-                    {overall()}
+                <div>
+                  <div style={head}>Group grade (100%)</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 90px', gap: '10px', alignItems: 'end' }}>
+                    {GROUP_CRITERIA.map(c => (
+                      <label key={c.key} style={{ fontSize: '12px', color: '#334155', fontWeight: 600 }} title={c.points.join(' · ')}>
+                        {c.label} <span style={{ fontWeight: 400, color: '#94a3b8' }}>(max {c.max})</span>
+                        {scoreInput(form[c.key], c.max, v => setForm(f => ({ ...f, [c.key]: v })), c.label)}
+                      </label>
+                    ))}
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Total</div>
+                      <div style={{ fontSize: '22px', fontWeight: 800, color: '#0a1f44' }}>{groupTotal()}</div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Recommendation */}
-                <div>
-                  <div style={{ fontSize:'11px', fontWeight:'700', color:'#64748b', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:'8px' }}>Recommendation</div>
-                  <div style={{ display:'flex', gap:'8px' }}>
-                    {[['passed','✓ Passed','#059669'],['revision','↩ For Revision','#d97706'],['failed','✗ Failed','#dc2626']].map(([val, label, color]) => (
-                      <button key={val} type="button" onClick={() => setForm({...form, recommendation:val})} style={{ flex:1, padding:'9px', borderRadius:'8px', border:'none', fontSize:'12px', fontWeight:'700', cursor:'pointer', background: form.recommendation===val ? color : '#f8fafc', color: form.recommendation===val ? '#fff' : '#64748b', transition:'all 0.15s' }}>{label}</button>
+                <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
+                  <legend style={head}>Verdict</legend>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                    {VERDICTS.map(([v, l]) => (
+                      <label key={v} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600, padding: '8px 10px', borderRadius: '8px', cursor: 'pointer', border: `1.5px solid ${form.verdict === v ? '#1d4ed8' : '#e2e8f0'}`, background: form.verdict === v ? '#eff6ff' : '#fff' }}>
+                        <input type="radio" name="verdict" value={v} checked={form.verdict === v} onChange={() => setForm(f => ({ ...f, verdict: v }))} /> {l}
+                      </label>
                     ))}
                   </div>
-                </div>
+                  {form.verdict === 'conditional' && (
+                    <label style={{ display: 'block', marginTop: '8px', fontSize: '12px', color: '#334155', fontWeight: 600 }}>
+                      To comply the necessary requirements to get a passing grade on
+                      <input type="date" value={form.comply_by} onChange={e => setForm(f => ({ ...f, comply_by: e.target.value }))} required style={{ ...input, textAlign: 'left', marginTop: '4px' }} />
+                    </label>
+                  )}
+                </fieldset>
 
-                {/* Remarks */}
-                <div>
-                  <div style={{ fontSize:'11px', fontWeight:'700', color:'#64748b', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:'6px' }}>Remarks / Comments</div>
-                  <textarea value={form.remarks} onChange={e => setForm({...form, remarks:e.target.value})}
-                    style={{ border:'1.5px solid #e2e8f0', borderRadius:'8px', padding:'9px 12px', fontSize:'13px', outline:'none', background:'#f8fafc', fontFamily:'inherit', width:'100%', boxSizing:'border-box', height:'80px', resize:'none' }}
-                    placeholder="Write your overall feedback and remarks..." />
-                </div>
+                <label style={{ fontSize: '12px', color: '#334155', fontWeight: 600 }}>
+                  Remarks <span style={{ fontWeight: 400, color: '#94a3b8' }}>(optional)</span>
+                  <textarea value={form.remarks} onChange={e => setForm(f => ({ ...f, remarks: e.target.value }))} style={{ ...input, textAlign: 'left', minHeight: '70px', resize: 'vertical', marginTop: '4px' }} />
+                </label>
 
-                <button type="submit" disabled={saving} style={{ padding:'11px', borderRadius:'8px', border:'none', background:saving?'#cbd5e1':'linear-gradient(135deg,#0a1f44,#1040a0)', color:'#fff', fontSize:'13px', fontWeight:'700', cursor:saving?'not-allowed':'pointer' }}>
-                  {saving ? 'Submitting...' : 'Submit Evaluation'}
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button type="submit" disabled={saving} style={{ flex: 1, padding: '11px', borderRadius: '8px', border: 'none', background: saving ? '#cbd5e1' : 'linear-gradient(135deg,#0a1f44,#1040a0)', color: '#fff', fontSize: '13px', fontWeight: '700', cursor: saving ? 'not-allowed' : 'pointer' }}>
+                    {saving ? 'Saving…' : mine ? 'Update evaluation' : 'Submit evaluation'}
+                  </button>
+                  {mine && (
+                    <button type="button" onClick={() => setPrinting({ ...mine, panelist: { name: user.name } })} style={{ padding: '11px 14px', borderRadius: '8px', border: '1.5px solid #e2e8f0', background: '#fff', color: '#0a1f44', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}>
+                      🖨 Print / PDF
+                    </button>
+                  )}
+                </div>
               </form>
-            </div>
+            ) : schedule ? (
+              <div style={{ padding: '16px 20px', fontSize: '12px', color: '#64748b' }}>You are not on this defense's panel, so you can't evaluate it.</div>
+            ) : null}
 
-            {/* Other evaluations */}
-            {evaluations.length > 0 && (
-              <div style={{ padding:'14px 20px' }}>
-                <div style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'10px' }}>All Panelist Evaluations ({evaluations.length})</div>
-                {evaluations.map(e => (
-                  <div key={e.id} style={{ background:'#f8fafc', borderRadius:'10px', padding:'12px 14px', marginBottom:'8px' }}>
-                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'8px' }}>
-                      <div style={{ fontSize:'13px', fontWeight:'700', color:'#0a1f44' }}>{e.panelist?.name}</div>
-                      <div style={{ display:'flex', gap:'6px' }}>
-                        <span style={{ fontSize:'11px', padding:'2px 8px', borderRadius:'20px', fontWeight:'700', ...recStyle(e.recommendation) }}>{e.recommendation}</span>
-                        <span style={{ fontSize:'12px', fontWeight:'800', color:scoreColor(e.overall_score) }}>{e.overall_score}</span>
+            {forThisDefense.length > 0 && (
+              <div style={{ padding: '14px 20px' }}>
+                <div style={head}>Panel evaluations for this defense ({forThisDefense.length}{schedule?.panel?.length ? ` of ${schedule.panel.length}` : ''})</div>
+                {forThisDefense.map(e => (
+                  <div key={e.id} style={{ background: '#f8fafc', borderRadius: '10px', padding: '12px 14px', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: '#0a1f44' }}>
+                        {e.panelist?.name}
+                        {schedule?.panel?.find(p => p.user_id === e.panelist_id) && <span style={{ fontSize: '11px', fontWeight: 500, color: '#94a3b8' }}> · {PANEL_ROLE_LABEL[schedule.panel.find(p => p.user_id === e.panelist_id).role]}</span>}
                       </div>
+                      <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', fontWeight: '700', ...verdictStyle(e.verdict) }}>{VERDICT_LABEL[e.verdict] || e.recommendation}</span>
                     </div>
-                    <div className="dg-grid-2" style={{ display:'grid', gap:'4px', fontSize:'12px', color:'#64748b', marginBottom:'6px' }}>
-                      <span>Presentation: {e.presentation_score}</span>
-                      <span>Technical: {e.technical_score}</span>
-                      <span>Documentation: {e.documentation_score}</span>
-                      <span>Q&A: {e.qa_score}</span>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>
+                      Group: <strong>{e.group_total ?? e.overall_score}</strong>/100
+                      {(e.individual_scores || []).length > 0 && <> · Individual: {e.individual_scores.map(r => `${r.name?.split(' ')[0]} ${r.total}`).join(', ')}</>}
                     </div>
-                    {e.remarks && <div style={{ fontSize:'12px', color:'#64748b', fontStyle:'italic' }}>"{e.remarks}"</div>}
+                    {e.remarks && <div style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic', marginTop: '4px' }}>"{e.remarks}"</div>}
+                    {e.individual_scores && (
+                      <button type="button" onClick={() => setPrinting(e)} style={{ marginTop: '6px', fontSize: '11px', fontWeight: 700, color: '#1d4ed8', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>🖨 Print / Save as PDF</button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -198,41 +281,27 @@ function PageEvaluate() {
         </div>
       )}
 
-      <div style={{ fontSize:'18px', fontWeight:'700', color:'#0a1f44', marginBottom:'16px' }}>Evaluate Projects</div>
+      <div style={{ fontSize: '18px', fontWeight: '700', color: '#0a1f44', marginBottom: '16px' }}>Evaluate Projects</div>
 
       {loading ? (
-        <div style={{ textAlign:'center', padding:'40px', color:'#94a3b8', fontSize:'13px' }}>Loading...</div>
+        <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontSize: '13px' }}>Loading...</div>
       ) : projects.length === 0 ? (
-        <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', padding:'48px', textAlign:'center' }}>
-          <div style={{ fontSize:'28px', marginBottom:'8px' }}>📋</div>
-          <div style={{ fontSize:'13px', color:'#94a3b8' }}>No projects ready for evaluation yet. Projects must be set to "For Defense" or "Approved" first.</div>
+        <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8ecf2', padding: '48px', textAlign: 'center' }}>
+          <div style={{ fontSize: '28px', marginBottom: '8px' }}>📋</div>
+          <div style={{ fontSize: '13px', color: '#94a3b8' }}>No projects ready for evaluation yet. Projects must be set to "For Defense" or "Approved" first.</div>
         </div>
       ) : (
-        <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {projects.map(p => (
-            <div key={p.id} onClick={() => openProject(p)} style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', padding:'16px 18px', cursor:'pointer', transition:'border-color 0.15s' }}
-              onMouseOver={e => e.currentTarget.style.borderColor='#1d4ed8'}
-              onMouseOut={e => e.currentTarget.style.borderColor='#e8ecf2'}>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'8px' }}>
-                <div>
-                  <div style={{ fontSize:'14px', fontWeight:'700', color:'#0a1f44', marginBottom:'2px' }}>{p.title}</div>
-                  <div style={{ fontSize:'11px', color:'#94a3b8' }}>{p.batch || 'No batch'} · {p.adviser?.name || 'No adviser'}</div>
-                </div>
-                <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'4px' }}>
-                  <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'700', background: p.status==='for_defense'?'#ede9fe':'#d1fae5', color: p.status==='for_defense'?'#6d28d9':'#065f46' }}>{p.status}</span>
-                  {p.defense_verdict && p.defense_verdict !== 'pending' && (
-                    <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'700', ...verdictStyle(p.defense_verdict) }}>{verdictLabel[p.defense_verdict]}</span>
-                  )}
-                </div>
-              </div>
-              <div style={{ display:'flex', gap:'5px', flexWrap:'wrap' }}>
+            <button key={p.id} type="button" onClick={() => openProject(p)} style={{ textAlign: 'left', background: '#fff', borderRadius: '14px', border: '1px solid #e8ecf2', padding: '16px 18px', cursor: 'pointer', fontFamily: 'inherit' }}
+              onMouseOver={e => { e.currentTarget.style.borderColor = '#1d4ed8' }} onMouseOut={e => { e.currentTarget.style.borderColor = '#e8ecf2' }}>
+              <div style={{ fontSize: '14px', fontWeight: '700', color: '#0a1f44', marginBottom: '4px' }}>{p.title}</div>
+              <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
                 {p.members?.map(m => (
-                  <span key={m.id} style={{ fontSize:'11px', background:'#f8fafc', color:'#64748b', padding:'2px 8px', borderRadius:'20px', fontWeight:'500' }}>
-                    {m.user?.name?.split(' ')[0]} {m.is_leader ? '★' : ''}
-                  </span>
+                  <span key={m.id} style={{ fontSize: '11px', background: '#f8fafc', color: '#64748b', padding: '2px 8px', borderRadius: '20px', fontWeight: '500' }}>{m.user?.name} {m.is_leader ? '★' : ''}</span>
                 ))}
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}

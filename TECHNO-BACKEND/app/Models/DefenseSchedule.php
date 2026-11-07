@@ -14,7 +14,7 @@ class DefenseSchedule extends Model {
     protected $fillable = [
         'project_id', 'group_id', 'adviser_id', 'defense_type',
         'defense_date', 'defense_time', 'start_time', 'end_time',
-        'venue', 'panelists', 'status'
+        'venue', 'panelists', 'status', 'verdict'
     ];
 
     public function panel() {
