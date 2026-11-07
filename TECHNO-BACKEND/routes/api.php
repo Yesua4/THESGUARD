@@ -109,6 +109,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('rooms', RoomController::class);
     Route::post('/projects/import', [ProjectController::class, 'importArchived']);
     Route::get('/archive', [ProjectController::class, 'archive']);
+    Route::get('/projects/{project}/panel-comments', [\App\Http\Controllers\PanelCommentController::class, 'index']);
+    Route::post('/projects/{project}/panel-comments', [\App\Http\Controllers\PanelCommentController::class, 'store']);
+    Route::put('/panel-comments/{id}', [\App\Http\Controllers\PanelCommentController::class, 'update']);
+    Route::delete('/panel-comments/{id}', [\App\Http\Controllers\PanelCommentController::class, 'destroy']);
     Route::get('/projects/{project}/minutes', [DefenseMinutesController::class, 'index']);
     Route::post('/projects/{project}/minutes', [DefenseMinutesController::class, 'store']);
     Route::delete('/minutes/{id}', [DefenseMinutesController::class, 'destroy']);

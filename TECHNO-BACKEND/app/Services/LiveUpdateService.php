@@ -39,6 +39,7 @@ class LiveUpdateService {
         Models\Task::class                 => ['tasks', 'contributions'],
         Models\Contribution::class         => ['contributions'],
         Models\DefenseMinute::class        => ['minutes'],
+        Models\PanelComment::class         => ['panel_comments', 'minutes'],
         Models\MinuteItem::class           => ['minutes'],
         Models\ProjectChecklistItem::class => ['checklists'],
         Models\User::class                 => ['users'],
