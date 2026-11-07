@@ -5,8 +5,15 @@ use Illuminate\Database\Eloquent\Model;
 class Group extends Model {
     protected $table = 'groups';
     protected $fillable = [
-        'group_name', 'batch', 'academic_term_id', 'start_year_level', 'section', 'instructor_id', 'adviser_id', 'school_id'
+        'group_name', 'batch', 'academic_term_id', 'start_year_level', 'section', 'instructor_id', 'adviser_id', 'school_id',
+        'recommended_for', 'recommended_by', 'recommended_at',
     ];
+
+    protected $casts = ['recommended_at' => 'datetime'];
+
+    public function recommender() {
+        return $this->belongsTo(User::class, 'recommended_by');
+    }
 
     // Permanent panel for the outline -> final defenses.
     public function panel() {

@@ -7,6 +7,8 @@ import GroupAwareProposalForm from './GroupAwareProposalForm'
 import ProjectTasks from './ProjectTasks'
 import FinalAbstractPanel from '../../components/dashboard/FinalAbstractPanel'
 import SimilarityBreakdown from './SimilarityBreakdown'
+import { PROJECT_STATUSES, PROJECT_STATUS_LABEL } from '../../constants/projectStatus'
+import { RecommendedBadge } from '../../components/dashboard/GroupRecommendation'
 import { similarityScoreColor, similarityBadgeStyle } from '../../utils/similarityColors'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
 
@@ -94,6 +96,9 @@ function PageProjects() {
 
   const scoreBadge = similarityBadgeStyle
 
+  // Faculty can change a project's status right from the list.
+  const canChangeStatus = ['adviser', 'instructor', 'admin'].includes(user?.role)
+
   const statusBadge = s => ({
     flagged:     { background: '#fee2e2', color: '#9f1239' },
     approved:    { background: '#d1fae5', color: '#065f46' },
@@ -169,7 +174,8 @@ function PageProjects() {
                 <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.5)', fontWeight:'600', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'4px' }}>Project Details</div>
                 <div style={{ fontSize:'14px', fontWeight:'700', color:'#fff', lineHeight:'1.4', marginBottom:'8px' }}>{selectedProject.title}</div>
                 <div style={{ display:'flex', gap:'6px', flexWrap:'wrap' }}>
-                  <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...statusBadge(selectedProject.status) }}>{selectedProject.status}</span>
+                  <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...statusBadge(selectedProject.status) }}>{PROJECT_STATUS_LABEL[selectedProject.status] || selectedProject.status}</span>
+                  <RecommendedBadge group={selectedProject.group} />
                   <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...scoreBadge(selectedProject.similarity_score) }}>Similarity: {selectedProject.similarity_score}%</span>
                   <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...titleBadge(selectedProject.title_status) }}>Title: {selectedProject.title_status}</span>
                   {selectedProject.is_final_title && (
@@ -270,7 +276,7 @@ function PageProjects() {
                     <div>
                       <label style={panelLabelStyle}>Change Status</label>
                       <select value={selectedProject.status} onChange={e => updateStatus(selectedProject.id, e.target.value)} style={{ ...inputStyle, width:'100%', boxSizing:'border-box' }}>
-                        {['ongoing','for_defense','approved','archived','flagged'].map(s => <option key={s} value={s}>{s}</option>)}
+                        {PROJECT_STATUSES.map(([s, l]) => <option key={s} value={s}>{l}</option>)}
                       </select>
                     </div>
                     {user?.role === 'admin' && (
@@ -333,7 +339,7 @@ function PageProjects() {
             <input value={search} onChange={e => setSearch(e.target.value)} style={{ ...inputStyle, flex:1 }} placeholder="Search by title or keywords..." />
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ ...inputStyle }}>
               <option value="">All statuses</option>
-              {['ongoing','for_defense','approved','archived','flagged'].map(s => <option key={s} value={s}>{s}</option>)}
+              {PROJECT_STATUSES.map(([s, l]) => <option key={s} value={s}>{l}</option>)}
             </select>
           </div>
           <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', overflow:'hidden' }}>
@@ -359,10 +365,20 @@ function PageProjects() {
                     <td style={{ padding:'12px 14px', fontWeight:'600', color:'#0a1f44' }}>
                       {p.title}
                       {p.is_final_title && <span title="Final title (set by faculty after the title defense)" style={{ marginLeft:'6px' }}>🏆</span>}
+                      {p.group?.recommended_for && <div style={{ marginTop:'4px' }}><RecommendedBadge group={p.group} /></div>}
                     </td>
                     <td style={{ padding:'12px 14px', color:'#94a3b8' }}>{p.batch||'—'}</td>
                     <td style={{ padding:'12px 14px' }}><span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...titleBadge(p.title_status) }}>{p.title_status}</span></td>
-                    <td style={{ padding:'12px 14px' }}><span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...statusBadge(p.status) }}>{p.status}</span></td>
+                    <td style={{ padding:'12px 14px' }} onClick={e => { if (canChangeStatus) e.stopPropagation() }}>
+                      {canChangeStatus ? (
+                        <select value={p.status} onChange={e => updateStatus(p.id, e.target.value)} aria-label={`Status of ${p.title}`} title="Click to change the status"
+                          style={{ fontSize:'11px', padding:'3px 6px', borderRadius:'20px', fontWeight:'600', border:'1px dashed rgba(15,23,42,0.25)', cursor:'pointer', fontFamily:'inherit', ...statusBadge(p.status) }}>
+                          {PROJECT_STATUSES.map(([s, l]) => <option key={s} value={s}>{l}</option>)}
+                        </select>
+                      ) : (
+                        <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...statusBadge(p.status) }}>{PROJECT_STATUS_LABEL[p.status] || p.status}</span>
+                      )}
+                    </td>
                     <td style={{ padding:'12px 14px' }}><span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...scoreBadge(p.similarity_score) }}>{p.similarity_score}%</span></td>
                     {user?.role === 'student' && (
                       <td style={{ padding:'12px 14px' }} onClick={e => e.stopPropagation()}>

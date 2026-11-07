@@ -170,7 +170,18 @@ class ScheduleController extends Controller {
         $data = $request->validate(array_merge($this->rules(true), ['schedule_id' => 'nullable|integer']));
         $existing = !empty($data['schedule_id']) ? DefenseSchedule::find($data['schedule_id']) : null;
         $r = $this->resolve($request, $data, $existing);
-        return response()->json(['conflicts' => $this->conflictsFor($request, $r, $existing?->id)]);
+
+        // Not a blocker -- just a reminder that defenses follow a recommendation.
+        $warnings = [];
+        $group = Group::find($r['group_id']);
+        if ($group && $r['type'] && $group->recommended_for !== $r['type']) {
+            $label = DefenseSchedule::TYPE_LABELS[$r['type']];
+            $warnings[] = $group->recommended_for
+                ? "{$group->group_name} is recommended for the " . DefenseSchedule::TYPE_LABELS[$group->recommended_for] . ", not the {$label}."
+                : "{$group->group_name} hasn't been recommended for the {$label} yet.";
+        }
+
+        return response()->json(['conflicts' => $this->conflictsFor($request, $r, $existing?->id), 'warnings' => $warnings]);
     }
 
     public function store(Request $request) {

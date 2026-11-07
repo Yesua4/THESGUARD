@@ -13,7 +13,7 @@ class ProjectController extends Controller {
 
     public function index(Request $request) {
         $user  = $request->user();
-        $query = Project::with('adviser', 'instructor', 'members', 'group', 'group.members.user', 'group.adviser');
+        $query = Project::with('adviser', 'instructor', 'members', 'group', 'group.members.user', 'group.adviser', 'group.recommender:id,name');
 
         // ── School isolation ──────────────────────────────────
         if ($user->school_id) {

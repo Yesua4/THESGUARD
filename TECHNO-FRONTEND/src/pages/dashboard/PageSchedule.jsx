@@ -22,6 +22,7 @@ function PageSchedule() {
   const [success, setSuccess]     = useState('')
   const [saving, setSaving]       = useState(false)
   const [conflicts, setConflicts] = useState(null)   // null = not checked yet
+  const [warnings, setWarnings]   = useState([])
   const [checking, setChecking]   = useState(false)
   const [panelists, setPanelists] = useState([])
   const [rooms, setRooms]         = useState([])
@@ -46,7 +47,8 @@ function PageSchedule() {
   // Choosing a group suggests its next defense, and (outline onward) its panel.
   const chooseGroup = id => {
     const g = groups.find(x => String(x.id) === String(id))
-    const type = g ? nextDefenseType(schedules.filter(s => s.group_id === g.id)) : 'title'
+    // The defense the group was recommended for, else the next one in order.
+    const type = g ? (g.recommended_for || nextDefenseType(schedules.filter(s => s.group_id === g.id))) : 'title'
     const gp = Object.fromEntries((g?.panel || []).map(p => [p.role, String(p.user_id)]))
     setForm(f => ({ ...f, group_id: id, defense_type: type, panel: type === 'title' ? EMPTY.panel : { ...EMPTY.panel, ...gp } }))
   }
@@ -63,7 +65,7 @@ function PageSchedule() {
     setChecking(true)
     const t = setTimeout(() => {
       api.post('/schedules/check', { ...form, panel: panelPayload })
-        .then(res => setConflicts(res.data.conflicts))
+        .then(res => { setConflicts(res.data.conflicts); setWarnings(res.data.warnings || []) })
         .catch(() => setConflicts(null))
         .finally(() => setChecking(false))
     }, 400)
@@ -142,7 +144,7 @@ function PageSchedule() {
                 <select id="sch-type" value={form.defense_type} onChange={e => chooseType(e.target.value)} required style={inputStyle}>
                   {DEFENSE_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
-                {group && <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '3px' }}>Suggested from the group's previous defenses.</div>}
+                {group && <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '3px' }}>{group.recommended_for ? 'From what the group was recommended for.' : "Suggested from the group's previous defenses."}</div>}
               </div>
             </div>
             {group && (
@@ -213,6 +215,12 @@ function PageSchedule() {
                 </label>
               )}
             </div>
+
+            {ready && warnings.length > 0 && (
+              <div role="status" style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '10px 14px', fontSize: '12px', color: '#92400e' }}>
+                {warnings.map((w, i) => <div key={i}>ⓘ {w}</div>)}
+              </div>
+            )}
 
             {/* Live conflict check */}
             {ready && (checking ? (

@@ -11,7 +11,7 @@ class GroupController extends Controller {
 
     public function index(Request $request) {
         $user  = $request->user();
-        $query = Group::with('instructor', 'adviser', 'members', 'leader', 'projects', 'term', 'panel');
+        $query = Group::with('instructor', 'adviser', 'members', 'leader', 'projects', 'term', 'panel', 'recommender:id,name');
 
         // ── School isolation ──────────────────────────────────
         if ($user->school_id) {
@@ -138,7 +138,7 @@ class GroupController extends Controller {
     }
 
     public function show($id) {
-        $group = Group::with('instructor', 'adviser', 'members', 'leader', 'projects', 'term', 'panel')->findOrFail($id);
+        $group = Group::with('instructor', 'adviser', 'members', 'leader', 'projects', 'term', 'panel', 'recommender:id,name')->findOrFail($id);
         $group->setAttribute('capstone', app(CapstoneStageService::class)->forGroup($group));
         return response()->json($group);
     }
@@ -218,6 +218,45 @@ class GroupController extends Controller {
         });
 
         return response()->json($group->fresh()->load('panel'));
+    }
+
+    // "Recommended for: <defense>" -- the step before a group is approved for
+    // a defense. By the group's adviser, an instructor who handles the
+    // group, or the admin. Students and the instructor are notified.
+    public function recommend(Request $request, $id) {
+        $user = $request->user();
+        $group = Group::findOrFail($id);
+        abort_if($user->school_id && $group->school_id && (int) $group->school_id !== (int) $user->school_id, 403);
+        $allowed = $user->role === 'admin'
+            || ($user->role === 'adviser' && (int) $group->adviser_id === (int) $user->id)
+            || ($user->role === 'instructor' && $group->isManageableBy($user));
+        abort_unless($allowed, 403, "Only this group's adviser, its instructor, or the admin can recommend it for a defense.");
+
+        $data = $request->validate([
+            'recommended_for' => 'nullable|in:' . implode(',', \App\Models\DefenseSchedule::TYPES),
+        ]);
+        $for = $data['recommended_for'] ?? null;
+
+        $group->update([
+            'recommended_for' => $for,
+            'recommended_by'  => $for ? $user->id : null,
+            'recommended_at'  => $for ? now() : null,
+        ]);
+
+        if ($for) {
+            $label = \App\Models\DefenseSchedule::TYPE_LABELS[$for];
+            $notify = GroupMember::where('group_id', $group->id)->pluck('user_id')
+                ->push(\App\Services\CapstoneStageService::instructorFor($group))
+                ->filter()->unique()->reject(fn ($uid) => (int) $uid === (int) $user->id);
+            foreach ($notify as $uid) {
+                app(\App\Services\NotificationService::class)->send(
+                    $uid, 'recommendation', "✅ Recommended for {$label}",
+                    "{$group->group_name} has been recommended for the {$label} by {$user->name}."
+                );
+            }
+        }
+
+        return response()->json($group->fresh()->load('recommender:id,name'));
     }
 
     public function destroy(Request $request, $id) {

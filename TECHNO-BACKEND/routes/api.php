@@ -102,6 +102,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/users', [AuthController::class, 'createUser']);
     Route::apiResource('groups', GroupController::class);
     Route::put('groups/{id}/panel', [GroupController::class, 'setPanel']);
+    Route::put('groups/{id}/recommendation', [GroupController::class, 'recommend']);
     Route::get('students', [GroupController::class, 'students']);
     Route::get('advisers', [GroupController::class, 'advisers']);
     Route::apiResource('rooms', RoomController::class);

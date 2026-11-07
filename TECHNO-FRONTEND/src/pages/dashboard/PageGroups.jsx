@@ -5,6 +5,7 @@ import api from '../../api/axios'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useAcademicTerms } from '../../hooks/useAcademicTerms'
 import GroupPanelEditor from '../../components/dashboard/GroupPanelEditor'
+import GroupRecommendation, { RecommendedBadge } from '../../components/dashboard/GroupRecommendation'
 
 function PageGroups() {
   const { user } = useAuth()
@@ -157,6 +158,10 @@ function PageGroups() {
                 <div style={{ fontSize:'13px', color:'#0a1f44', fontWeight:'500' }}>{selectedGroup.adviser?.name || 'Not assigned'}</div>
               )}
             </div>
+
+            <GroupRecommendation key={`rec-${selectedGroup.id}`} group={selectedGroup}
+              canEdit={['instructor', 'admin'].includes(user?.role) || (user?.role === 'adviser' && String(selectedGroup.adviser_id) === String(user?.id))}
+              onSaved={() => { api.get(`/groups/${selectedGroup.id}`).then(res => setSelectedGroup(res.data)); load() }} />
 
             <GroupPanelEditor key={selectedGroup.id} group={selectedGroup}
               canEdit={['instructor', 'admin'].includes(user?.role)}
@@ -383,7 +388,7 @@ function PageGroups() {
                       {String(g.adviser_id) === String(user.id) && <span style={{ fontSize:'11px', background:'#ccfbf1', color:'#0f766e', padding:'2px 8px', borderRadius:'20px', fontWeight:'600' }}>You are adviser</span>}
                     </div>
                     <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>
-                      {[g.section, g.batch, termName(g)].filter(Boolean).join(' · ') || 'No batch/section'} <StageBadge g={g} />
+                      {[g.section, g.batch, termName(g)].filter(Boolean).join(' · ') || 'No batch/section'} <StageBadge g={g} /> <RecommendedBadge group={g} />
                     </div>
                   </div>
                   <span style={{ fontSize:'11px', background:'#f8fafc', color:'#64748b', padding:'4px 10px', borderRadius:'20px', fontWeight:'600', flexShrink:0 }}>{g.members?.length || 0} members</span>
