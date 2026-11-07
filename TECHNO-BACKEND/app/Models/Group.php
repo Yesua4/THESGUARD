@@ -15,6 +15,10 @@ class Group extends Model {
         return $this->belongsTo(User::class, 'recommended_by');
     }
 
+    public function stageInstructors() {
+        return $this->hasMany(GroupStageInstructor::class)->with('user:id,name');
+    }
+
     // Permanent panel for the outline -> final defenses.
     public function panel() {
         return $this->hasMany(GroupPanelist::class)->with('user:id,name')->orderBy('role'); // chair, member1, member2
@@ -58,6 +62,8 @@ class Group extends Model {
             ->where(fn ($s) => User::whereSectionIn($s, 'section', $sections))
             ->orWhere('instructor_id', $user->id)
             ->orWhere('adviser_id', $user->id)
+            // assigned as the instructor of one of its capstone stages
+            ->orWhereIn('id', GroupStageInstructor::where('user_id', $user->id)->select('group_id'))
         );
     }
 

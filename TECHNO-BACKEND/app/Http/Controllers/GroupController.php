@@ -11,7 +11,7 @@ class GroupController extends Controller {
 
     public function index(Request $request) {
         $user  = $request->user();
-        $query = Group::with('instructor', 'adviser', 'members', 'leader', 'projects', 'term', 'panel', 'recommender:id,name');
+        $query = Group::with('instructor', 'adviser', 'members', 'leader', 'projects', 'term', 'panel', 'recommender:id,name', 'stageInstructors');
 
         // ── School isolation ──────────────────────────────────
         if ($user->school_id) {
@@ -35,7 +35,9 @@ class GroupController extends Controller {
         $stages = app(CapstoneStageService::class);
         return $groups->map(function ($g) use ($stages) {
             $g->setAttribute('capstone', $stages->forGroup($g));
-            // Who a proposal from this group goes to (shown on the form).
+            // Who a proposal from this group goes to (shown on the form), and
+            // keep its projects on the current stage's instructor.
+            CapstoneStageService::syncProjectInstructors($g);
             $instructorId = CapstoneStageService::instructorFor($g);
             $g->setAttribute('current_instructor', $instructorId ? User::select('id', 'name')->find($instructorId) : null);
             return $g;
@@ -138,9 +140,9 @@ class GroupController extends Controller {
     }
 
     public function show($id) {
-        $group = Group::with('instructor', 'adviser', 'members', 'leader', 'projects', 'term', 'panel', 'recommender:id,name')->findOrFail($id);
-        $group->setAttribute('capstone', app(CapstoneStageService::class)->forGroup($group));
-        return response()->json($group);
+        $group = Group::with('instructor', 'adviser', 'members', 'leader', 'projects', 'term', 'panel', 'recommender:id,name', 'stageInstructors')->findOrFail($id);
+        // Same extras as the list (current stage, current instructor).
+        return response()->json($this->withStages(collect([$group]))->first());
     }
 
     public function update(Request $request, $id) {
@@ -257,6 +259,47 @@ class GroupController extends Controller {
         }
 
         return response()->json($group->fresh()->load('recommender:id,name'));
+    }
+
+    // The instructor of each capstone stage for this group (Capstone 1 and 2
+    // can differ). `user_id` null clears a stage.
+    public function setStageInstructors(Request $request, $id) {
+        $this->assertCanManageGroups($request);
+        $group = Group::findOrFail($id);
+        $this->assertGroupInScope($request, $group);
+        $caller = $request->user();
+
+        $data = $request->validate([
+            'assignments'                     => 'present|array',
+            'assignments.*.capstone_stage_id' => 'required|integer|distinct',
+            'assignments.*.user_id'           => 'nullable|integer|exists:users,id',
+        ]);
+        $stageIds = \App\Models\CapstoneStage::where('school_id', $group->school_id ?? $caller->school_id)->pluck('id')->map(fn ($i) => (int) $i)->all();
+        $userIds = array_filter(array_column($data['assignments'], 'user_id'));
+        $instructors = User::whereIn('id', $userIds)
+            ->when($caller->school_id, fn ($q) => $q->where('school_id', $caller->school_id))
+            ->withRole('instructor')->pluck('id')->map(fn ($i) => (int) $i)->all();
+
+        foreach ($data['assignments'] as $a) {
+            abort_unless(in_array((int) $a['capstone_stage_id'], $stageIds, true), 422, 'That capstone stage is not in your school\'s capstone plan.');
+            if ($a['user_id'] && !in_array((int) $a['user_id'], $instructors, true)) {
+                return response()->json(['message' => 'Only accounts with the Instructor role can be a stage instructor.', 'errors' => ['assignments' => ['Only accounts with the Instructor role can be a stage instructor.']]], 422);
+            }
+        }
+
+        foreach ($data['assignments'] as $a) {
+            if ($a['user_id']) {
+                \App\Models\GroupStageInstructor::updateOrCreate(
+                    ['group_id' => $group->id, 'capstone_stage_id' => $a['capstone_stage_id']],
+                    ['user_id' => $a['user_id']]
+                );
+            } else {
+                \App\Models\GroupStageInstructor::where('group_id', $group->id)->where('capstone_stage_id', $a['capstone_stage_id'])->delete();
+            }
+        }
+        CapstoneStageService::syncProjectInstructors($group);
+
+        return response()->json($group->fresh()->load('stageInstructors'));
     }
 
     public function destroy(Request $request, $id) {

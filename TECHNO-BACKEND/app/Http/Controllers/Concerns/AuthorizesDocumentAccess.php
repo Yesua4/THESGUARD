@@ -26,7 +26,9 @@ trait AuthorizesDocumentAccess {
         }
         if ($user->role === 'instructor') {
             $advisoryGroupIds = Group::where('adviser_id', $user->id)->pluck('id')
-                ->merge(Group::idsInSectionsOf($user));
+                ->merge(Group::idsInSectionsOf($user))
+                // instructor of one of the group's capstone stages (1 or 2)
+                ->merge(\App\Models\GroupStageInstructor::where('user_id', $user->id)->pluck('group_id'));
             return Project::where('id', $projectId)
                 ->where(fn($q) => $q->where('instructor_id', $user->id)->orWhereIn('group_id', $advisoryGroupIds))
                 ->exists();

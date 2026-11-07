@@ -5,6 +5,8 @@ use App\Models\AcademicTerm;
 use App\Models\CapstoneStage;
 use App\Models\Group;
 use App\Models\GroupMember;
+use App\Models\GroupStageInstructor;
+use App\Models\Project;
 use App\Models\User;
 
 /**
@@ -46,9 +48,17 @@ class CapstoneStageService {
         }
     }
 
-    // The instructor handling the group's section (assigned by the admin in
-    // User Accounts); else whoever created the group.
+    // The group's instructor right now:
+    //   1. the instructor assigned to its CURRENT capstone stage (Capstone 1
+    //      and Capstone 2 can be different people), else
+    //   2. the instructor handling its section (User Accounts), else
+    //   3. whoever created the group.
     public static function instructorFor(Group $group): ?int {
+        $stageId = app(self::class)->forGroup($group)['stage_id'] ?? null;
+        if ($stageId) {
+            $id = GroupStageInstructor::where('group_id', $group->id)->where('capstone_stage_id', $stageId)->value('user_id');
+            if ($id) return (int) $id;
+        }
         if ($group->section) {
             $id = User::query()
                 ->when($group->school_id, fn ($q) => $q->where('school_id', $group->school_id))
@@ -58,6 +68,17 @@ class CapstoneStageService {
             if ($id) return (int) $id;
         }
         return $group->instructor_id ? (int) $group->instructor_id : null;
+    }
+
+    // Keeps the group's projects pointing at its current instructor (used by
+    // notifications, "My Class", and access), e.g. once it moves from
+    // Capstone 1 to Capstone 2. Cheap no-op when nothing changed.
+    public static function syncProjectInstructors(Group $group): void {
+        $id = self::instructorFor($group);
+        if (!$id) return;
+        Project::where('group_id', $group->id)
+            ->where(fn ($q) => $q->whereNull('instructor_id')->orWhere('instructor_id', '!=', $id))
+            ->update(['instructor_id' => $id]);
     }
 
     private function terms(int $schoolId) {

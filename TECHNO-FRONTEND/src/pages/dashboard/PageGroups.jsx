@@ -6,6 +6,7 @@ import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useAcademicTerms } from '../../hooks/useAcademicTerms'
 import GroupPanelEditor from '../../components/dashboard/GroupPanelEditor'
 import GroupRecommendation, { RecommendedBadge } from '../../components/dashboard/GroupRecommendation'
+import StageInstructorsEditor from '../../components/dashboard/StageInstructorsEditor'
 
 function PageGroups() {
   const { user } = useAuth()
@@ -161,6 +162,10 @@ function PageGroups() {
 
             <GroupRecommendation key={`rec-${selectedGroup.id}`} group={selectedGroup}
               canEdit={['instructor', 'admin'].includes(user?.role) || (user?.role === 'adviser' && String(selectedGroup.adviser_id) === String(user?.id))}
+              onSaved={() => { api.get(`/groups/${selectedGroup.id}`).then(res => setSelectedGroup(res.data)); load() }} />
+
+            <StageInstructorsEditor key={`si-${selectedGroup.id}`} group={selectedGroup}
+              canEdit={['instructor', 'admin'].includes(user?.role)}
               onSaved={() => { api.get(`/groups/${selectedGroup.id}`).then(res => setSelectedGroup(res.data)); load() }} />
 
             <GroupPanelEditor key={selectedGroup.id} group={selectedGroup}
