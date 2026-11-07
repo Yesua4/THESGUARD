@@ -85,6 +85,10 @@ class AuthController extends Controller {
 
     public function me(Request $request) {
         $user = $request->user();
+        // An admin left acting as a student (no longer allowed) goes back to admin.
+        if ($user->role === 'admin' && $user->acting_role && !in_array($user->acting_role, User::ADMIN_ACTABLE_ROLES, true)) {
+            $user->forceFill(['acting_role' => null])->save();
+        }
         $schoolInfo = null;
         if ($user->school_id) {
             $school = $user->school;

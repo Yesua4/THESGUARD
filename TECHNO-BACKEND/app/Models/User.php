@@ -13,6 +13,8 @@ class User extends Authenticatable {
     // Roles that must be the account's only role. A student account is never
     // also faculty, and the admin account stays a pure admin account.
     public const EXCLUSIVE_ROLES = ['student', 'admin'];
+    // The admin can act as any staff role, but not as a student.
+    public const ADMIN_ACTABLE_ROLES = ['admin', 'instructor', 'adviser', 'panelist'];
 
     protected $fillable = [
         'name', 'last_name', 'first_name', 'middle_name', 'email', 'password', 'role', 'student_id', 'section', 'school_id',
@@ -112,7 +114,7 @@ class User extends Authenticatable {
     // user management) so nested user objects elsewhere don't trigger a
     // query per user. The admin can switch into every role.
     public function getRolesAttribute(): array {
-        return $this->role === 'admin' ? self::ROLES : $this->assignedRoles();
+        return $this->role === 'admin' ? self::ADMIN_ACTABLE_ROLES : $this->assignedRoles();
     }
 
     // ── Admin acting as another role ──────────────────────────
@@ -120,7 +122,7 @@ class User extends Authenticatable {
     // school data stays visible); acting_role only picks the screens.
     public function canSwitchTo(string $role): bool {
         return $this->role === 'admin'
-            ? in_array($role, self::ROLES, true)
+            ? in_array($role, self::ADMIN_ACTABLE_ROLES, true)
             : $this->hasRole($role);
     }
 

@@ -31,15 +31,29 @@ class AdminActingRoleTest extends TestCase
     {
         Sanctum::actingAs($this->admin);
 
-        $this->getJson('/api/me')->assertJsonPath('user.roles', User::ROLES);
+        $this->getJson('/api/me')->assertJsonPath('user.roles', User::ADMIN_ACTABLE_ROLES);
 
-        foreach (['instructor', 'adviser', 'panelist', 'student'] as $role) {
+        foreach (['instructor', 'adviser', 'panelist'] as $role) {
             $this->postJson('/api/me/switch-role', ['role' => $role])->assertOk()
                 ->assertJsonPath('user.role', 'admin')
                 ->assertJsonPath('user.acting_role', $role);
         }
 
         $this->postJson('/api/me/switch-role', ['role' => 'admin'])->assertOk()->assertJsonPath('user.acting_role', null);
+    }
+
+    public function test_admin_cannot_switch_into_student(): void
+    {
+        Sanctum::actingAs($this->admin);
+        $this->postJson('/api/me/switch-role', ['role' => 'student'])->assertStatus(403);
+        $this->assertNull($this->admin->fresh()->acting_role);
+    }
+
+    public function test_admin_left_acting_as_student_is_reset_to_admin(): void
+    {
+        $this->admin->forceFill(['acting_role' => 'student'])->save();
+        Sanctum::actingAs($this->admin);
+        $this->getJson('/api/me')->assertOk()->assertJsonPath('user.acting_role', null);
     }
 
     public function test_admin_keeps_admin_access_while_acting_as_another_role(): void
