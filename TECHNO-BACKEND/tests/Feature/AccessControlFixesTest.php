@@ -155,7 +155,18 @@ class AccessControlFixesTest extends TestCase
     public function test_panelist_can_still_submit_and_list_their_own_evaluations(): void
     {
         $panelist = User::factory()->role('panelist')->create();
-        $project  = Project::create(['title' => 'T', 'title_status' => 'approved']);
+        $adviser  = User::factory()->role('adviser')->create();
+        $group    = \App\Models\Group::create(['group_name' => 'G-eval', 'adviser_id' => $adviser->id]);
+        $project  = Project::create(['title' => 'T', 'title_status' => 'approved', 'group_id' => $group->id]);
+        // On this project's defense panel.
+        \App\Models\GroupPanelist::create(['group_id' => $group->id, 'user_id' => $panelist->id, 'role' => 'chair']);
+
+        // A panelist who isn't on the panel can't evaluate it.
+        Sanctum::actingAs(User::factory()->role('panelist')->create());
+        $this->postJson('/api/evaluations', [
+            'project_id' => $project->id, 'presentation_score' => 90, 'technical_score' => 90,
+            'documentation_score' => 90, 'qa_score' => 90, 'recommendation' => 'passed',
+        ])->assertStatus(403);
 
         Sanctum::actingAs($panelist);
         $this->postJson('/api/evaluations', [

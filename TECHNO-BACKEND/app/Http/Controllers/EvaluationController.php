@@ -190,6 +190,8 @@ class EvaluationController extends Controller {
             'recommendation'       => 'required|in:passed,failed,revision',
         ]);
         unset($data['group_id']);
+        // Only someone on this project's panel (or the school's admin) evaluates it.
+        abort_unless(\App\Http\Controllers\Concerns\AuthorizesDocumentAccess::userCanAccessProject($request->user(), $data['project_id']), 403, "You are not on this project's defense panel.");
 
         $data['panelist_id']    = $request->user()->id;
         $data['overall_score']  = round(($data['presentation_score'] + $data['technical_score'] + $data['documentation_score'] + $data['qa_score']) / 4, 2);

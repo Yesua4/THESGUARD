@@ -297,7 +297,8 @@ class DocumentController extends Controller {
     public function updateStatus(Request $request, $id) {
         abort_unless(in_array($request->user()->role, ['adviser', 'instructor', 'admin']), 403, 'Only advisers, instructors, or admins can change document status.');
 
-        $document = Document::findOrFail($id);
+        $document = Document::with('project')->findOrFail($id);
+        abort_unless($document->project && static::userCanManageProject($request->user(), $document->project), 403, 'You do not have access to this document.');
         $data     = $request->validate([
             'status' => 'required|in:pending,under_review,approved,needs_revision',
         ]);

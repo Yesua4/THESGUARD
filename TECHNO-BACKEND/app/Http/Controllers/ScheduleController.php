@@ -63,6 +63,17 @@ class ScheduleController extends Controller {
         return $query;
     }
 
+    // Only defenses of groups in your own school -- and an adviser only for
+    // the groups they advise.
+    private function assertCanScheduleFor($user, int $groupId): void {
+        $group = Group::find($groupId);
+        if (!$group) return; // validation reports the missing group
+        abort_if($user->school_id && $group->school_id && (int) $group->school_id !== (int) $user->school_id, 403, 'This group is not in your school.');
+        if ($user->role === 'adviser') {
+            abort_unless((int) $group->adviser_id === (int) $user->id, 403, 'Advisers can only schedule defenses for the groups they advise.');
+        }
+    }
+
     private function assertCanManageSchedules(Request $request) {
         abort_unless(in_array($request->user()->role, ['adviser', 'instructor', 'admin']), 403, 'Only advisers, instructors, and admins can manage defense schedules.');
     }
@@ -94,6 +105,8 @@ class ScheduleController extends Controller {
      */
     private function resolve(Request $request, array $data, ?DefenseSchedule $existing): array {
         $groupId = (int) ($data['group_id'] ?? $existing?->group_id);
+        $this->assertCanScheduleFor($request->user(), $groupId);
+        if ($existing && (int) $existing->group_id !== $groupId) $this->assertCanScheduleFor($request->user(), (int) $existing->group_id);
         $type = array_key_exists('defense_type', $data) ? $data['defense_type'] : $existing?->defense_type;
 
         $start = Times::minutes($data['start_time'] ?? $data['defense_time'] ?? null)
@@ -282,6 +295,7 @@ class ScheduleController extends Controller {
     public function destroy(Request $request, $id) {
         $this->assertCanManageSchedules($request);
         $schedule = DefenseSchedule::findOrFail($id);
+        $this->assertCanScheduleFor($request->user(), (int) $schedule->group_id);
         $groupId = $schedule->group_id;
         $scheduleId = $schedule->id;
         $schedule->delete();

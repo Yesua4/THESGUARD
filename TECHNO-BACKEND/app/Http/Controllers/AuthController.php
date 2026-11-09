@@ -220,6 +220,7 @@ class AuthController extends Controller {
         ]);
 
         $user = User::findOrFail($id);
+        abort_if($caller->school_id && (int) $user->school_id !== (int) $caller->school_id, 403, "This account is not in your school.");
         $handledSections = $data['handled_sections'] ?? null;
         unset($data['handled_sections']);
 
@@ -326,6 +327,7 @@ class AuthController extends Controller {
         }
 
         $user = User::findOrFail($id);
+        abort_if($caller->school_id && (int) $user->school_id !== (int) $caller->school_id, 403, "This account is not in your school.");
         if ($caller->role !== 'admin') {
             $this->assertInstructorCanManage($caller, $user);
         }

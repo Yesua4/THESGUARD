@@ -73,6 +73,8 @@ class GroupController extends Controller {
     }
 
     private function assertGroupInScope(Request $request, Group $group): void {
+        $user = $request->user();
+        abort_if($user->school_id && $group->school_id && (int) $group->school_id !== (int) $user->school_id, 403, "This group is not in your school.");
         abort_unless($group->isManageableBy($request->user()), 403, 'This group is not in a section you handle.');
     }
 

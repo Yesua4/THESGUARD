@@ -378,6 +378,11 @@ class ProjectController extends Controller {
         // Fields that steer the project's approval/workflow state are staff-only
         // (adviser/instructor/admin) -- a student must never be able to
         // self-approve their own title or reassign their own adviser/instructor.
+        // Staff: only projects in their school / groups (never another school's).
+        if (in_array($user->role, ['adviser', 'instructor', 'admin'])) {
+            abort_unless(\App\Http\Controllers\Concerns\AuthorizesDocumentAccess::userCanManageProject($user, $project), 403, 'You do not have access to this project.');
+        }
+
         $staffOnlyFields = ['status', 'title_status', 'title_feedback', 'instructor_id', 'adviser_id'];
         if (array_intersect($staffOnlyFields, array_keys($request->all()))) {
             abort_unless(in_array($user->role, ['adviser', 'instructor', 'admin']), 403, 'Only advisers, instructors, or admins can change a project\'s status or assignment.');
@@ -515,7 +520,9 @@ class ProjectController extends Controller {
         $project = Project::findOrFail($id);
         $user    = $request->user();
 
-        if ($user->role !== 'admin') {
+        if ($user->role === 'admin') {
+            abort_unless(\App\Http\Controllers\Concerns\AuthorizesDocumentAccess::userCanManageProject($user, $project), 403, 'You cannot delete this project.');
+        } else {
             // Non-admins may only withdraw their own still-pending proposal --
             // matches the frontend, which only ever offers "Delete" to a
             // student on their own project while title_status is pending.
@@ -597,6 +604,7 @@ class ProjectController extends Controller {
     public function recheckSimilarity($id, SimilarityService $svc, \Illuminate\Http\Request $request) {
         $user     = $request->user();
         $project  = Project::findOrFail($id);
+        abort_unless(\App\Http\Controllers\Concerns\AuthorizesDocumentAccess::userCanManageProject($user, $project), 403, 'You do not have access to this project.');
         $archived = Project::whereIn('status', ['approved', 'archived'])
                         ->where('id', '!=', $id)
                         ->when($project->school_id, fn($q) => $q->where('school_id', $project->school_id))

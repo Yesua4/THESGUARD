@@ -74,6 +74,8 @@ class ContributionController extends Controller {
             'action'      => 'required|string',
             'description' => 'nullable|string',
         ]);
+        $project = \App\Models\Project::findOrFail($data['project_id']);
+        abort_unless(\App\Http\Controllers\Concerns\AuthorizesDocumentAccess::userCanManageProject($request->user(), $project), 403, 'You do not have access to this project.');
         $data['user_id'] = $request->user()->id;
         $contribution = Contribution::create($data);
         return response()->json($contribution, 201);

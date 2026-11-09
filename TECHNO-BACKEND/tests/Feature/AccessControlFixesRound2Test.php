@@ -101,14 +101,22 @@ class AccessControlFixesRound2Test extends TestCase
 
     public function test_adviser_can_approve_title(): void
     {
-        $project = Project::create(['title' => 'T', 'title_status' => 'pending']);
         $adviser = User::factory()->role('adviser')->create();
+        $project = Project::create(['title' => 'T', 'title_status' => 'pending', 'adviser_id' => $adviser->id]);
 
         Sanctum::actingAs($adviser);
         $this->putJson("/api/projects/{$project->id}", ['title_status' => 'approved'])
             ->assertStatus(200);
 
         $this->assertSame('approved', $project->fresh()->title_status);
+    }
+
+    public function test_adviser_cannot_approve_a_title_of_a_group_they_dont_advise(): void
+    {
+        $project = Project::create(['title' => 'T', 'title_status' => 'pending']);
+        Sanctum::actingAs(User::factory()->role('adviser')->create());
+        $this->putJson("/api/projects/{$project->id}", ['title_status' => 'approved'])->assertStatus(403);
+        $this->assertSame('pending', $project->fresh()->title_status);
     }
 
     public function test_member_can_edit_their_own_pending_proposal(): void
@@ -201,13 +209,22 @@ class AccessControlFixesRound2Test extends TestCase
 
     public function test_adviser_can_create_a_defense_schedule(): void
     {
-        $group   = Group::create(['group_name' => 'G1']);
         $adviser = User::factory()->role('adviser')->create();
+        $group   = Group::create(['group_name' => 'G1', 'adviser_id' => $adviser->id]);
 
         Sanctum::actingAs($adviser);
         $this->postJson('/api/schedules', [
             'group_id' => $group->id, 'defense_date' => '2026-01-01', 'defense_time' => '10:00',
         ])->assertStatus(201);
+    }
+
+    public function test_adviser_cannot_schedule_a_group_they_dont_advise(): void
+    {
+        $group = Group::create(['group_name' => 'G2']);
+        Sanctum::actingAs(User::factory()->role('adviser')->create());
+        $this->postJson('/api/schedules', [
+            'group_id' => $group->id, 'defense_date' => '2026-01-01', 'defense_time' => '10:00',
+        ])->assertStatus(403);
     }
 
     // ── GroupController ───────────────────────────────────────────────

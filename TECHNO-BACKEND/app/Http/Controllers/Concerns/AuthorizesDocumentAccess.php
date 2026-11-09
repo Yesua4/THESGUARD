@@ -43,6 +43,17 @@ trait AuthorizesDocumentAccess {
         return false;
     }
 
+    // Can this user change this project's things (status, documents, ...)?
+    // Never another school's. Admin: the whole school. Instructor: the whole
+    // school, or only their sections if the admin limited them. Everyone
+    // else: only projects they can see (an adviser's own groups, ...).
+    public static function userCanManageProject($user, Project $project): bool {
+        if ($user->school_id && $project->school_id && (int) $project->school_id !== (int) $user->school_id) return false;
+        if ($user->role === 'admin') return true;
+        if ($user->role === 'instructor' && $user->sectionScope() === null) return true;
+        return static::userCanAccessProject($user, $project->id);
+    }
+
     // Every project this user may see, by the same rule as above -- for
     // lists (contributions, documents, ...) so they match what opens.
     public static function accessibleProjectIds($user): \Illuminate\Support\Collection {
