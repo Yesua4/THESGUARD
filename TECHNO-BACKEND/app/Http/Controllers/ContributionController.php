@@ -11,6 +11,7 @@ class ContributionController extends Controller {
     $user = $request->user();
 
     if ($projectId) {
+        abort_unless(\App\Http\Controllers\Concerns\AuthorizesDocumentAccess::userCanAccessProject($user, $projectId), 403, 'You do not have access to this project.');
         $contributions = Contribution::with('user')
             ->where('project_id', $projectId)
             ->orderBy('created_at', 'desc')
@@ -29,7 +30,9 @@ class ContributionController extends Controller {
             ->orderBy('created_at', 'desc')
             ->get();
     } else {
+        // Only projects this user may see (their school / their groups).
         $contributions = Contribution::with('user', 'project')
+            ->whereIn('project_id', \App\Http\Controllers\Concerns\AuthorizesDocumentAccess::accessibleProjectIds($user))
             ->orderBy('created_at', 'desc')
             ->get();
     }

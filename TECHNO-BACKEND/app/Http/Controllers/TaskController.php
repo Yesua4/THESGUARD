@@ -80,10 +80,9 @@ class TaskController extends Controller {
 
     private function assertCanAccessProject(Request $request, $projectId) {
         $user = $request->user();
-        if (in_array($user->role, ['admin', 'instructor'])) return;
-
         $project = Project::findOrFail($projectId);
-        if ($user->role === 'adviser' && $project->adviser_id === $user->id) return;
+        // Same rule as the rest of the project (school, sections, panel, ...).
+        if (\App\Http\Controllers\Concerns\AuthorizesDocumentAccess::userCanAccessProject($user, $project->id)) return;
 
         $memberProjectIds = ProjectMember::where('user_id', $user->id)->pluck('project_id');
         if ($memberProjectIds->contains((int) $projectId)) return;

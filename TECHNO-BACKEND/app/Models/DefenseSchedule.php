@@ -41,7 +41,9 @@ class DefenseSchedule extends Model {
     // Panels are now also real accounts: a panelist on a defense's panel, or
     // on a group's permanent panel, sees that group's projects too.
     public static function projectIdsForPanelist(User $user) {
-        $byName = static::whereNotNull('panelists')->get()
+        $byName = static::whereNotNull('panelists')
+            ->when($user->school_id, fn ($q) => $q->whereHas('group', fn ($g) => $g->where('school_id', $user->school_id)))
+            ->get()
             ->filter(function ($schedule) use ($user) {
                 $names = array_map('trim', explode(',', $schedule->panelists));
                 return collect($names)->contains(fn($n) => $n !== '' && strcasecmp($n, $user->name) === 0);

@@ -3,8 +3,14 @@ import api from '../../api/axios'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
 import { DEFENSE_TYPE_LABEL, PANEL_ROLE_LABEL, timeRange } from '../../constants/defense'
+import { useAuth } from '../../context/AuthContext'
 
 function PageMySchedule() {
+  const { user } = useAuth()
+  const heading = user?.role === 'panelist' ? 'My Panel Schedule' : user?.role === 'student' ? 'My Defense Schedule' : 'Defense Schedule'
+  const emptyNote = user?.role === 'panelist' ? "You're not on any defense panel yet. Defenses you're assigned to will show here."
+    : user?.role === 'student' ? 'Your instructor will schedule your defense. Check back later.'
+    : "None of your groups has a defense scheduled yet."
   const [schedules, setSchedules] = useState([])
   const [loading, setLoading]     = useState(true)
 
@@ -25,7 +31,7 @@ function PageMySchedule() {
 
   return (
     <div>
-      <div style={{ fontSize:'18px', fontWeight:'700', color:'#0a1f44', marginBottom:'16px' }}>My Defense Schedule</div>
+      <div style={{ fontSize:'18px', fontWeight:'700', color:'#0a1f44', marginBottom:'16px' }}>{heading}</div>
 
       {loading ? (
         <div style={{ textAlign:'center', padding:'40px', color:'#94a3b8', fontSize:'13px' }}>Loading...</div>
@@ -33,7 +39,7 @@ function PageMySchedule() {
         <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', padding:'48px', textAlign:'center' }}>
           <div style={{ fontSize:'32px', marginBottom:'12px' }}>📅</div>
           <div style={{ fontSize:'14px', fontWeight:'600', color:'#0a1f44', marginBottom:'4px' }}>No defense scheduled yet</div>
-          <div style={{ fontSize:'12px', color:'#94a3b8' }}>Your instructor will schedule your defense. Check back later.</div>
+          <div style={{ fontSize:'12px', color:'#94a3b8' }}>{emptyNote}</div>
         </div>
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>

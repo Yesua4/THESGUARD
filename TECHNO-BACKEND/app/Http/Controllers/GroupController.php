@@ -10,7 +10,13 @@ use Illuminate\Http\Request;
 class GroupController extends Controller {
 
     public function index(Request $request) {
-        $user  = $request->user();
+        return response()->json($this->withStages($this->visibleGroups($request->user())->get()));
+    }
+
+    // The groups this user may see: their school, then by role (an adviser's
+    // own groups, an instructor's sections, a student's own group, the groups
+    // a panelist sits on the panel of). Used by the list and by show().
+    private function visibleGroups($user) {
         $query = Group::with('instructor', 'adviser', 'members', 'leader', 'projects', 'term', 'panel', 'recommender:id,name', 'stageInstructors');
 
         // ── School isolation ──────────────────────────────────
@@ -25,9 +31,14 @@ class GroupController extends Controller {
         } elseif ($user->role === 'student') {
             $groupIds = GroupMember::where('user_id', $user->id)->pluck('group_id');
             $query->whereIn('id', $groupIds);
+        } elseif ($user->role === 'panelist') {
+            $groupIds = \App\Models\Project::whereIn('id', \App\Http\Controllers\Concerns\AuthorizesDocumentAccess::accessibleProjectIds($user))
+                ->pluck('group_id')
+                ->merge(\App\Models\GroupPanelist::where('user_id', $user->id)->pluck('group_id'))
+                ->filter()->unique();
+            $query->whereIn('id', $groupIds);
         }
-
-        return response()->json($this->withStages($query->get()));
+        return $query;
     }
 
     // Each group's current capstone stage, worked out from the calendar.
@@ -139,8 +150,9 @@ class GroupController extends Controller {
         return response()->json($group->load('members', 'adviser', 'instructor', 'leader'), 201);
     }
 
-    public function show($id) {
-        $group = Group::with('instructor', 'adviser', 'members', 'leader', 'projects', 'term', 'panel', 'recommender:id,name', 'stageInstructors')->findOrFail($id);
+    public function show(Request $request, $id) {
+        $group = $this->visibleGroups($request->user())->find($id);
+        abort_unless($group, Group::whereKey($id)->exists() ? 403 : 404, 'You do not have access to this group.');
         // Same extras as the list (current stage, current instructor).
         return response()->json($this->withStages(collect([$group]))->first());
     }
@@ -312,6 +324,7 @@ class GroupController extends Controller {
 
     public function students(Request $request) {
         $user = $request->user();
+        abort_unless(in_array($user->role, ['admin', 'instructor']), 403, 'Only administrators and instructors can view the student list.');
         $query = User::where('role', 'student');
 
         // ── School isolation ──────────────────────────────────
@@ -328,6 +341,7 @@ class GroupController extends Controller {
 
     public function advisers(Request $request) {
         $user = $request->user();
+        abort_unless(in_array($user->role, ['admin', 'instructor']), 403, 'Only administrators and instructors can assign advisers.');
         $query = User::withRole(['adviser', 'instructor']);
 
         // ── School isolation ──────────────────────────────────

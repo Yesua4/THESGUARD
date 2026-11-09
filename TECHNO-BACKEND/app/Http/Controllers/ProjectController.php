@@ -30,7 +30,8 @@ class ProjectController extends Controller {
                 ->orWhereIn('group_id', $groupIds);
             });
         } elseif ($user->role === 'panelist') {
-            $query->whereIn('status', ['approved', 'for_defense']);
+            // Only the projects whose defense panel they sit on.
+            $query->whereIn('id', \App\Http\Controllers\Concerns\AuthorizesDocumentAccess::accessibleProjectIds($user));
         } elseif ($user->role === 'instructor' && $user->sectionScope()) {
             // Section-scoped instructor: projects of groups in their sections
             // (or that they created/advise), plus projects assigned to them.

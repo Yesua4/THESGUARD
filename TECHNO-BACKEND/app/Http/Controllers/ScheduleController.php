@@ -36,18 +36,31 @@ class ScheduleController extends Controller {
     }
 
     public function index(Request $request) {
-        $user = $request->user();
+        return response()->json($this->visibleSchedules($request->user())->orderBy('defense_date')->get());
+    }
+
+    // Defenses this user may see: always only their own school; then a
+    // student's own group, an adviser's groups, a panelist's own panels.
+    // Instructors and admins see the whole school's (needed for booking
+    // rooms and panelists without clashes).
+    private function visibleSchedules($user) {
         $query = DefenseSchedule::with(['group', 'group.members', 'group.members.user', 'group.projects', 'group.panel', 'adviser', 'panel']);
+        if ($user->school_id) {
+            $query->whereHas('group', fn ($g) => $g->where('school_id', $user->school_id));
+        }
 
         if ($user->role === 'student') {
             $query->whereIn('group_id', \App\Models\GroupMember::where('user_id', $user->id)->pluck('group_id'));
         } elseif ($user->role === 'adviser') {
             $advised = Group::where('adviser_id', $user->id)->pluck('id');
             $query->where(fn ($q) => $q->where('adviser_id', $user->id)->orWhereIn('group_id', $advised));
+        } elseif ($user->role === 'panelist') {
+            $projectIds = DefenseSchedule::projectIdsForPanelist($user);
+            $mine = \App\Models\DefenseSchedulePanelist::where('user_id', $user->id)->pluck('defense_schedule_id');
+            $groupIds = \App\Models\GroupPanelist::where('user_id', $user->id)->pluck('group_id');
+            $query->where(fn ($q) => $q->whereIn('id', $mine)->orWhereIn('project_id', $projectIds)->orWhereIn('group_id', $groupIds));
         }
-        // instructor, admin, panelist see all schedules
-
-        return response()->json($query->orderBy('defense_date')->get());
+        return $query;
     }
 
     private function assertCanManageSchedules(Request $request) {
@@ -276,10 +289,10 @@ class ScheduleController extends Controller {
         return response()->json(['message' => 'Deleted']);
     }
 
-    public function show($id) {
-        return response()->json(
-            DefenseSchedule::with(['group', 'group.projects', 'adviser', 'panel'])->findOrFail($id)
-        );
+    public function show(Request $request, $id) {
+        $schedule = $this->visibleSchedules($request->user())->find($id);
+        abort_unless($schedule, DefenseSchedule::whereKey($id)->exists() ? 403 : 404, 'You do not have access to this defense.');
+        return response()->json($schedule);
     }
 
     // "Outline Defense on 2026-07-31, 1:00 PM–2:00 PM"

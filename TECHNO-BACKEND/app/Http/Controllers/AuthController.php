@@ -174,6 +174,9 @@ class AuthController extends Controller {
     // ── List users — scoped to same school ───────────────────
     public function users(Request $request) {
         $user  = $request->user();
+        // The account list (emails, Student Nos.) is for the people who
+        // manage accounts, groups and panels.
+        abort_unless(in_array($user->role, ['admin', 'instructor']), 403, 'Only administrators and instructors can view user accounts.');
         $query = User::query()->with('roleAssignments', 'sectionAssignments');
 
         if ($user->school_id) {

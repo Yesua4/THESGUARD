@@ -22,6 +22,7 @@ import PageMinutes from './PageMinutes'
 import PageAcademicCalendar from './PageAcademicCalendar'
 import PageCommentReview from './PageCommentReview'
 import PagePanelComments from './PagePanelComments'
+import { canOpen } from '../../config/pageAccess'
 
 function PageRouter({ page, setPage, setUnreadCount, user, navTarget, clearNavTarget, onNotificationNavigate }) {
   const handleNotificationsRead = () => setUnreadCount(0)
@@ -29,7 +30,19 @@ function PageRouter({ page, setPage, setUnreadCount, user, navTarget, clearNavTa
   // A nav target only applies once we've actually switched to its page.
   const target = navTarget?.page === page ? navTarget : null
 
-  // Import or inline all your existing page components below:
+  // A page that isn't in this role's menu never opens (e.g. a student can't
+  // open Manage Groups through a link). The server checks again on its side.
+  if (!canOpen(user?.role, page)) {
+    return (
+      <div style={{ background: '#fff', border: '1px solid #e8ecf2', borderRadius: '14px', padding: '48px 24px', textAlign: 'center' }}>
+        <div style={{ fontSize: '28px', marginBottom: '8px' }}>🔒</div>
+        <div style={{ fontSize: '15px', fontWeight: 700, color: '#0a1f44', marginBottom: '4px' }}>This page isn't available for your role</div>
+        <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>Use the menu on the left to find what you need.</div>
+        <button type="button" onClick={() => setPage('dashboard')} style={{ padding: '9px 16px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg,#0a1f44,#1040a0)', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>Go to Dashboard</button>
+      </div>
+    )
+  }
+
   switch (page) {
     case 'dashboard':     return <PageDashboard user={user} onNavigate={setPage} />
     case 'progress':      return <PageProgress />
@@ -49,7 +62,7 @@ function PageRouter({ page, setPage, setUnreadCount, user, navTarget, clearNavTa
     case 'settings':      return <PageSettings />
     case 'panelcomments': return <PagePanelComments user={user} />
     case 'comments':      return <PageCommentReview user={user} onOpen={onNotificationNavigate} />
-    case 'calendar':      return user?.role === 'admin' ? <PageAcademicCalendar /> : null
+    case 'calendar':      return <PageAcademicCalendar />
     case 'mygroup':       return <PageMyGroup />
     case 'notifications': return <PageNotifications onRead={handleNotificationsRead} user={user} onNavigate={onNotificationNavigate} />
     case 'docreview':     return <PageDocumentReview initialDocumentId={target?.documentId} initialCommentId={target?.commentId} onConsumeInitialDocument={clearNavTarget} />

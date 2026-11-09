@@ -37,6 +37,7 @@ const NAV = {
     { id: 'docreview',     label: 'Documents Review' },
     { id: 'comments',      label: 'Review Comments' },
     { id: 'panelcomments', label: 'Panel Comments' },
+    { id: 'myschedule',    label: 'Defense Schedule' },
     { id: 'minutes',       label: 'Minutes & Checklists' },
     { id: 'similarity',    label: 'Similarity Detection' },
     { id: 'contributions', label: 'Contribution Analytics' },
@@ -61,6 +62,7 @@ const NAV = {
     { id: 'docreview',     label: 'Documents Review' },
     { id: 'comments',      label: 'Review Comments' },
     { id: 'panelcomments', label: 'Panel Comments' },
+    { id: 'myschedule',    label: 'My Panel Schedule' },
     { id: 'evaluate',      label: 'Evaluate Projects' },
     { id: 'minutes',       label: 'Minutes & Checklists' },
     { id: 'similarity',    label: 'Similarity Detection' },
@@ -88,7 +90,7 @@ const NAV_GROUPS = {
   adviser: [
     { heading: 'Overview',            ids: ['dashboard'] },
     { heading: '1 · My groups',       ids: ['groups', 'titleapproval'] },
-    { heading: '2 · Review',          ids: ['docreview', 'comments', 'panelcomments', 'minutes'] },
+    { heading: '2 · Review',          ids: ['docreview', 'comments', 'myschedule', 'panelcomments', 'minutes'] },
     { heading: '3 · Tools',           ids: ['similarity', 'contributions', 'archive'] },
   ],
   student: [
@@ -101,7 +103,7 @@ const NAV_GROUPS = {
   panelist: [
     { heading: 'Overview',            ids: ['dashboard'] },
     { heading: '1 · Review',          ids: ['projects', 'docreview', 'comments'] },
-    { heading: '2 · Defense',         ids: ['evaluate', 'panelcomments', 'minutes'] },
+    { heading: '2 · Defense',         ids: ['myschedule', 'evaluate', 'panelcomments', 'minutes'] },
     { heading: '3 · Tools',           ids: ['similarity', 'archive'] },
   ],
 }

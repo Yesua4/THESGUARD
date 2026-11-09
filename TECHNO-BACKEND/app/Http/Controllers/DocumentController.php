@@ -47,6 +47,8 @@ class DocumentController extends Controller {
             // Panelist sees documents only for projects whose defense schedule
             // names them as a panelist (matched by name — see DefenseSchedule::projectIdsForPanelist).
             $query->whereIn('project_id', DefenseSchedule::projectIdsForPanelist($user));
+        } elseif ($user->role === 'admin') {
+            $query->whereIn('project_id', static::accessibleProjectIds($user));
         }
 
         return response()->json($query->orderBy('id', 'desc')->get());

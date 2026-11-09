@@ -71,8 +71,12 @@ class DefenseScheduleService {
         $ourIds = array_map('intval', $slot['panel_ids'] ?? []);
         $ourNames = array_values(array_filter(array_map('trim', $slot['panel_names'] ?? [])));
 
+        // Only defenses in the same school can clash (another school's
+        // "Room 101" is a different room).
+        $schoolId = $slot['group_id'] ? \App\Models\Group::whereKey($slot['group_id'])->value('school_id') : $caller?->school_id;
         $sameDay = DefenseSchedule::whereDate('defense_date', $slot['date'])
             ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
+            ->when($schoolId, fn ($q) => $q->whereHas('group', fn ($g) => $g->where('school_id', $schoolId)))
             ->with('group:id,group_name,adviser_id', 'panel')
             ->get();
 

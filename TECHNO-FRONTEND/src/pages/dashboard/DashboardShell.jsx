@@ -5,6 +5,7 @@ import api from '../../api/axios'
 import echo from '../../echo'
 import logo from '../../assets/capstoneguard1.png'
 import { NAV, NAV_GROUPS, NAV_ICONS } from '../../config/nav'
+import { pageFor } from '../../config/pageAccess'
 import { ROLE_META } from '../../constants/roles'
 import EnhancedTopBar from '../../components/dashboard/EnhancedTopBar'
 import UserAvatar from '../../components/dashboard/UserAvatar'
@@ -13,7 +14,10 @@ import PageRouter from './PageRouter'
 function DashboardShell() {
   const { user, logout, refreshUser, switchRole } = useAuth()
   const navigate         = useNavigate()
-  const [page, setPage]  = useState('dashboard')
+  const [page, setPageRaw] = useState('dashboard')
+  // Shortcuts (notifications, dashboard cards) may name a page this role
+  // doesn't have -- go to the nearest one it does have instead.
+  const setPage = useCallback(p => setPageRaw(pageFor(user?.role, p)), [user?.role])
   const [navTarget, setNavTarget] = useState(null)
   const [unreadCount, setUnreadCount] = useState(0)
 
@@ -67,7 +71,7 @@ function DashboardShell() {
 
   // If the active role changes (switched here, or the admin removed it),
   // the current page may not exist in the new role's nav -- go home.
-  useEffect(() => { setPage('dashboard'); setNavTarget(null) }, [user?.role])
+  useEffect(() => { setPageRaw('dashboard'); setNavTarget(null) }, [user?.role])
 
   const [switchingRole, setSwitchingRole] = useState(false)
   const handleSwitchRole = async role => {
