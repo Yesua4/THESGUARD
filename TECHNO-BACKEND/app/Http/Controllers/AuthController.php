@@ -65,6 +65,10 @@ class AuthController extends Controller {
         $user = User::where('email', $request->email)->first();
         if (!$user || !Hash::check($request->password . $this->pepper(), $user->password))
             throw ValidationException::withMessages(['email' => 'Invalid credentials.']);
+        // Still on the shared default password -> must choose their own now.
+        if (!$user->must_change_password && hash_equals(User::DEFAULT_PASSWORD, (string) $request->password)) {
+            $user->forceFill(['must_change_password' => true])->save();
+        }
         $token = $user->createToken('auth_token')->plainTextToken;
 
         $schoolInfo = null;
@@ -312,10 +316,45 @@ class AuthController extends Controller {
         $data['school_id'] = $caller->school_id ?? null;
         $data['password']  = Hash::make($data['password'] . $this->pepper());
         $user = User::create($data);
+        // The admin/instructor chose this password -> the person picks their own at first sign-in.
+        $user->forceFill(['must_change_password' => true])->save();
         $user->syncRoles($roles);
         $this->applyHandledSections($user, $handledSections);
         app(\App\Services\LiveUpdateService::class)->directory($user->school_id, 'user_created');
         return response()->json($user->fresh()->append(['roles', 'handled_sections']), 201);
+    }
+
+    // "Reset password" in User/Student Accounts: sets a one-time temporary
+    // password (shown once to the staff member, who passes it on) and signs
+    // the person out everywhere. They must choose their own at next sign-in.
+    // Same rules as editing the account: own school; instructors only for
+    // student accounts they manage.
+    public function resetUserPassword(Request $request, $id) {
+        $caller = $request->user();
+        abort_unless(in_array($caller->role, ['admin', 'instructor']), 403, 'Only administrators and instructors can reset passwords.');
+        $user = User::findOrFail($id);
+        abort_if($caller->school_id && (int) $user->school_id !== (int) $caller->school_id, 403, 'This account is not in your school.');
+        abort_if((int) $caller->id === (int) $user->id, 422, 'Use Change Password to change your own password.');
+        if ($caller->role !== 'admin') {
+            $this->assertInstructorCanManage($caller, $user);
+        }
+
+        // Easy to read out loud or type: no 0/O, 1/l/I.
+        $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+        $temp = '';
+        for ($n = 0; $n < 12; $n++) $temp .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+        $temp = substr($temp, 0, 4) . '-' . substr($temp, 4, 4) . '-' . substr($temp, 8, 4);
+
+        $user->forceFill([
+            'password' => Hash::make($temp . $this->pepper()),
+            'must_change_password' => true,
+        ])->save();
+        $user->tokens()->delete(); // signed out on every device
+
+        return response()->json([
+            'message' => "Password reset for {$user->name}.",
+            'temporary_password' => $temp,
+        ]);
     }
 
     public function deleteUser(Request $request, $id) {
@@ -358,8 +397,8 @@ class AuthController extends Controller {
     public function changePassword(Request $request) {
         $request->validate([
             'current_password' => 'required',
-            'new_password'     => 'required|min:12|confirmed',
-        ]);
+            'new_password'     => 'required|min:12|confirmed|different:current_password',
+        ], ['new_password.different' => 'Choose a new password that is different from the current one.']);
 
         $user = $request->user();
 
@@ -367,11 +406,17 @@ class AuthController extends Controller {
             return response()->json(['message' => 'Current password is incorrect.'], 422);
         }
 
-        $user->update([
-            'password' => Hash::make($request->new_password . $this->pepper())
-        ]);
+        if (hash_equals(User::DEFAULT_PASSWORD, (string) $request->new_password)) {
+            $msg = 'That is the shared default password. Please choose your own.';
+            return response()->json(['message' => $msg, 'errors' => ['new_password' => [$msg]]], 422);
+        }
 
-        return response()->json(['message' => 'Password changed successfully.']);
+        $user->forceFill([
+            'password' => Hash::make($request->new_password . $this->pepper()),
+            'must_change_password' => false,
+        ])->save();
+
+        return response()->json(['message' => 'Password changed successfully.', 'user' => $user->fresh()->append(['roles', 'handled_sections'])]);
     }
 
     // Sends a reset link (via User::sendPasswordResetNotification, overridden
@@ -409,6 +454,7 @@ class AuthController extends Controller {
             function ($user, $password) {
                 $user->forceFill([
                     'password' => Hash::make($password . $this->pepper()),
+                    'must_change_password' => false,
                 ])->save();
             }
         );
@@ -450,7 +496,7 @@ class AuthController extends Controller {
 
         // Default password if not provided
         if (!$password) {
-            $password = 'ThesisGuard2025!';
+            $password = User::DEFAULT_PASSWORD;
         }
 
         if (strlen($password) < 12) {
@@ -507,6 +553,8 @@ class AuthController extends Controller {
             'school_id'  => $admin->school_id,
             'password'   => \Illuminate\Support\Facades\Hash::make($password . $this->pepper()),
         ]);
+        // Someone else chose this password -> they pick their own at first sign-in.
+        $newUser->forceFill(['must_change_password' => true])->save();
         $newUser->syncRoles($roles);
 
         foreach ($roles as $r) {

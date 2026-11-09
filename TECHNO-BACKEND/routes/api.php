@@ -56,7 +56,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Everything else needs an enrolled account: a self-registered student
     // waits here until an instructor imports a class list with their
     // Student No. (see EnsureStudentEnrolled).
-    Route::middleware('enrolled')->group(function () {
+    // ...and a password of their own (see EnsurePasswordChanged).
+    Route::middleware(['enrolled', 'password.changed'])->group(function () {
     Route::get('/capstone-stages', [\App\Http\Controllers\CapstoneStageController::class, 'index']);
     Route::post('/capstone-stages', [\App\Http\Controllers\CapstoneStageController::class, 'store']);
     Route::put('/capstone-stages/{id}', [\App\Http\Controllers\CapstoneStageController::class, 'update']);
@@ -137,6 +138,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/contributions', [ReportController::class, 'contributions']);
     Route::get('/reports/document-revisions', [ReportController::class, 'documentRevisions']);
     Route::delete('/users/{id}', [AuthController::class, 'deleteUser']);
+    Route::post('/users/{id}/reset-password', [AuthController::class, 'resetUserPassword']);
     Route::get('evaluations', [EvaluationController::class, 'index']);
     Route::post('evaluations', [EvaluationController::class, 'store']);
     Route::get('evaluations/project/{projectId}', [EvaluationController::class, 'show']);

@@ -158,6 +158,22 @@ const createUser = async e => {
     finally { setSaving(false) }
   }
 
+  // "Reset password": the server makes a one-time temporary password, shown
+  // here once so it can be passed on. The person picks their own at sign-in.
+  const [resetInfo, setResetInfo] = useState(null)
+  const canResetPassword = u => u.id !== user?.id && (user?.role === 'admin' || u.role === 'student')
+  const resetPassword = async u => {
+    if (!confirm(`Reset the password for ${u.name}?\n\nThey'll be signed out, and you'll get a temporary password to give them. They'll choose their own the next time they sign in.`)) return
+    try {
+      const res = await api.post(`/users/${u.id}/reset-password`)
+      setResetInfo({ name: u.name, email: u.email, password: res.data.temporary_password, copied: false })
+    } catch (err) { showToast(err.response?.data?.message || 'Could not reset the password.') }
+  }
+  const copyReset = async () => {
+    try { await navigator.clipboard.writeText(resetInfo.password); setResetInfo(r => ({ ...r, copied: true })) }
+    catch { showToast('Could not copy. Please write the password down instead.') }
+  }
+
   const deleteUser = async (id, name) => {
     if (!confirm(`Delete account for ${name}?`)) return
     try { await api.delete(`/users/${id}`); load() }
@@ -228,6 +244,22 @@ const createUser = async e => {
 
   return (
     <div>
+      {resetInfo && (
+        <div role="dialog" aria-modal="true" aria-label="Temporary password" style={{ position:'fixed', inset:0, background:'rgba(10,31,68,0.5)', zIndex:90, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
+          <div style={{ background:'#fff', borderRadius:'16px', padding:'24px', width:'100%', maxWidth:'420px', boxShadow:'0 24px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ fontSize:'16px', fontWeight:800, color:'#0a1f44', marginBottom:'6px' }}>Temporary password for {resetInfo.name}</div>
+            <div style={{ fontSize:'13px', color:'#64748b', lineHeight:1.6, marginBottom:'14px' }}>
+              Give this to {resetInfo.name.split(' ')[0]} privately. They sign in with <strong>{resetInfo.email}</strong> and this password, then choose their own.
+              <strong> It won't be shown again</strong> after you close this.
+            </div>
+            <div style={{ display:'flex', gap:'8px', alignItems:'center', marginBottom:'16px' }}>
+              <code style={{ flex:1, fontSize:'20px', fontWeight:800, letterSpacing:'0.08em', textAlign:'center', padding:'12px', borderRadius:'10px', background:'#f1f5f9', color:'#0a1f44', userSelect:'all' }}>{resetInfo.password}</code>
+              <button type="button" onClick={copyReset} style={{ padding:'12px 14px', borderRadius:'10px', border:'1.5px solid #e2e8f0', background:'#fff', cursor:'pointer', fontWeight:700, color: resetInfo.copied ? '#059669' : '#1d4ed8' }}>{resetInfo.copied ? '✓ Copied' : 'Copy'}</button>
+            </div>
+            <button type="button" onClick={() => setResetInfo(null)} style={{ width:'100%', padding:'11px', borderRadius:'8px', border:'none', background:'linear-gradient(135deg,#0a1f44,#1040a0)', color:'#fff', fontWeight:700, cursor:'pointer' }}>Done</button>
+          </div>
+        </div>
+      )}
       {/* Add user modal */}
       {showAddUser && (
         <div style={{ position:'fixed', inset:0, background:'rgba(10,31,68,0.4)', zIndex:60, display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -546,6 +578,9 @@ const createUser = async e => {
                         <div style={{ display:'flex', gap:'6px' }}>
                           <button onClick={() => startEdit(u)}
     style={{ fontSize:'11px', padding:'5px 12px', borderRadius:'6px', border:'1.5px solid #e2e8f0', background:'#fff', cursor:'pointer', color:'#1d4ed8', fontWeight:'600' }}>Edit</button>
+                            {canResetPassword(u) && (
+                              <button onClick={() => resetPassword(u)} title="Give this person a temporary password" style={{ fontSize:'11px', padding:'5px 12px', borderRadius:'6px', border:'1.5px solid #e2e8f0', background:'#fff', cursor:'pointer', color:'#92400e', fontWeight:'600', whiteSpace:'nowrap' }}>Reset password</button>
+                            )}
                             <button onClick={() => deleteUser(u.id, u.name)} style={{ fontSize:'11px', padding:'5px 12px', borderRadius:'6px', border:'1.5px solid #fecaca', background:'#fff', cursor:'pointer', color:'#dc2626', fontWeight:'600' }}>Delete</button>
                           </div>
                         </td>

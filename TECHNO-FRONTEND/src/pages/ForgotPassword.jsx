@@ -34,7 +34,11 @@ export default function ForgotPassword() {
         {sent ? (
           <>
             <div style={S.sub}>
-              If an account exists for <strong>{email}</strong>, a password reset link has been sent. Check your inbox.
+              If an account exists for <strong>{email}</strong>, a password reset link has been sent. Check your inbox (and your Spam folder).
+            </div>
+            <div style={{ ...S.sub, background:'#f1f5f9', borderRadius:'10px', padding:'10px 12px' }}>
+              <strong>No email after a few minutes?</strong> Ask your instructor or the admin to reset your password.
+              They'll give you a temporary password, and you'll choose your own the next time you sign in.
             </div>
             <button onClick={() => navigate('/login')} style={S.button}>Back to Login</button>
           </>

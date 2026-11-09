@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import api from '../../api/axios'
 
-function PageChangePassword() {
+// `required`: shown before the dashboard opens, for an account whose password
+// someone else set (see ChooseOwnPassword). `onDone` runs after a success.
+function PageChangePassword({ required = false, onDone }) {
   const [form, setForm] = useState({ current_password:'', new_password:'', new_password_confirmation:'' })
   const [show, setShow] = useState({ current:false, new:false, confirm:false })
   const [saving, setSaving] = useState(false)
@@ -20,6 +22,7 @@ function PageChangePassword() {
       await api.put('/profile/change-password', form)
       setSuccess('Password changed successfully!')
       setForm({ current_password:'', new_password:'', new_password_confirmation:'' })
+      if (onDone) await onDone()
     } catch (err) {
       setError(err.response?.data?.message || 'Error changing password.')
     } finally { setSaving(false) }
@@ -43,8 +46,8 @@ function PageChangePassword() {
 
   return (
     <div>
-      <div style={{ fontSize:'18px', fontWeight:'700', color:'#0a1f44', marginBottom:'16px' }}>Change Password</div>
-      <div style={{ maxWidth:'440px' }}>
+      {!required && <div style={{ fontSize:'18px', fontWeight:'700', color:'#0a1f44', marginBottom:'16px' }}>Change Password</div>}
+      <div style={{ maxWidth: required ? 'none' : '440px' }}>
         <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', overflow:'hidden' }}>
           <div style={{ background:'linear-gradient(135deg,#0a1f44,#1040a0)', padding:'14px 18px' }}>
             <div style={{ fontSize:'13px', fontWeight:'700', color:'#fff' }}>Update Your Password</div>
@@ -60,7 +63,7 @@ function PageChangePassword() {
 
             <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
               {[
-                ['current_password', 'Current Password', 'Enter your current password', 'current'],
+                ['current_password', required ? 'Password you signed in with' : 'Current Password', required ? 'The password you were given' : 'Enter your current password', 'current'],
                 ['new_password', 'New Password', 'At least 12 characters', 'new'],
                 ['new_password_confirmation', 'Confirm New Password', 'Re-enter new password', 'confirm'],
               ].map(([name, label, placeholder, showKey]) => (
@@ -100,7 +103,7 @@ function PageChangePassword() {
               </div>
 
               <button type="submit" disabled={saving} style={{ padding:'11px', borderRadius:'8px', border:'none', background:saving?'#cbd5e1':'linear-gradient(135deg,#0a1f44,#1040a0)', color:'#fff', fontSize:'13px', fontWeight:'700', cursor:saving?'not-allowed':'pointer' }}>
-                {saving ? 'Changing Password...' : 'Change Password'}
+                {saving ? 'Saving...' : required ? 'Save my new password' : 'Change Password'}
               </button>
             </form>
           </div>

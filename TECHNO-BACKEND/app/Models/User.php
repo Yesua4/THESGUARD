@@ -23,7 +23,11 @@ class User extends Authenticatable {
 
     protected $hidden = ['password', 'remember_token', 'roleAssignments', 'sectionAssignments'];
 
-    protected $casts = ['email_verified_at' => 'datetime', 'awaiting_enrollment' => 'boolean'];
+    protected $casts = ['email_verified_at' => 'datetime', 'awaiting_enrollment' => 'boolean', 'must_change_password' => 'boolean'];
+
+    // Given to imported accounts that come without a password. Anyone who
+    // signs in with it is asked to choose their own (see AuthController::login).
+    public const DEFAULT_PASSWORD = 'ThesisGuard2025!';
 
     // ── Relationships ─────────────────────────────────────────
     public function school() {
