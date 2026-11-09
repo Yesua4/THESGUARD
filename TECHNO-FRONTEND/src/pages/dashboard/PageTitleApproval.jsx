@@ -16,6 +16,7 @@ function PageTitleApproval() {
   const [feedback, setFeedback] = useState('')
   const [saving, setSaving]     = useState(false)
   const [filter, setFilter]     = useState('pending')
+  const [search, setSearch]     = useState('')
 
   const load = () => {
     setLoading(true)
@@ -65,7 +66,16 @@ function PageTitleApproval() {
   }
 
   const scoreBadge = similarityBadgeStyle
-  const filtered = projects.filter(p => p.title_status === filter)
+  // Search by title, group, member names, adviser, section or batch.
+  const words = search.trim().toLowerCase().split(/\s+/).filter(Boolean)
+  const haystack = p => [
+    p.title, p.group?.group_name, p.group?.section, p.batch, p.adviser?.name, p.group?.adviser?.name,
+    ...(p.members || []).map(m => m.user?.name || m.name),
+    ...(p.group?.members || []).map(m => m.user?.name),
+  ].filter(Boolean).join(' ').toLowerCase()
+  const matches = p => words.every(w => haystack(p).includes(w))
+  const countFor = f => projects.filter(p => p.title_status === f && matches(p)).length
+  const filtered = projects.filter(p => p.title_status === filter && matches(p))
 
   const panelLabelStyle = { fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'6px', display:'block' }
   const inputStyle = { border:'1.5px solid #e2e8f0', borderRadius:'8px', padding:'8px 12px', fontSize:'13px', outline:'none', background:'#f8fafc', fontFamily:'inherit', width:'100%', boxSizing:'border-box' }
@@ -175,9 +185,9 @@ function PageTitleApproval() {
       )}
 
       {/* Header */}
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px', gap:'10px', flexWrap:'wrap' }}>
         <div style={{ fontSize:'18px', fontWeight:'700', color:'#0a1f44' }}>Title Approval</div>
-        <div style={{ display:'flex', gap:'6px' }}>
+        <div style={{ display:'flex', gap:'6px', flexWrap:'wrap' }}>
           {['pending','approved','rejected'].map(f => (
             <button key={f} onClick={() => setFilter(f)} style={{
               fontSize:'12px', padding:'7px 14px', borderRadius:'8px', border:'none',
@@ -186,16 +196,25 @@ function PageTitleApproval() {
               cursor:'pointer', fontWeight:'600',
               boxShadow: filter===f ? 'none' : 'inset 0 0 0 1.5px #e2e8f0',
               textTransform:'capitalize',
-            }}>{f}</button>
+            }}>{f} ({countFor(f)})</button>
           ))}
         </div>
+      </div>
+
+      <div style={{ position:'relative', marginBottom:'14px' }}>
+        <input type="search" value={search} onChange={e => setSearch(e.target.value)} aria-label="Search proposals"
+          placeholder="Search by title, group, member, adviser, section, or batch..."
+          style={{ ...inputStyle, background:'#fff', padding:'10px 14px 10px 36px', fontSize:'13px' }} />
+        <span aria-hidden="true" style={{ position:'absolute', left:'12px', top:'50%', transform:'translateY(-50%)', color:'#94a3b8', fontSize:'14px' }}>🔍</span>
       </div>
 
       {loading ? (
         <div style={{ textAlign:'center', padding:'40px', color:'#94a3b8', fontSize:'13px' }}>Loading...</div>
       ) : filtered.length === 0 ? (
         <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', padding:'48px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>
-          No {filter} proposals found.
+          {words.length ? <>No {filter} proposals match "<strong>{search.trim()}</strong>".{' '}
+            <button type="button" onClick={() => setSearch('')} style={{ background:'none', border:'none', color:'#1d4ed8', cursor:'pointer', fontWeight:600, fontSize:'13px' }}>Clear search</button></>
+            : <>No {filter} proposals found.</>}
         </div>
       ) : (
         <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', overflow:'hidden' }}>
@@ -215,6 +234,7 @@ function PageTitleApproval() {
                   <td style={{ padding:'12px 14px', fontWeight:'600', color:'#0a1f44' }}>
                     {p.title}
                     {p.is_final_title && <span title="Final title (set by faculty after the title defense)" style={{ marginLeft:'6px' }}>🏆</span>}
+                    {p.group?.group_name && <div style={{ fontSize:'11px', color:'#94a3b8', fontWeight:500, marginTop:'2px' }}>{p.group.group_name}{p.group.section ? ` · ${p.group.section}` : ''}</div>}
                   </td>
                   <td style={{ padding:'12px 14px', color:'#94a3b8' }}>{p.batch || '—'}</td>
                   <td style={{ padding:'12px 14px', color:'#64748b' }}>{p.members?.length || 0} member(s)</td>
