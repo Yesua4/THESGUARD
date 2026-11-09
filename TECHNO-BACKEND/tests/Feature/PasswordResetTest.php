@@ -74,14 +74,15 @@ class PasswordResetTest extends TestCase
         ])->assertStatus(422);
     }
 
-    public function test_forgot_password_does_not_reveal_whether_email_exists(): void
+    // Like iAIMS: an email that isn't in the system gets a clear message.
+    public function test_forgot_password_says_when_the_email_is_not_registered(): void
     {
-        $res1 = $this->postJson('/api/password/forgot', ['email' => 'nobody-real@example.com']);
-        $user = User::factory()->create(['email' => 'real-user@example.com']);
-        $res2 = $this->postJson('/api/password/forgot', ['email' => $user->email]);
+        $this->postJson('/api/password/forgot', ['email' => 'nobody-real@example.com'])
+            ->assertStatus(422)->assertJsonPath('errors.email.0', fn ($m) => str_contains($m, 'not registered'));
 
-        $res1->assertStatus(200);
-        $res2->assertStatus(200);
-        $this->assertSame($res1->json('message'), $res2->json('message'));
+        $user = User::factory()->create(['email' => 'real-user@example.com']);
+        $this->postJson('/api/password/forgot', ['email' => $user->email])->assertOk();
+        // Asking again right away is politely refused (Laravel's 60s wait).
+        $this->postJson('/api/password/forgot', ['email' => $user->email])->assertStatus(429);
     }
 }

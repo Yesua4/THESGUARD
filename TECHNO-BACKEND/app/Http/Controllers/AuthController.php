@@ -427,12 +427,23 @@ class AuthController extends Controller {
     public function forgotPassword(Request $request) {
         $request->validate(['email' => 'required|email']);
 
-        \Illuminate\Support\Facades\Password::sendResetLink(
-            $request->only('email')
-        );
+        // Like the school's iAIMS: say plainly when the email isn't in the
+        // system, so people know to ask their admin instead of waiting for an
+        // email that will never come. (The route is rate-limited to 10 tries
+        // a minute, which keeps anyone from checking long lists of emails.)
+        $status = \Illuminate\Support\Facades\Password::sendResetLink($request->only('email'));
+
+        if ($status === \Illuminate\Support\Facades\Password::INVALID_USER) {
+            $msg = 'The email address you entered is not registered in ThesisGuard. Please check it, or ask your instructor or the admin which email your account uses.';
+            return response()->json(['message' => $msg, 'errors' => ['email' => [$msg]]], 422);
+        }
+        if ($status === \Illuminate\Support\Facades\Password::RESET_THROTTLED) {
+            $msg = 'A reset link was just sent to this email. Please wait a minute before asking for another one, and check your Spam folder.';
+            return response()->json(['message' => $msg, 'errors' => ['email' => [$msg]]], 429);
+        }
 
         return response()->json([
-            'message' => 'If an account exists for that email, a password reset link has been sent.',
+            'message' => 'We sent a password reset link to your email.',
         ]);
     }
 

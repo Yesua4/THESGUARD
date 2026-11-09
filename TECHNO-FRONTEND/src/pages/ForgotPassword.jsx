@@ -15,13 +15,12 @@ export default function ForgotPassword() {
     setError('')
     try {
       await api.post('/password/forgot', { email })
-      // Backend always returns the same generic message regardless of
-      // whether the email exists, so this can't be used to enumerate
-      // registered accounts -- the UI mirrors that by always showing the
-      // "sent" state too.
       setSent(true)
-    } catch {
-      setError('Something went wrong. Please try again.')
+    } catch (err) {
+      // e.g. "not registered in ThesisGuard" / "wait a minute" / too many tries
+      const status = err.response?.status
+      setError(err.response?.data?.message
+        || (status === 429 ? 'Too many tries. Please wait a minute and try again.' : !err.response ? 'No connection. Please check your internet and try again.' : 'Something went wrong. Please try again.'))
     } finally {
       setLoading(false)
     }
@@ -34,7 +33,7 @@ export default function ForgotPassword() {
         {sent ? (
           <>
             <div style={S.sub}>
-              If an account exists for <strong>{email}</strong>, a password reset link has been sent. Check your inbox (and your Spam folder).
+              We sent a password reset link to <strong>{email}</strong>. Check your inbox (and your Spam folder).
             </div>
             <div style={{ ...S.sub, background:'#f1f5f9', borderRadius:'10px', padding:'10px 12px' }}>
               <strong>No email after a few minutes?</strong> Ask your instructor or the admin to reset your password.
