@@ -40,8 +40,9 @@ export default function NetworkIndicator() {
     <>
       <style>{`
         /* Any button/link that started a request: spinner + no double clicks. */
-        [data-tg-busy] { pointer-events: none !important; cursor: progress !important; opacity: 0.75; }
-        button[data-tg-busy]::after, a[data-tg-busy]::after, [role="button"][data-tg-busy]::after {
+        [data-tg-busy] { pointer-events: none !important; }
+        [data-tg-spin] { cursor: progress !important; opacity: 0.75; }
+        button[data-tg-spin]::after, a[data-tg-spin]::after, [role="button"][data-tg-spin]::after {
           content: ''; display: inline-block; width: 0.9em; height: 0.9em; margin-left: 0.5em;
           vertical-align: -0.12em; border: 2px solid currentColor; border-right-color: transparent;
           border-radius: 50%; animation: tg-spin 0.7s linear infinite;
@@ -49,7 +50,7 @@ export default function NetworkIndicator() {
         @keyframes tg-spin { to { transform: rotate(360deg); } }
         @keyframes tg-bar { 0% { left: -35%; width: 35%; } 60% { left: 100%; width: 35%; } 100% { left: 100%; width: 35%; } }
         @media (prefers-reduced-motion: reduce) {
-          button[data-tg-busy]::after, a[data-tg-busy]::after, [role="button"][data-tg-busy]::after { animation-duration: 2s; }
+          button[data-tg-spin]::after, a[data-tg-spin]::after, [role="button"][data-tg-spin]::after { animation-duration: 2s; }
         }
       `}</style>
 

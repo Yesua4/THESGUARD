@@ -34,16 +34,30 @@ if (typeof document !== 'undefined') {
   }, true)
 }
 
+// The button is blocked from double clicks right away (invisible), but the
+// spinner only shows if the request is still going after SPINNER_DELAY_MS,
+// so on a fast connection nothing flickers.
+const SPINNER_DELAY_MS = 300
+const SPINNER_ATTR = 'data-tg-spin'
 const busyCount = new WeakMap()
+const spinTimers = new WeakMap()
 const markBusy = el => {
   const n = (busyCount.get(el) || 0) + 1
   busyCount.set(el, n)
-  if (n === 1) { el.setAttribute(BUSY_ATTR, ''); el.setAttribute('aria-busy', 'true') }
+  if (n === 1) {
+    el.setAttribute(BUSY_ATTR, '')
+    spinTimers.set(el, setTimeout(() => {
+      if (el.hasAttribute(BUSY_ATTR)) { el.setAttribute(SPINNER_ATTR, ''); el.setAttribute('aria-busy', 'true') }
+    }, SPINNER_DELAY_MS))
+  }
 }
 const unmarkBusy = el => {
   const n = (busyCount.get(el) || 1) - 1
   busyCount.set(el, n)
-  if (n <= 0) { el.removeAttribute(BUSY_ATTR); el.removeAttribute('aria-busy') }
+  if (n <= 0) {
+    clearTimeout(spinTimers.get(el))
+    el.removeAttribute(BUSY_ATTR); el.removeAttribute(SPINNER_ATTR); el.removeAttribute('aria-busy')
+  }
 }
 
 export function requestStarted(config) {
