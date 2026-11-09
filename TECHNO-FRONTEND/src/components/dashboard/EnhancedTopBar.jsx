@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { destinationFor } from '../../utils/notificationDestination'
+import stripEmoji from '../../utils/stripEmoji'
 import api from '../../api/axios'
 import { ROLE_META, userRoles } from '../../constants/roles'
 import { useAcademicTerms, termLabel } from '../../hooks/useAcademicTerms'
@@ -162,8 +163,8 @@ function EnhancedTopBar({
                   }}>
                     <span style={{ fontSize: '16px', flexShrink: 0, marginTop: '1px' }}>{typeIcon(n.type)}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '12px', fontWeight: n.is_read ? '500' : '700', color: '#0a1f44', marginBottom: '2px' }}>{n.title}</div>
-                      <div style={{ fontSize: '11px', color: '#64748b', lineHeight: '1.5', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.message}</div>
+                      <div style={{ fontSize: '12px', fontWeight: n.is_read ? '500' : '700', color: '#0a1f44', marginBottom: '2px' }}>{stripEmoji(n.title)}</div>
+                      <div style={{ fontSize: '11px', color: '#64748b', lineHeight: '1.5', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stripEmoji(n.message)}</div>
                     </div>
                     {!n.is_read && <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#1d4ed8', flexShrink: 0, marginTop: '4px' }} />}
                   </button>

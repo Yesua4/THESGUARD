@@ -136,6 +136,14 @@ class DocumentPreviewService {
         $body = $dom->getElementsByTagName('body')->item(0);
         if (!$body) return '';
 
+        // Word page headers/footers (running titles, page numbers) belong to
+        // printed pages; in the continuous editor they'd just be stray text
+        // at the top and bottom. LibreOffice marks them title="header|footer".
+        $xpath = new \DOMXPath($dom);
+        foreach (iterator_to_array($xpath->query('//*[@title="header" or @title="footer"]')) as $node) {
+            $node->parentNode?->removeChild($node);
+        }
+
         $html = '';
         foreach ($body->childNodes as $child) {
             $html .= $dom->saveHTML($child);

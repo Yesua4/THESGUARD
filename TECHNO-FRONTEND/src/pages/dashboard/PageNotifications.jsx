@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import api from '../../api/axios'
 import echo from '../../echo'
 import { destinationFor } from '../../utils/notificationDestination'
+import stripEmoji from '../../utils/stripEmoji'
 import Icon from '../../components/Icon'
 
 function PageNotifications({ onRead, user, onNavigate }) {
@@ -92,10 +93,10 @@ function PageNotifications({ onRead, user, onNavigate }) {
                   </div>
                   <div style={{ flex:1 }}>
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'3px' }}>
-                      <div style={{ fontSize:'13px', fontWeight: n.is_read?'500':'700', color:'#0a1f44' }}>{n.title}</div>
+                      <div style={{ fontSize:'13px', fontWeight: n.is_read?'500':'700', color:'#0a1f44' }}>{stripEmoji(n.title)}</div>
                       {!n.is_read && <div style={{ width:'8px', height:'8px', borderRadius:'50%', background:'#1d4ed8', flexShrink:0, marginLeft:'8px', marginTop:'3px' }} />}
                     </div>
-                    <div style={{ fontSize:'12px', color:'#64748b', lineHeight:'1.6', marginBottom:'4px' }}>{n.message}</div>
+                    <div style={{ fontSize:'12px', color:'#64748b', lineHeight:'1.6', marginBottom:'4px' }}>{stripEmoji(n.message)}</div>
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                       <div style={{ fontSize:'11px', color:'#94a3b8' }}>
                         {n.created_at ? new Date(n.created_at).toLocaleDateString('en-PH',{ month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'}

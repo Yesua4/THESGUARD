@@ -2,6 +2,16 @@
 
 return [
 
+    // Word-quality .docx editing with a self-hosted ONLYOFFICE Document
+    // Server. Off until all three are set. backend_url = this backend's
+    // public address (the Document Server downloads files and posts saves
+    // there), e.g. https://thesguard-production.up.railway.app
+    'onlyoffice' => [
+        'url'         => env('ONLYOFFICE_URL'),
+        'jwt_secret'  => env('ONLYOFFICE_JWT_SECRET'),
+        'backend_url' => env('ONLYOFFICE_BACKEND_URL'),
+    ],
+
     // Email sending through Brevo's API (see config/mail.php 'brevo').
     'brevo' => [
         'key' => env('BREVO_API_KEY'),

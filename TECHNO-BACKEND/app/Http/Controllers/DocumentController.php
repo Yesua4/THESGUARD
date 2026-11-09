@@ -75,71 +75,10 @@ class DocumentController extends Controller {
             return response()->json(['message' => 'Title must be approved before uploading documents.'], 403);
         }
 
-        $lastVersion = Document::where('project_id', $request->project_id)
-            ->where('type', $request->type)
-            ->max('version') ?? 0;
-
         $path = $request->file('file')->store("documents/{$request->project_id}", 'local');
-
-        // PDFs preview as-is. Word files get converted to PDF so both can go
-        // through the same in-app viewer -- but NOT here: LibreOffice
-        // conversion of a large .docx can take long enough to blow past the
-        // request timeout and leave the uploader staring at a hung "Saving"
-        // button (same failure shape as the CSV import before it was fixed
-        // to not block on per-row work). Instead this just marks the preview
-        // pending; preview() converts lazily the first time someone actually
-        // opens the document.
-        $previewPath = null;
-        $previewStatus = str_ends_with(strtolower($path), '.pdf') ? 'unsupported' : 'pending';
-
-        $document = Document::create([
-            'project_id'      => $request->project_id,
-            'uploaded_by'     => $request->user()->id,
-            'type'            => $request->type,
-            'version'         => $lastVersion + 1,
-            'file_path'       => $path,
-            'preview_path'    => $previewPath,
-            'preview_status'  => $previewStatus,
-            'github_repo'     => $request->github_repo,
-            'version_note'    => $request->version_note,
-            'status'          => 'pending',
-        ]);
-
-        // Log contribution for the uploader
-        $typeLabels = [
-            'proposal'         => 'Proposal',
-            'chapter1'         => 'Chapter 1',
-            'chapter2'         => 'Chapter 2',
-            'chapter3'         => 'Chapter 3',
-            'chapter4'         => 'Chapter 4',
-            'chapter5'         => 'Chapter 5',
-            'final_manuscript' => 'Final Manuscript',
-        ];
-
-        Contribution::create([
-            'project_id'  => $project->id,
-            'user_id'     => $request->user()->id,
-            'action'      => 'document_uploaded',
-            'description' => "Uploaded {$typeLabels[$request->type]} (v{$document->version})" . ($request->version_note ? ": {$request->version_note}" : ''),
-        ]);
-
-        // Notify adviser and instructor
-        $notifyUserIds = array_filter([
-            $project->adviser_id,
-            $project->instructor_id,
-        ]);
-
-        foreach ($notifyUserIds as $userId) {
-            $this->notifications->send(
-                $userId, 'document_uploaded', '📄 New Document Submitted',
-                "A new {$typeLabels[$request->type]} (v{$document->version}) was uploaded for \"{$project->title}\".",
-                $project->id, $document->id
-            );
-        }
-
-        $this->activity->broadcast($project->id, 'document_uploaded', [
-            'document' => $document->load('uploader'),
-        ]);
+        $document = app(\App\Services\DocumentVersionService::class)->create(
+            $project, $request->type, $request->user()->id, $path, $request->version_note, $request->github_repo
+        );
 
         return response()->json($document, 201);
     }

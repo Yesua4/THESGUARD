@@ -35,6 +35,13 @@ Route::middleware('throttle:10,1')->group(function () {
 Route::get('/auth/google/redirect', [AuthController::class, 'redirectToGoogle']);
 Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
 
+// ONLYOFFICE Document Server -> ThesisGuard (no user login: signed,
+// expiring URLs, and the callback also carries a JWT). See OnlyOfficeController.
+Route::get('/onlyoffice/file/{id}', [\App\Http\Controllers\OnlyOfficeController::class, 'file'])
+    ->middleware('signed:relative')->name('onlyoffice.file');
+Route::post('/onlyoffice/callback/{id}', [\App\Http\Controllers\OnlyOfficeController::class, 'callback'])
+    ->middleware('signed:relative')->name('onlyoffice.callback');
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/me/switch-role', [AuthController::class, 'switchRole']);
@@ -119,6 +126,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/minutes/{id}', [DefenseMinutesController::class, 'destroy']);
     Route::post('/minutes/{id}/items', [DefenseMinutesController::class, 'storeItem']);
     Route::post('/minutes/{id}/import-panel-comments', [DefenseMinutesController::class, 'importPanelComments']);
+    Route::get('/onlyoffice/status', [\App\Http\Controllers\OnlyOfficeController::class, 'status']);
+    Route::get('/documents/{id}/onlyoffice', [\App\Http\Controllers\OnlyOfficeController::class, 'config']);
     Route::put('/minute-items/{id}', [DefenseMinutesController::class, 'updateItem']);
     Route::delete('/minute-items/{id}', [DefenseMinutesController::class, 'destroyItem']);
     Route::get('/projects/{project}/checklists', [ProjectChecklistController::class, 'index']);

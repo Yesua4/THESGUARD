@@ -7,6 +7,8 @@ import DocumentReviewViewer from './DocumentReviewViewer'
 import RichTextEditor from './RichTextEditor'
 import { useProjectChannel } from '../../../hooks/useProjectChannel'
 import Icon from '../../../components/Icon'
+import OnlyOfficeEditor from '../../../components/OnlyOfficeEditor'
+import normalizeImportedHtml from '../../../utils/normalizeImportedHtml'
 
 function PageSubmit({ initialDocumentId, initialCommentId = null, onConsumeInitialDocument }) {
   const { user } = useAuth()
@@ -22,6 +24,12 @@ function PageSubmit({ initialDocumentId, initialCommentId = null, onConsumeIniti
   const [dragOver, setDragOver]         = useState(false)
   const [fullScreen, setFullScreen]     = useState(false)
   const [converting, setConverting]     = useState(false)
+  // Word-quality editor (ONLYOFFICE), when the school has set one up.
+  const [officeEnabled, setOfficeEnabled] = useState(false)
+  const [officeDoc, setOfficeDoc]         = useState(null)
+  useEffect(() => {
+    api.get('/onlyoffice/status').then(res => setOfficeEnabled(!!res.data.enabled)).catch(() => {})
+  }, [])
   const [selectedDoc, setSelectedDoc]   = useState(null)
   // Opened from a comment notification: which comment to jump to.
   const [focusCommentId, setFocusCommentId] = useState(null)
@@ -183,10 +191,12 @@ function PageSubmit({ initialDocumentId, initialCommentId = null, onConsumeIniti
   // the normal saveDraft flow — from that point on it's an in-app version
   // like any other, no DOCX regeneration needed.
   const startEditUpload = async doc => {
+    // A .docx opens in the real Word editor when it's available.
+    if (officeEnabled && /\.docx$/i.test(doc.file_path || '')) { setOfficeDoc(doc); return }
     setConverting(true); setError('')
     try {
       const res = await api.get(`/documents/${doc.id}/edit-content`)
-      setContent(res.data.html)
+      setContent(normalizeImportedHtml(res.data.html))
       setForm(f => ({ ...f, type: res.data.type, version_note: `Edited from uploaded file (was v${doc.version})` }))
       setMode('write')
       setFullScreen(true)
@@ -219,6 +229,10 @@ function PageSubmit({ initialDocumentId, initialCommentId = null, onConsumeIniti
 
   return (
     <div>
+      {officeDoc && (
+        <OnlyOfficeEditor documentId={officeDoc.id} title={`${typeLabel[officeDoc.type] || officeDoc.type} v${officeDoc.version}`}
+          onClose={() => { setOfficeDoc(null); setTimeout(loadDocs, 12000) }} />
+      )}
       {linkError && (
         <div role="alert" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412', borderRadius: '10px', padding: '10px 14px', marginBottom: '12px', fontSize: '13px' }}>
           <span>{linkError}</span>
