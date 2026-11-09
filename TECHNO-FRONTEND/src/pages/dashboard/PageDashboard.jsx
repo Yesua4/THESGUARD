@@ -4,6 +4,15 @@ import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import MiniCalendar from '../../components/dashboard/MiniCalendar'
 import QuickActionsWidget from '../../components/dashboard/QuickActionsWidget'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
+import { DEFENSE_TYPE_LABEL, timeRange } from '../../constants/defense'
+
+// The next defense (today or later), else the most recent one.
+function pickDefense(schedules) {
+  const today = new Date().toISOString().slice(0, 10)
+  const sorted = [...schedules].sort((a, b) => String(a.defense_date).localeCompare(String(b.defense_date)))
+  return sorted.find(s => String(s.defense_date).slice(0, 10) >= today) || sorted[sorted.length - 1] || null
+}
+const shortDate = d => new Date(String(d).slice(0, 10) + 'T00:00:00').toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
 
 function PageDashboard({ user, onNavigate }) {
   const [stats, setStats]       = useState(null)
@@ -20,7 +29,7 @@ function PageDashboard({ user, onNavigate }) {
       setProjectIds(projects.map(p => p.id))
       const total    = projects.length
       const archived = projects.filter(p => p.status === 'archived').length
-      const flagged  = projects.filter(p => p.similarity_score > 60).length
+      const flagged  = projects.filter(p => p.similarity_score >= 60).length // 60%+ = mandatory review
       const pending  = projects.filter(p => p.title_status === 'pending').length
       setStats({ total, archived, flagged, pending })
       setActivity(projects.slice(0, 5).map(p => ({
@@ -31,30 +40,47 @@ function PageDashboard({ user, onNavigate }) {
 
       // Student-specific stats
       if (user?.role === 'student') {
-        const mine = projects.find(p => p.members?.some(m => m.user_id === user.id))
-        setStudentStats({
+        const minePool = projects.filter(p => p.members?.some(m => m.user_id === user.id))
+        const mine = minePool.find(p => p.is_final_title) || minePool[0]
+        setStudentStats(s => ({
+          ...s,
           status:     mine?.status        || 'No project',
           titleStatus:mine?.title_status  || '—',
           similarity: mine?.similarity_score != null ? mine.similarity_score + '%' : '—',
-        })
+        }))
       }
       // Panelist-specific
       if (user?.role === 'panelist') {
         const forDefense = projects.filter(p => p.status === 'for_defense').length
         const approved   = projects.filter(p => p.status === 'approved').length
-        setPanelistStats({ forDefense, approved, total })
+        setPanelistStats(s => ({ ...s, forDefense, approved, total }))
       }
     }).catch(() => setStats({ total: 0, archived: 0, flagged: 0, pending: 0 }))
 
+    // Student: their next defense (date and time), from the real schedule.
+    if (user?.role === 'student') {
+      api.get('/schedules').then(res => {
+        const d = pickDefense(res.data || [])
+        setStudentStats(s => ({ ...s, defense: d ? `${shortDate(d.defense_date)}` : 'TBA',
+          defenseNote: d ? `${DEFENSE_TYPE_LABEL[d.defense_type] || 'Defense'} · ${timeRange(d)}${d.venue ? ` · ${d.venue}` : ''}` : null }))
+      }).catch(() => setStudentStats(s => ({ ...s, defense: 'TBA' })))
+    }
+
     // Adviser-specific stats
     if (user?.role === 'adviser') {
-      Promise.all([api.get('/groups'), api.get('/schedules'), api.get('/projects')])
-        .then(([gRes, sRes]) => {
-          const myGroups    = gRes.data.length
-          const mySchedules = sRes.data.length
-          const myProjects = sRes.data.length
-          setAdviserStats({ groups: myGroups, schedules: mySchedules, documents: myProjects })
+      Promise.all([api.get('/groups'), api.get('/schedules'), api.get('/documents')])
+        .then(([gRes, sRes, dRes]) => {
+          setAdviserStats({
+            groups: gRes.data.length,
+            schedules: sRes.data.length,
+            documents: (dRes.data || []).filter(d => d.status === 'pending').length,
+          })
         }).catch(() => {})
+    }
+
+    // Panelist: how many evaluations they've submitted.
+    if (user?.role === 'panelist') {
+      api.get('/evaluations').then(res => setPanelistStats(s => ({ ...s, evaluated: (res.data || []).length }))).catch(() => {})
     }
   }, [user])
 
@@ -75,7 +101,7 @@ function PageDashboard({ user, onNavigate }) {
         ['Project Status',  studentStats?.status        || '…', '#1d4ed8', '📁'],
         ['Title Status',    studentStats?.titleStatus   || '…', '#92400e', '⏳'],
         ['Similarity',      studentStats?.similarity    || '…', '#065f46', '🔍'],
-        ['Defense Date',    'TBA',                               '#9f1239', '📅'],
+        ['Defense Date',    studentStats?.defense       || '…', '#9f1239', '📅', studentStats?.defenseNote],
       ]
     }
     if (user?.role === 'adviser') {
@@ -91,7 +117,7 @@ function PageDashboard({ user, onNavigate }) {
         ['For Review',   panelistStats?.forDefense ?? '…', '#1d4ed8', '📋'],
         ['Approved',     panelistStats?.approved   ?? '…', '#065f46', '✅'],
         ['Total Visible',panelistStats?.total      ?? '…', '#92400e', '📁'],
-        ['Evaluated',    '—',                              '#9f1239', '⭐'],
+        ['Evaluated',    panelistStats?.evaluated  ?? '…', '#9f1239', '⭐'],
       ]
     }
     if (user?.role === 'instructor') {
@@ -157,7 +183,7 @@ function PageDashboard({ user, onNavigate }) {
 
           {/* Stat cards */}
           <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '10px' }}>
-            {displayStats.map(([label, value, color, icon]) => (
+            {displayStats.map(([label, value, color, icon, note]) => (
               <div key={label} style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8ecf2', padding: '16px', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', 
                 background: ({
@@ -173,7 +199,8 @@ function PageDashboard({ user, onNavigate }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '8px' }}>{label}</div>
-                    <div style={{ fontSize: '24px', fontWeight: '800', color: '#0a1f44', textTransform: 'capitalize' }}>{value}</div>
+                    <div style={{ fontSize: '24px', fontWeight: '800', color: '#0a1f44', textTransform: 'capitalize' }}>{typeof value === 'string' ? value.replace(/_/g, ' ') : value}</div>
+                    {note && <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>{note}</div>}
                   </div>
                   <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>{icon}</div>
                 </div>

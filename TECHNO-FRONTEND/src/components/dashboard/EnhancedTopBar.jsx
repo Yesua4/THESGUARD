@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { destinationFor } from '../../utils/notificationDestination'
 import api from '../../api/axios'
 import { ROLE_META, userRoles } from '../../constants/roles'
 import { useAcademicTerms, termLabel } from '../../hooks/useAcademicTerms'
@@ -6,7 +7,7 @@ import UserAvatar from './UserAvatar'
 
 function EnhancedTopBar({
   user, unreadCount, loggingOut, handleLogout,
-  currentPageLabel, sidebarOpen, setSidebarOpen, onNotificationsClick, onNavigate,
+  currentPageLabel, sidebarOpen, setSidebarOpen, onNotificationsClick, onNavigate, onOpenNotification,
   onSwitchRole, switchingRole,
 }) {
   const [profileOpen, setProfileOpen] = useState(false)
@@ -21,6 +22,17 @@ function EnhancedTopBar({
   const actingAsAdmin = user?.base_role === 'admin' && user?.role !== 'admin'
   const roleLabel = actingAsAdmin ? `${meta.label} · Admin` : meta.label
   const { currentTerm } = useAcademicTerms()
+
+  // Clicking a notification opens what it's about (same rule as the
+  // Notifications page) and marks it read; one with no specific page opens
+  // the Notifications page.
+  const openNotif = n => {
+    setNotifOpen(false)
+    if (!n.is_read) api.put(`/notifications/${n.id}/read`).catch(() => {})
+    const dest = destinationFor(n, user?.role)
+    if (dest && onOpenNotification) onOpenNotification(dest)
+    else onNotificationsClick()
+  }
 
   // Load recent notifications for the popover
   useEffect(() => {
@@ -138,11 +150,14 @@ function EnhancedTopBar({
             ) : (
               <>
                 {recentNotifs.map(n => (
-                  <div key={n.id} style={{
-                    padding: '12px 16px', borderBottom: '1px solid #f8fafc',
+                  <button type="button" key={n.id} onClick={() => openNotif(n)} title="Open"
+                    onMouseOver={e => { e.currentTarget.style.background = '#eef2ff' }}
+                    onMouseOut={e => { e.currentTarget.style.background = n.is_read ? 'transparent' : '#f8fbff' }}
+                    style={{
+                    padding: '12px 16px', borderBottom: '1px solid #f8fafc', border: 'none', width: '100%', textAlign: 'left', font: 'inherit',
                     display: 'flex', gap: '10px', alignItems: 'flex-start',
                     background: n.is_read ? 'transparent' : '#f8fbff',
-                    cursor: 'default',
+                    cursor: 'pointer',
                   }}>
                     <span style={{ fontSize: '16px', flexShrink: 0, marginTop: '1px' }}>{typeIcon(n.type)}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -150,7 +165,7 @@ function EnhancedTopBar({
                       <div style={{ fontSize: '11px', color: '#64748b', lineHeight: '1.5', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.message}</div>
                     </div>
                     {!n.is_read && <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#1d4ed8', flexShrink: 0, marginTop: '4px' }} />}
-                  </div>
+                  </button>
                 ))}
                 <button
                   onClick={() => { setNotifOpen(false); onNotificationsClick() }}

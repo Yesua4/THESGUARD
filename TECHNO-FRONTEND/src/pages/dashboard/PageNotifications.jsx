@@ -1,34 +1,7 @@
 import { useState, useEffect } from 'react'
 import api from '../../api/axios'
 import echo from '../../echo'
-
-// Maps a notification to where clicking it should take the viewer, based on
-// the notification's type and the viewer's own role.
-function destinationFor(notification, role) {
-  const isStudent = role === 'student'
-  switch (notification.type) {
-    case 'document_uploaded':
-    case 'document_status':
-    case 'comment':
-      if (!notification.document_id) return null
-      // comment_id: jump straight to that comment's thread and highlight.
-      return { page: isStudent ? 'submit' : 'docreview', documentId: notification.document_id, commentId: notification.comment_id || null }
-    case 'title_pending':
-      return { page: 'titleapproval' }
-    case 'title_approved':
-    case 'title_rejected':
-    case 'title_chosen':
-    case 'title':
-      return { page: isStudent ? 'projects' : 'titleapproval' }
-    case 'schedule':
-    case 'defense_scheduled':
-      return { page: isStudent ? 'myschedule' : 'schedule' }
-    case 'defense_verdict':
-      return { page: isStudent ? 'projects' : 'evaluate' }
-    default:
-      return null
-  }
-}
+import { destinationFor } from '../../utils/notificationDestination'
 
 function PageNotifications({ onRead, user, onNavigate }) {
   const [notifications, setNotifications] = useState([])

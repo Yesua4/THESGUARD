@@ -301,6 +301,7 @@ function DashboardShell() {
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
         onNotificationsClick={() => setPage('notifications')}
+        onOpenNotification={target => { handleNotificationNavigate(target); setTimeout(fetchUnread, 800) }}
         onNavigate={setPage}
         onSwitchRole={handleSwitchRole}
         switchingRole={switchingRole}
