@@ -48,12 +48,14 @@ function PageChangePassword({ required = false, onDone }) {
     <div>
       {!required && <div style={{ fontSize:'18px', fontWeight:'700', color:'#0a1f44', marginBottom:'16px' }}>Change Password</div>}
       <div style={{ maxWidth: required ? 'none' : '440px' }}>
-        <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', overflow:'hidden' }}>
-          <div style={{ background:'linear-gradient(135deg,#0a1f44,#1040a0)', padding:'14px 18px' }}>
-            <div style={{ fontSize:'13px', fontWeight:'700', color:'#fff' }}>Update Your Password</div>
-            <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.55)', marginTop:'2px' }}>Choose a strong password with at least 12 characters</div>
-          </div>
-          <div style={{ padding:'20px' }}>
+        <div style={required ? {} : { background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', overflow:'hidden' }}>
+          {!required && (
+            <div style={{ background:'linear-gradient(135deg,#0a1f44,#1040a0)', padding:'14px 18px' }}>
+              <div style={{ fontSize:'13px', fontWeight:'700', color:'#fff' }}>Update Your Password</div>
+              <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.55)', marginTop:'2px' }}>Choose a strong password with at least 12 characters</div>
+            </div>
+          )}
+          <div style={{ padding: required ? 0 : '20px' }}>
             {success && (
               <div style={{ background:'#d1fae5', border:'1px solid #a7f3d0', borderRadius:'8px', padding:'10px 14px', marginBottom:'14px', fontSize:'13px', color:'#065f46', fontWeight:'600' }}>✓ {success}</div>
             )}
