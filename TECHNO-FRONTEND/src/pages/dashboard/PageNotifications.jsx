@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import api from '../../api/axios'
 import echo from '../../echo'
 import { destinationFor } from '../../utils/notificationDestination'
+import Icon from '../../components/Icon'
 
 function PageNotifications({ onRead, user, onNavigate }) {
   const [notifications, setNotifications] = useState([])
@@ -41,10 +42,10 @@ function PageNotifications({ onRead, user, onNavigate }) {
  const typeStyle = type => ({
   title_approved:    { background:'#d1fae5', color:'#065f46',  icon:'✓' },
   title_rejected:    { background:'#fee2e2', color:'#9f1239',  icon:'✕' },
-  title_chosen:      { background:'#ede9fe', color:'#4c1d95',  icon:'🏆' },
-  defense_verdict:   { background:'#dbeafe', color:'#1e40af',  icon:'🎓' },
+  title_chosen:      { background:'#ede9fe', color:'#4c1d95',  icon:<Icon name="award" /> },
+  defense_verdict:   { background:'#dbeafe', color:'#1e40af',  icon:<Icon name="graduation" /> },
   defense_scheduled: { background:'#dbeafe', color:'#1e40af',  icon:'⊞' },
-  comment:           { background:'#fef3c7', color:'#92400e',  icon:'✉' },
+  comment:           { background:'#fef3c7', color:'#92400e',  icon:<Icon name="mail" /> },
   schedule:          { background:'#dbeafe', color:'#1e40af',  icon:'⊞' },
   title:             { background:'#d1fae5', color:'#065f46',  icon:'✓' },
 }[type] || { background:'#ede9fe', color:'#6d28d9', icon:'●' })
@@ -71,7 +72,7 @@ function PageNotifications({ onRead, user, onNavigate }) {
         <div style={{ textAlign:'center', padding:'40px', color:'#94a3b8', fontSize:'13px' }}>Loading notifications...</div>
       ) : !notifications || notifications.length === 0 ? (
         <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', padding:'48px', textAlign:'center' }}>
-          <div style={{ fontSize:'36px', marginBottom:'12px' }}>🔔</div>
+          <div style={{ fontSize:'36px', marginBottom:'12px' }}><Icon name="bell" /></div>
           <div style={{ fontSize:'14px', fontWeight:'600', color:'#0a1f44', marginBottom:'4px' }}>No notifications yet</div>
           <div style={{ fontSize:'12px', color:'#94a3b8' }}>You'll be notified when something important happens.</div>
         </div>

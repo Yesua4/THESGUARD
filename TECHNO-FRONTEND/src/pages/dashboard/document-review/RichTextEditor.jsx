@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from 'react'
 import { PAGE_W, IN, DEFAULT_MARGINS, MARGIN_PRESETS, markStructuralPageBreaks, paginate } from './pagination'
 import { sanitizeHtml, isSafeLinkUrl } from '../../../utils/sanitizeHtml'
 import { ensureBlockIds } from '../../../utils/commentAnchor'
+import Icon from '../../../components/Icon'
 
 const BLOCK_TAGS = new Set(['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'BLOCKQUOTE', 'TABLE'])
 
@@ -392,12 +393,12 @@ function RichTextEditor({ value, onChange, minHeight = '260px', autoFocus = fals
         </select>
         {divider}
 
-        <button type="button" style={btnStyle} title="Insert link" onClick={insertLink}>🔗 Link</button>
+        <button type="button" style={btnStyle} title="Insert link" onClick={insertLink}><Icon name="link" /> Link</button>
         <button type="button" style={btnStyle} title="Insert table" onClick={insertTable}>▦ Table</button>
-        <button type="button" style={btnStyle} title="Insert image by URL" onClick={insertImageByUrl}>🖼 Image</button>
+        <button type="button" style={btnStyle} title="Insert image by URL" onClick={insertImageByUrl}><Icon name="image" /> Image</button>
         <button type="button" style={btnStyle} title="Insert page break" onClick={insertPageBreak}>⤓ Page Break</button>
         <button type="button" style={btnStyle} title="Clear formatting" onClick={() => exec('removeFormat')}>Clear</button>
-        <button type="button" style={btnStyle} title="Opens your browser's print dialog, with real A4 pagination -- an accurate preview of what printing or saving as PDF actually produces" onClick={() => window.print()}>🖨 Print</button>
+        <button type="button" style={btnStyle} title="Opens your browser's print dialog, with real A4 pagination -- an accurate preview of what printing or saving as PDF actually produces" onClick={() => window.print()}><Icon name="printer" /> Print</button>
         {divider}
 
         <select style={selectStyle} value={marginPreset} title="Page margins" onChange={e => applyMarginPreset(e.target.value)}>

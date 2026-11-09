@@ -6,6 +6,7 @@ import SimilarityBreakdown from './SimilarityBreakdown'
 import { similarityBadgeStyle } from '../../utils/similarityColors'
 import { useToast } from '../../context/ToastContext'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
+import Icon from '../../components/Icon'
 
 function PageTitleApproval() {
   const { user } = useAuth()
@@ -176,7 +177,7 @@ function PageTitleApproval() {
                   When the panel has decided, set the group's final title. Their other approved titles will be archived and the group will be notified.
                 </div>
                 <button onClick={() => setFinal(selected)} disabled={saving} style={{ padding:'8px 16px', borderRadius:'8px', border:'none', background:'linear-gradient(135deg,#4c1d95,#6d28d9)', color:'#fff', fontSize:'12px', fontWeight:'700', cursor:'pointer' }}>
-                  🏆 Set as final title
+                  <Icon name="award" /> Set as final title
                 </button>
               </div>
             )}
@@ -205,7 +206,7 @@ function PageTitleApproval() {
         <input type="search" value={search} onChange={e => setSearch(e.target.value)} aria-label="Search proposals"
           placeholder="Search by title, group, member, adviser, section, or batch..."
           style={{ ...inputStyle, background:'#fff', padding:'10px 14px 10px 36px', fontSize:'13px' }} />
-        <span aria-hidden="true" style={{ position:'absolute', left:'12px', top:'50%', transform:'translateY(-50%)', color:'#94a3b8', fontSize:'14px' }}>🔍</span>
+        <span aria-hidden="true" style={{ position:'absolute', left:'12px', top:'50%', transform:'translateY(-50%)', color:'#94a3b8', fontSize:'14px' }}><Icon name="search" /></span>
       </div>
 
       {loading ? (
@@ -233,7 +234,7 @@ function PageTitleApproval() {
                   onMouseOut={e => e.currentTarget.style.background='transparent'}>
                   <td style={{ padding:'12px 14px', fontWeight:'600', color:'#0a1f44' }}>
                     {p.title}
-                    {p.is_final_title && <span title="Final title (set by faculty after the title defense)" style={{ marginLeft:'6px' }}>🏆</span>}
+                    {p.is_final_title && <span title="Final title (set by faculty after the title defense)" style={{ marginLeft:'6px' }}><Icon name="award" /></span>}
                     {p.group?.group_name && <div style={{ fontSize:'11px', color:'#94a3b8', fontWeight:500, marginTop:'2px' }}>{p.group.group_name}{p.group.section ? ` · ${p.group.section}` : ''}</div>}
                   </td>
                   <td style={{ padding:'12px 14px', color:'#94a3b8' }}>{p.batch || '—'}</td>

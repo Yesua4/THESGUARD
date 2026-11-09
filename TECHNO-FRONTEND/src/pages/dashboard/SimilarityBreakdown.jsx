@@ -292,8 +292,8 @@ function SimilarityBreakdown({ projectId, overallScore, forStudent = false }) {
       {overallScore >= SIMILARITY_MODERATE && (
         <div style={{ background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'8px', padding:'8px 12px', fontSize:'12px', color:'#92400e' }}>
           {forStudent
-            ? '⚠ Compare your project description and objectives with the matches above. Your adviser may ask you to revise overlapping parts.'
-            : '⚠ Review the project description and objectives carefully before approving.'}
+            ? 'Compare your project description and objectives with the matches above. Your adviser may ask you to revise overlapping parts.'
+            : 'Review the project description and objectives carefully before approving.'}
         </div>
       )}
     </div>

@@ -5,6 +5,7 @@ import api from '../../api/axios'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
 import { DEFENSE_TYPES, DEFENSE_TYPE_LABEL, PANEL_ROLES, PANEL_ROLE_LABEL, timeRange, nextDefenseType } from '../../constants/defense'
+import Icon from '../../components/Icon'
 
 const EMPTY = { group_id: '', defense_type: 'title', defense_date: '', start_time: '', end_time: '', venue: '', panel: { chair: '', member1: '', member2: '' }, update_group_panel: true }
 
@@ -122,7 +123,7 @@ function PageSchedule() {
       </div>
 
       {success && (
-        <div style={{ background: '#d1fae5', border: '1px solid #a7f3d0', borderRadius: '12px', padding: '12px 16px', marginBottom: '14px', fontSize: '13px', color: '#065f46', fontWeight: '600' }}>✅ {success}</div>
+        <div style={{ background: '#d1fae5', border: '1px solid #a7f3d0', borderRadius: '12px', padding: '12px 16px', marginBottom: '14px', fontSize: '13px', color: '#065f46', fontWeight: '600' }}>✓ {success}</div>
       )}
 
       {showForm && canSchedule && (
@@ -227,7 +228,7 @@ function PageSchedule() {
               <div style={{ fontSize: '12px', color: '#64748b' }}>Checking for conflicts…</div>
             ) : conflicts && conflicts.length > 0 ? (
               <div role="alert" style={{ background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '10px', padding: '12px 14px' }}>
-                <div style={{ fontSize: '13px', fontWeight: '700', color: '#9f1239', marginBottom: '6px' }}>⚠ Schedule conflict — change the time, room, or panel</div>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: '#9f1239', marginBottom: '6px' }}><Icon name="alert" /> Schedule conflict — change the time, room, or panel</div>
                 {conflicts.map((c, i) => (
                   <ul key={i} style={{ margin: '0 0 4px', paddingLeft: '18px' }}>
                     {c.reasons.map((r, j) => <li key={j} style={{ fontSize: '12px', color: '#9f1239' }}>{r}</li>)}
@@ -273,15 +274,15 @@ function PageSchedule() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '8px', fontSize: '12px', color: '#475569' }}>
-                    <span>🕐 {timeRange(s)}</span>
-                    <span>📍 {s.venue || 'No room'}</span>
+                    <span><Icon name="clock" /> {timeRange(s)}</span>
+                    <span><Icon name="map-pin" /> {s.venue || 'No room'}</span>
                   </div>
                   <div style={{ fontSize: '12px', color: '#475569', marginBottom: '8px' }}>
                     {(s.panel || []).length > 0 ? (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 14px' }}>
                         {s.panel.map(p => <span key={p.id}><span style={{ color: '#94a3b8' }}>{PANEL_ROLE_LABEL[p.role]}:</span> <strong>{p.user?.name}</strong></span>)}
                       </div>
-                    ) : <span>👤 {s.panelists || 'No panelists assigned'}</span>}
+                    ) : <span><Icon name="user" /> {s.panelists || 'No panelists assigned'}</span>}
                   </div>
                   <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                     {(s.group?.members || s.project?.members)?.map(m => (

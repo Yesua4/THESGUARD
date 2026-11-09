@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../../api/axios'
+import Icon from '../../components/Icon'
 
 // Title proposal. The instructor, academic year and semester are filled in
 // from the group automatically; a proposal has no abstract yet, so students
@@ -65,7 +66,7 @@ useEffect(() => {
         </div>
       ) : (
         <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '12px 14px', fontSize: '12px', color: '#92400e' }}>
-          ⚠ You are not assigned to a group yet. Ask your instructor to assign you first.
+          <Icon name="alert" /> You are not assigned to a group yet. Ask your instructor to assign you first.
         </div>
       )}
       <div>

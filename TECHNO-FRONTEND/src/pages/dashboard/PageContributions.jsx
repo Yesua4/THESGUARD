@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import api from '../../api/axios'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
+import Icon from '../../components/Icon'
 
 function PageContributions() {
   const { user } = useAuth()
@@ -178,7 +179,7 @@ function PageContributions() {
           <div style={{ padding:'16px 18px' }}>
             {githubLoading && <div style={{ fontSize:'13px', color:'#94a3b8' }}>Loading GitHub data...</div>}
             {githubData?.error && (
-              <div style={{ fontSize:'13px', color:'#d97706' }}>⚠ Could not load GitHub data. Make sure the repo is public.</div>
+              <div style={{ fontSize:'13px', color:'#d97706' }}><Icon name="alert" /> Could not load GitHub data. Make sure the repo is public.</div>
             )}
             {githubData?.contributors && (
               <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>

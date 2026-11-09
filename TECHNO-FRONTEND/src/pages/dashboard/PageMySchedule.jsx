@@ -4,6 +4,7 @@ import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
 import { DEFENSE_TYPE_LABEL, PANEL_ROLE_LABEL, timeRange } from '../../constants/defense'
 import { useAuth } from '../../context/AuthContext'
+import Icon from '../../components/Icon'
 
 function PageMySchedule() {
   const { user } = useAuth()
@@ -37,7 +38,7 @@ function PageMySchedule() {
         <div style={{ textAlign:'center', padding:'40px', color:'#94a3b8', fontSize:'13px' }}>Loading...</div>
       ) : schedules.length === 0 ? (
         <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', padding:'48px', textAlign:'center' }}>
-          <div style={{ fontSize:'32px', marginBottom:'12px' }}>📅</div>
+          <div style={{ fontSize:'32px', marginBottom:'12px' }}><Icon name="calendar" /></div>
           <div style={{ fontSize:'14px', fontWeight:'600', color:'#0a1f44', marginBottom:'4px' }}>No defense scheduled yet</div>
           <div style={{ fontSize:'12px', color:'#94a3b8' }}>{emptyNote}</div>
         </div>
@@ -50,8 +51,8 @@ function PageMySchedule() {
                 <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.5)', fontWeight:'700', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'6px' }}>{DEFENSE_TYPE_LABEL[s.defense_type] || 'Defense'} · Confirmed</div>
                 <div style={{ fontSize:'20px', fontWeight:'800', color:'#fff', marginBottom:'4px' }}>{formatDate(s.defense_date)}</div>
                 <div style={{ display:'flex', gap:'16px' }}>
-                  <span style={{ fontSize:'13px', color:'rgba(255,255,255,0.7)', display:'flex', alignItems:'center', gap:'5px' }}>🕐 {timeRange(s)}</span>
-                  <span style={{ fontSize:'13px', color:'rgba(255,255,255,0.7)', display:'flex', alignItems:'center', gap:'5px' }}>📍 {s.venue || 'Venue TBA'}</span>
+                  <span style={{ fontSize:'13px', color:'rgba(255,255,255,0.7)', display:'flex', alignItems:'center', gap:'5px' }}><Icon name="clock" /> {timeRange(s)}</span>
+                  <span style={{ fontSize:'13px', color:'rgba(255,255,255,0.7)', display:'flex', alignItems:'center', gap:'5px' }}><Icon name="map-pin" /> {s.venue || 'Venue TBA'}</span>
                 </div>
               </div>
 

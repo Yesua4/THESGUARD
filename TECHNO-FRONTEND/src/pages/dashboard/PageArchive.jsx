@@ -4,6 +4,7 @@ import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
+import Icon from '../../components/Icon'
 
 function PageArchive() {
   const { user } = useAuth()
@@ -96,7 +97,7 @@ function PageArchive() {
               ↑ Import CSV
             </button>
           )}
-          <div style={{ fontSize:'36px' }}>🗄️</div>
+          <div style={{ fontSize:'36px' }}><Icon name="archive" /></div>
         </div>
       </div>
 
@@ -112,7 +113,7 @@ function PageArchive() {
               {!importResult ? (
                 <>
                   <div style={{ background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:'10px', padding:'12px 14px' }}>
-                    <div style={{ fontSize:'12px', fontWeight:'700', color:'#065f46', marginBottom:'6px' }}>📋 CSV Format Required</div>
+                    <div style={{ fontSize:'12px', fontWeight:'700', color:'#065f46', marginBottom:'6px' }}><Icon name="clipboard" /> CSV Format Required</div>
                     <div style={{ fontSize:'11px', color:'#047857', lineHeight:'1.7' }}>
                       Columns: <strong>title, abstract, objectives, keywords, batch, program, adviser</strong><br/>
                       • <strong>title</strong> is required per row<br/>
@@ -149,14 +150,14 @@ function PageArchive() {
                     >
                       {importFile ? (
                         <div>
-                          <div style={{ fontSize:'28px', marginBottom:'8px' }}>📄</div>
+                          <div style={{ fontSize:'28px', marginBottom:'8px' }}><Icon name="file" /></div>
                           <div style={{ fontSize:'13px', fontWeight:'600', color:'#059669', marginBottom:'4px' }}>{importFile.name}</div>
                           <div style={{ fontSize:'11px', color:'#94a3b8', marginBottom:'10px' }}>{(importFile.size / 1024).toFixed(1)} KB</div>
                           <button type="button" onClick={() => setImportFile(null)} style={{ fontSize:'11px', color:'#dc2626', background:'none', border:'1px solid #fca5a5', borderRadius:'6px', padding:'4px 10px', cursor:'pointer', fontWeight:'600' }}>Remove</button>
                         </div>
                       ) : (
                         <div>
-                          <div style={{ fontSize:'32px', marginBottom:'8px' }}>📂</div>
+                          <div style={{ fontSize:'32px', marginBottom:'8px' }}><Icon name="folder" /></div>
                           <div style={{ fontSize:'13px', color:'#64748b', fontWeight:'500', marginBottom:'4px' }}>Drag & drop your CSV file here</div>
                           <div style={{ fontSize:'11px', color:'#94a3b8', marginBottom:'12px' }}>or</div>
                           <label style={{ background:'linear-gradient(135deg,#0a1f44,#1040a0)', color:'#fff', fontSize:'12px', padding:'8px 18px', borderRadius:'8px', cursor:'pointer', fontWeight:'600' }}>
@@ -175,7 +176,7 @@ function PageArchive() {
                       disabled={importing || !importFile}
                       style={{ flex:1, padding:'10px', background: importing || !importFile ? '#cbd5e1' : 'linear-gradient(135deg,#059669,#047857)', color:'#fff', border:'none', borderRadius:'8px', fontSize:'13px', fontWeight:'700', cursor: importing || !importFile ? 'not-allowed' : 'pointer' }}
                     >
-                      {importing ? 'Importing...' : '📂 Import Archived Projects'}
+                      {importing ? 'Importing...' : 'Import Archived Projects'}
                     </button>
                     <button type="button" onClick={() => { setShowImport(false); setImportResult(null); setImportFile(null) }} style={{ flex:1, padding:'10px', background:'#f8fafc', color:'#475569', border:'1.5px solid #e2e8f0', borderRadius:'8px', fontSize:'13px', cursor:'pointer' }}>
                       Cancel
@@ -226,7 +227,7 @@ function PageArchive() {
         <div style={{ textAlign:'center', padding:'40px', color:'#94a3b8', fontSize:'13px' }}>Loading archive...</div>
       ) : filtered.length === 0 ? (
         <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', padding:'48px', textAlign:'center' }}>
-          <div style={{ fontSize:'28px', marginBottom:'8px' }}>🗄️</div>
+          <div style={{ fontSize:'28px', marginBottom:'8px' }}><Icon name="archive" /></div>
           <div style={{ fontSize:'13px', color:'#94a3b8' }}>No archived projects found.</div>
         </div>
       ) : (
@@ -247,7 +248,7 @@ function PageArchive() {
                     onMouseOver={e => e.currentTarget.style.background='#f8fafc'}
                     onMouseOut={e => e.currentTarget.style.background= expandedId === p.id ? '#f8fafc' : 'transparent'}>
                     <td style={{ padding:'12px 14px', fontWeight:'600', color:'#0a1f44' }}>
-                      <span style={{ color:'#1d4ed8', fontSize:'10px', marginRight:'8px' }}>{expandedId === p.id ? '▼' : '▶'}</span>{p.title}
+                      <span style={{ color:'#1d4ed8', fontSize:'10px', marginRight:'8px' }}>{expandedId === p.id ? '▾' : '▸'}</span>{p.title}
                     </td>
                     <td style={{ padding:'12px 14px', color:'#64748b' }}>{p.program || '—'}</td>
                     <td style={{ padding:'12px 14px', color:'#64748b' }}>{p.adviser?.name || '—'}</td>

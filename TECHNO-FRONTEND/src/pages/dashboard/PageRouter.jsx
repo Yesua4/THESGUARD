@@ -23,6 +23,7 @@ import PageAcademicCalendar from './PageAcademicCalendar'
 import PageCommentReview from './PageCommentReview'
 import PagePanelComments from './PagePanelComments'
 import { canOpen } from '../../config/pageAccess'
+import Icon from '../../components/Icon'
 
 function PageRouter({ page, setPage, setUnreadCount, user, navTarget, clearNavTarget, onNotificationNavigate }) {
   const handleNotificationsRead = () => setUnreadCount(0)
@@ -35,7 +36,7 @@ function PageRouter({ page, setPage, setUnreadCount, user, navTarget, clearNavTa
   if (!canOpen(user?.role, page)) {
     return (
       <div style={{ background: '#fff', border: '1px solid #e8ecf2', borderRadius: '14px', padding: '48px 24px', textAlign: 'center' }}>
-        <div style={{ fontSize: '28px', marginBottom: '8px' }}>🔒</div>
+        <div style={{ fontSize: '28px', marginBottom: '8px' }}><Icon name="lock" /></div>
         <div style={{ fontSize: '15px', fontWeight: 700, color: '#0a1f44', marginBottom: '4px' }}>This page isn't available for your role</div>
         <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>Use the menu on the left to find what you need.</div>
         <button type="button" onClick={() => setPage('dashboard')} style={{ padding: '9px 16px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg,#0a1f44,#1040a0)', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>Go to Dashboard</button>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import Icon from '../components/Icon'
 
 // Landed on after the Laravel backend completes the Google OAuth redirect
 // flow (AuthController::handleGoogleCallback). The backend already did the
@@ -44,7 +45,7 @@ export default function OAuthCallback() {
       }}>
         {!error ? (
           <>
-            <div style={{ fontSize: '28px', marginBottom: '10px' }}>🔐</div>
+            <div style={{ fontSize: '28px', marginBottom: '10px' }}><Icon name="lock" /></div>
             <div style={{ fontSize: '14px', fontWeight: '700', color: '#0a1f44', marginBottom: '4px' }}>
               Signing you in...
             </div>
@@ -52,7 +53,7 @@ export default function OAuthCallback() {
           </>
         ) : (
           <>
-            <div style={{ fontSize: '28px', marginBottom: '10px' }}>⚠️</div>
+            <div style={{ fontSize: '28px', marginBottom: '10px' }}><Icon name="alert" /></div>
             <div style={{ fontSize: '14px', fontWeight: '700', color: '#0a1f44', marginBottom: '8px' }}>
               Google Sign-In Failed
             </div>

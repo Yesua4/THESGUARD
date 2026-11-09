@@ -74,8 +74,8 @@ export default function CommentCompare({ comment, attempt, originDoc, revisionDo
                 <span><ins style={{ color: '#065f46', textDecorationThickness: '2px' }}>+ added</ins></span>
                 <span>
                   {how === 'same' ? 'Matched by paragraph (same paragraph in both versions).'
-                    : how === 'unchanged' ? '⚠ This passage looks unchanged in the revision.'
-                    : how === 'closest' ? '⚠ The original paragraph was moved or rewritten; showing the closest matching passage. Please double-check.'
+                    : how === 'unchanged' ? 'This passage looks unchanged in the revision.'
+                    : how === 'closest' ? 'The original paragraph was moved or rewritten; showing the closest matching passage. Please double-check.'
                     : ''}
                 </span>
               </div>

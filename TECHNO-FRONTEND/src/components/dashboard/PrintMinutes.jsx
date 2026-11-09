@@ -1,3 +1,4 @@
+import Icon from '../Icon'
 // Defense minutes laid out like the paper form (Outline Defense Minutes
 // template), for printing or "Save as PDF" in the browser's print dialog.
 const TYPE_TITLE = { title: 'TITLE DEFENSE', outline: 'OUTLINE DEFENSE', pre_deployment: 'PRE-DEPLOYMENT DEFENSE', final: 'FINAL DEFENSE' }
@@ -36,7 +37,7 @@ export default function PrintMinutes({ project, minute, onClose }) {
         }
       `}</style>
       <div className="tg-no-print" style={{ maxWidth: '1000px', margin: '0 auto 12px', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-        <button type="button" onClick={() => window.print()} style={{ padding: '9px 16px', borderRadius: '8px', border: 'none', background: '#fff', color: '#0a1f44', fontWeight: 700, cursor: 'pointer' }}>🖨 Print / Save as PDF</button>
+        <button type="button" onClick={() => window.print()} style={{ padding: '9px 16px', borderRadius: '8px', border: 'none', background: '#fff', color: '#0a1f44', fontWeight: 700, cursor: 'pointer' }}><Icon name="printer" /> Print / Save as PDF</button>
         <button type="button" onClick={onClose} style={{ padding: '9px 16px', borderRadius: '8px', border: 'none', background: 'rgba(255,255,255,0.2)', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>Close</button>
       </div>
 

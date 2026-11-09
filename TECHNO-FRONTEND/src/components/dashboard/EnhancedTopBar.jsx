@@ -4,6 +4,7 @@ import api from '../../api/axios'
 import { ROLE_META, userRoles } from '../../constants/roles'
 import { useAcademicTerms, termLabel } from '../../hooks/useAcademicTerms'
 import UserAvatar from './UserAvatar'
+import Icon from '../Icon'
 
 function EnhancedTopBar({
   user, unreadCount, loggingOut, handleLogout,
@@ -53,10 +54,10 @@ function EnhancedTopBar({
   }, [])
 
   const typeIcon = t => ({
-    title_approved: '✅', title_rejected: '❌', title_chosen: '🏆',
-    schedule: '📅', document_uploaded: '📄',
-    document_status: '📋', defense_verdict: '🎓',
-  }[t] || '🔔')
+    title_approved: <Icon name="check-circle" />, title_rejected: <Icon name="x-circle" />, title_chosen: <Icon name="award" />,
+    schedule: <Icon name="calendar" />, document_uploaded: <Icon name="file" />,
+    document_status: <Icon name="clipboard" />, defense_verdict: <Icon name="graduation" />,
+  }[t] || <Icon name="bell" />)
 
   return (
     <div style={{
@@ -268,8 +269,8 @@ function EnhancedTopBar({
 
             {/* Menu items */}
             {[
-              { icon: '👤', label: 'Edit Profile',     action: 'editprofile' },
-              { icon: '🔐', label: 'Change Password',  action: 'changepassword' },
+              { icon: <Icon name="user" />, label: 'Edit Profile',     action: 'editprofile' },
+              { icon: <Icon name="lock" />, label: 'Change Password',  action: 'changepassword' },
             ].map(item => (
               <button key={item.label} style={{ width: '100%', padding: '11px 16px', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: '#334155', textAlign: 'left' }}
                 onMouseOver={e => e.currentTarget.style.background = '#f8fafc'}

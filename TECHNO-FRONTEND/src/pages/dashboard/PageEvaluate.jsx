@@ -7,6 +7,7 @@ import { useProjectChannel } from '../../hooks/useProjectChannel'
 import { DEFENSE_TYPE_LABEL, PANEL_ROLE_LABEL } from '../../constants/defense'
 import { INDIVIDUAL_CRITERIA, GROUP_CRITERIA, VERDICTS, VERDICT_LABEL, verdictStyle } from '../../constants/evaluation'
 import PrintEvaluationSheet from '../../components/dashboard/PrintEvaluationSheet'
+import Icon from '../../components/Icon'
 
 // Panelist evaluation, following the school's defense evaluation sheet:
 // individual grade per presenter (Disposition 30 + Delivery 70), group grade
@@ -154,7 +155,7 @@ function PageEvaluate() {
             {schedule && (onPanel(schedule) || user.role === 'admin' || user.base_role === 'admin') ? (
               <form onSubmit={submit} style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '16px', borderBottom: '1px solid #f8fafc' }}>
                 {myRole && <div style={{ fontSize: '12px', color: '#5b21b6', fontWeight: 600 }}>You are the {PANEL_ROLE_LABEL[myRole]} for this defense.</div>}
-                {success && <div role="status" style={{ background: '#d1fae5', border: '1px solid #a7f3d0', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#065f46', fontWeight: '600' }}>✅ {success}</div>}
+                {success && <div role="status" style={{ background: '#d1fae5', border: '1px solid #a7f3d0', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#065f46', fontWeight: '600' }}>✓ {success}</div>}
 
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -244,7 +245,7 @@ function PageEvaluate() {
                   </button>
                   {mine && (
                     <button type="button" onClick={() => setPrinting({ ...mine, panelist: { name: user.name } })} style={{ padding: '11px 14px', borderRadius: '8px', border: '1.5px solid #e2e8f0', background: '#fff', color: '#0a1f44', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}>
-                      🖨 Print / PDF
+                      <Icon name="printer" /> Print / PDF
                     </button>
                   )}
                 </div>
@@ -271,7 +272,7 @@ function PageEvaluate() {
                     </div>
                     {e.remarks && <div style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic', marginTop: '4px' }}>"{e.remarks}"</div>}
                     {e.individual_scores && (
-                      <button type="button" onClick={() => setPrinting(e)} style={{ marginTop: '6px', fontSize: '11px', fontWeight: 700, color: '#1d4ed8', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>🖨 Print / Save as PDF</button>
+                      <button type="button" onClick={() => setPrinting(e)} style={{ marginTop: '6px', fontSize: '11px', fontWeight: 700, color: '#1d4ed8', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}><Icon name="printer" /> Print / Save as PDF</button>
                     )}
                   </div>
                 ))}
@@ -287,7 +288,7 @@ function PageEvaluate() {
         <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontSize: '13px' }}>Loading...</div>
       ) : projects.length === 0 ? (
         <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8ecf2', padding: '48px', textAlign: 'center' }}>
-          <div style={{ fontSize: '28px', marginBottom: '8px' }}>📋</div>
+          <div style={{ fontSize: '28px', marginBottom: '8px' }}><Icon name="clipboard" /></div>
           <div style={{ fontSize: '13px', color: '#94a3b8' }}>No projects ready for evaluation yet. Projects must be set to "For Defense" or "Approved" first.</div>
         </div>
       ) : (

@@ -6,6 +6,7 @@ import { useToast } from '../../context/ToastContext'
 import { useProjectChannel } from '../../hooks/useProjectChannel'
 import PrintMinutes from '../../components/dashboard/PrintMinutes'
 import { DEFENSE_TYPE_LABEL } from '../../constants/defense'
+import Icon from '../../components/Icon'
 
 // Defense minutes monitoring plus the pre-deployment and final manuscript
 // routing checklists. Reviewers record panel comments; students record the
@@ -262,7 +263,7 @@ function MinutesTab({ project, user }) {
                   {importing === m.id ? 'Adding…' : '⇣ Fill from panel comments'}
                 </button>
               )}
-              <button onClick={() => setPrinting(m)} style={btn('#fff', '#0a1f44')}>🖨 Print / PDF</button>
+              <button onClick={() => setPrinting(m)} style={btn('#fff', '#0a1f44')}><Icon name="printer" /> Print / PDF</button>
               {['admin', 'instructor'].includes(user.role) || m.recorded_by === user.id
                 ? <button onClick={() => deleteMinute(m.id)} style={btn('#fff', '#dc2626')}>Delete minutes</button> : null}
             </div>

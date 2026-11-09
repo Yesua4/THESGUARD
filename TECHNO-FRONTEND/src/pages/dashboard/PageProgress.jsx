@@ -4,6 +4,7 @@ import api from '../../api/axios'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import SimilarityBreakdown from './SimilarityBreakdown'
 import { useProjectChannel } from '../../hooks/useProjectChannel'
+import Icon from '../../components/Icon'
 
 function PageProgress() {
   const { user } = useAuth()
@@ -42,7 +43,7 @@ function PageProgress() {
   const phase1 = [
     {
       id: 1,
-      icon: '👥',
+      icon: <Icon name="users" />,
       label: 'Grouped',
       phase: 'Phase 1',
       description: group
@@ -52,7 +53,7 @@ function PageProgress() {
     },
     {
       id: 2,
-      icon: '🔍',
+      icon: <Icon name="search" />,
       label: 'Environmental scanning',
       phase: 'Phase 1',
       description: group
@@ -62,7 +63,7 @@ function PageProgress() {
     },
     {
       id: 3,
-      icon: '📝',
+      icon: <Icon name="edit" />,
       label: 'Proposal submitted',
       phase: 'Phase 1',
       description: project
@@ -72,7 +73,7 @@ function PageProgress() {
     },
     {
       id: 4,
-      icon: '🎤',
+      icon: <Icon name="mic" />,
       label: 'Title defense',
       phase: 'Phase 1',
       description:
@@ -88,7 +89,7 @@ function PageProgress() {
     },
     {
       id: 5,
-      icon: '📄',
+      icon: <Icon name="file" />,
       label: 'Manuscript & prototype (outline defense)',
       phase: 'Phase 1',
       description:
@@ -106,7 +107,7 @@ function PageProgress() {
   const phase2 = [
     {
       id: 6,
-      icon: '⚙️',
+      icon: <Icon name="settings" />,
       label: 'Full system development',
       phase: 'Phase 2',
       description:
@@ -118,7 +119,7 @@ function PageProgress() {
     },
     {
       id: 7,
-      icon: '🎤',
+      icon: <Icon name="mic" />,
       label: 'Pre-deployment defense',
       phase: 'Phase 2',
       description:
@@ -136,7 +137,7 @@ function PageProgress() {
   const phase3 = [
     {
       id: 8,
-      icon: '🚀',
+      icon: <Icon name="send" />,
       label: 'Deployment & testing',
       phase: 'Phase 3',
       description:
@@ -147,7 +148,7 @@ function PageProgress() {
     },
     {
       id: 9,
-      icon: '🎤',
+      icon: <Icon name="mic" />,
       label: 'Final defense',
       phase: 'Phase 3',
       description: schedule
@@ -160,12 +161,12 @@ function PageProgress() {
     },
     {
       id: 10,
-      icon: '🎓',
+      icon: <Icon name="graduation" />,
       label: 'Completed',
       phase: 'Phase 3',
       description:
         project?.status === 'archived'
-          ? '🎉 Congratulations! Your thesis/capstone project is complete.'
+          ? 'Congratulations! Your thesis/capstone project is complete.'
           : 'Complete all previous stages to finish.',
       done: project?.status === 'archived',
     },
@@ -256,7 +257,7 @@ function PageProgress() {
                     padding: '14px 16px', display: 'flex', gap: '12px', alignItems: 'flex-start',
                   }}>
                     <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: bgColor, border: `1.5px solid ${borderColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>
-                      {stage.done ? '✅' : stage.warning ? '❌' : stage.inProgress ? '⏳' : stage.icon}
+                      {stage.done ? <Icon name="check-circle" /> : stage.warning ? <Icon name="x-circle" /> : stage.inProgress ? <Icon name="clock" /> : stage.icon}
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>

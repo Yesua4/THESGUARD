@@ -120,7 +120,7 @@ function PageDocumentReview({ initialDocumentId, initialCommentId = null, onCons
                 {[
                   ['approved', '✓ Approve', 'linear-gradient(135deg,#059669,#047857)'],
                   ['needs_revision', '↩ Revise', 'linear-gradient(135deg,#d97706,#b45309)'],
-                  ['under_review', '👁 Review', 'linear-gradient(135deg,#2563eb,#1d4ed8)'],
+                  ['under_review', 'Review', 'linear-gradient(135deg,#2563eb,#1d4ed8)'],
                 ].map(([val, label, bg]) => (
                   <button key={val} onClick={() => updateStatus(val)} style={{ padding: '7px 14px', borderRadius: '8px', border: 'none', background: bg, color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>{label}</button>
                 ))}

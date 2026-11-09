@@ -1,5 +1,6 @@
 import { INDIVIDUAL_CRITERIA, GROUP_CRITERIA, VERDICTS } from '../../constants/evaluation'
 import { DEFENSE_TYPE_LABEL } from '../../constants/defense'
+import Icon from '../Icon'
 
 // A panelist's evaluation laid out like the paper sheet, for printing or
 // "Save as PDF" (the browser's print dialog). Everything else on the page is
@@ -24,7 +25,7 @@ export default function PrintEvaluationSheet({ project, schedule, evaluation, pa
         }
       `}</style>
       <div className="tg-no-print" style={{ maxWidth: '800px', margin: '0 auto 12px', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-        <button type="button" onClick={() => window.print()} style={{ padding: '9px 16px', borderRadius: '8px', border: 'none', background: '#fff', color: '#0a1f44', fontWeight: 700, cursor: 'pointer' }}>🖨 Print / Save as PDF</button>
+        <button type="button" onClick={() => window.print()} style={{ padding: '9px 16px', borderRadius: '8px', border: 'none', background: '#fff', color: '#0a1f44', fontWeight: 700, cursor: 'pointer' }}><Icon name="printer" /> Print / Save as PDF</button>
         <button type="button" onClick={onClose} style={{ padding: '9px 16px', borderRadius: '8px', border: 'none', background: 'rgba(255,255,255,0.2)', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>Close</button>
       </div>
 

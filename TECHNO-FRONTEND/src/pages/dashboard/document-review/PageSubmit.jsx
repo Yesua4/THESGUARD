@@ -6,6 +6,7 @@ import { typeLabel, statusStyle, fileIcon, fileStyle } from '../../../utils/docu
 import DocumentReviewViewer from './DocumentReviewViewer'
 import RichTextEditor from './RichTextEditor'
 import { useProjectChannel } from '../../../hooks/useProjectChannel'
+import Icon from '../../../components/Icon'
 
 function PageSubmit({ initialDocumentId, initialCommentId = null, onConsumeInitialDocument }) {
   const { user } = useAuth()
@@ -243,7 +244,7 @@ function PageSubmit({ initialDocumentId, initialCommentId = null, onConsumeIniti
           display:'flex', alignItems:'center', justifyContent:'center',
         }}>
           <div style={{ background:'#fff', borderRadius:'14px', padding:'28px 36px', textAlign:'center', boxShadow:'0 20px 60px rgba(0,0,0,0.3)' }}>
-            <div style={{ fontSize:'28px', marginBottom:'10px' }}>📄</div>
+            <div style={{ fontSize:'28px', marginBottom:'10px' }}><Icon name="file" /></div>
             <div style={{ fontSize:'14px', fontWeight:'700', color:'#0a1f44', marginBottom:'4px' }}>Converting document for editing...</div>
             <div style={{ fontSize:'12px', color:'#94a3b8' }}>This can take a few seconds for larger files.</div>
           </div>
@@ -345,8 +346,8 @@ function PageSubmit({ initialDocumentId, initialCommentId = null, onConsumeIniti
             <div style={{ fontSize:'13px', fontWeight:'700', color:'#fff' }}>Upload Document</div>
           </div>
           <div style={{ padding:'18px' }}>
-            {success && <div style={{ background:'#d1fae5', border:'1px solid #a7f3d0', borderRadius:'8px', padding:'10px 14px', marginBottom:'12px', fontSize:'13px', color:'#065f46', fontWeight:'600' }}>✅ {success}</div>}
-            {error   && <div style={{ background:'#fee2e2', border:'1px solid #fecaca', borderRadius:'8px', padding:'10px 14px', marginBottom:'12px', fontSize:'13px', color:'#9f1239', fontWeight:'600' }}>❌ {error}</div>}
+            {success && <div style={{ background:'#d1fae5', border:'1px solid #a7f3d0', borderRadius:'8px', padding:'10px 14px', marginBottom:'12px', fontSize:'13px', color:'#065f46', fontWeight:'600' }}>✓ {success}</div>}
+            {error   && <div style={{ background:'#fee2e2', border:'1px solid #fecaca', borderRadius:'8px', padding:'10px 14px', marginBottom:'12px', fontSize:'13px', color:'#9f1239', fontWeight:'600' }}>✕ {error}</div>}
 
             {approvedProject ? (
               <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
@@ -361,7 +362,7 @@ function PageSubmit({ initialDocumentId, initialCommentId = null, onConsumeIniti
                   <input name="version_note" value={form.version_note} onChange={handle} style={inputStyle} placeholder="e.g. Revised abstract" />
                 </div>
                 <div style={{ display:'flex', gap:'6px' }}>
-                  {[['upload','📎 Upload File'],['write','✍️ Write In-App']].map(([m,label]) => (
+                  {[['upload','Upload File'],['write','Write In-App']].map(([m,label]) => (
                     <button key={m} type="button" onClick={() => setMode(m)} style={{
                       flex:1, padding:'8px', borderRadius:'8px', fontSize:'12px', fontWeight:'700', cursor:'pointer',
                       border: mode===m ? '1.5px solid #1040a0' : '1.5px solid #e2e8f0',
@@ -386,7 +387,7 @@ function PageSubmit({ initialDocumentId, initialCommentId = null, onConsumeIniti
                         </div>
                       ) : (
                         <div>
-                          <div style={{ fontSize:'24px', marginBottom:'8px' }}>📎</div>
+                          <div style={{ fontSize:'24px', marginBottom:'8px' }}><Icon name="paperclip" /></div>
                           <div style={{ fontSize:'13px', color:'#64748b', marginBottom:'4px' }}>Drag and drop your file here</div>
                           <div style={{ fontSize:'11px', color:'#94a3b8', marginBottom:'10px' }}>or</div>
                           <label style={{ background:'linear-gradient(135deg,#0a1f44,#1040a0)', color:'#fff', fontSize:'12px', padding:'7px 16px', borderRadius:'8px', cursor:'pointer', fontWeight:'600' }}>
@@ -403,7 +404,7 @@ function PageSubmit({ initialDocumentId, initialCommentId = null, onConsumeIniti
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'5px' }}>
                       <label style={{ fontSize:'11px', fontWeight:'700', color:'#64748b', letterSpacing:'0.06em', textTransform:'uppercase' }}>Chapter Content</label>
                       <button type="button" onClick={() => setFullScreen(true)} style={{ display:'flex', alignItems:'center', gap:'5px', fontSize:'11px', fontWeight:'700', color:'#1040a0', background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:'6px', padding:'4px 10px', cursor:'pointer' }}>
-                        ⛶ Full Screen
+                        <Icon name="maximize" /> Full Screen
                       </button>
                     </div>
                     {recoveredDraft && (
@@ -433,7 +434,7 @@ function PageSubmit({ initialDocumentId, initialCommentId = null, onConsumeIniti
               </form>
             ) : (
               <div style={{ textAlign:'center', padding:'32px 0', color:'#94a3b8', fontSize:'13px' }}>
-                <div style={{ fontSize:'28px', marginBottom:'8px' }}>🔒</div>
+                <div style={{ fontSize:'28px', marginBottom:'8px' }}><Icon name="lock" /></div>
                 Upload is locked until your title is approved.
               </div>
             )}
@@ -448,7 +449,7 @@ function PageSubmit({ initialDocumentId, initialCommentId = null, onConsumeIniti
           <div style={{ padding:'14px' }}>
             {documents.length === 0 ? (
               <div style={{ textAlign:'center', padding:'32px 0', color:'#94a3b8', fontSize:'13px' }}>
-                <div style={{ fontSize:'28px', marginBottom:'8px' }}>📄</div>
+                <div style={{ fontSize:'28px', marginBottom:'8px' }}><Icon name="file" /></div>
                 No documents submitted yet.
               </div>
             ) : (
@@ -477,7 +478,7 @@ function PageSubmit({ initialDocumentId, initialCommentId = null, onConsumeIniti
                             onClick={e => { e.stopPropagation(); startEditUpload(d) }}
                             style={{ fontSize:'11px', color:'#7c3aed', fontWeight:'600' }}
                           >
-                            ✏️ Edit
+                            <Icon name="edit" /> Edit
                           </span>
                         )}
                         <span style={{ fontSize:'11px', color:'#1d4ed8', fontWeight:'600' }}>View →</span>
@@ -485,7 +486,7 @@ function PageSubmit({ initialDocumentId, initialCommentId = null, onConsumeIniti
                           onClick={e => { e.stopPropagation(); deleteDocument(d) }}
                           style={{ fontSize:'11px', color: deletingId === d.id ? '#cbd5e1' : '#dc2626', fontWeight:'600', pointerEvents: deletingId === d.id ? 'none' : 'auto' }}
                         >
-                          {deletingId === d.id ? 'Deleting…' : '🗑️ Delete'}
+                          {deletingId === d.id ? 'Deleting…' : 'Delete'}
                         </span>
                       </div>
                     </div>

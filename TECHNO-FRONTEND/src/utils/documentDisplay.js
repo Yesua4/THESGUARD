@@ -29,7 +29,7 @@ export const statusStyle = s => ({
 export const statusLabel = s =>
   s === 'approved'       ? '✓ Approved' :
   s === 'needs_revision' ? '↩ Needs Revision' :
-  s === 'under_review'   ? '👁 Under Review' : 'Pending'
+  s === 'under_review'   ? 'Under Review' : 'Pending'
 
 export const fileIcon = p => !p ? 'FILE' : p.endsWith('.pdf') ? 'PDF' : 'DOC'
 

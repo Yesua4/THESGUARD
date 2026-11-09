@@ -2,6 +2,7 @@ import { useState } from 'react'
 import api from '../../api/axios'
 import { similarityBarColor as barColor, similarityScoreColor as scoreColor, similarityBadgeStyle } from '../../utils/similarityColors'
 import { useToast } from '../../context/ToastContext'
+import Icon from '../../components/Icon'
 
 function PageSimilarity() {
   const { showToast } = useToast()
@@ -100,9 +101,9 @@ function PageSimilarity() {
           <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', padding:'16px 18px' }}>
             <div style={{ fontSize:'13px', fontWeight:'700', color:'#0a1f44', marginBottom:'8px' }}>How It Works</div>
             {[
-              ['📝', 'Title check', 'Compares your title against all archived and active projects.'],
-              ['📄', 'Description check', 'Compares the project description with past projects’ abstracts, by keywords and by meaning.'],
-              ['🎯', 'Objectives check', 'Matches the objectives against existing project goals.'],
+              [<Icon name="edit" />, 'Title check', 'Compares your title against all archived and active projects.'],
+              [<Icon name="file" />, 'Description check', 'Compares the project description with past projects’ abstracts, by keywords and by meaning.'],
+              [<Icon name="target" />, 'Objectives check', 'Matches the objectives against existing project goals.'],
             ].map(([icon, label, desc]) => (
               <div key={label} style={{ display:'flex', gap:'10px', marginBottom:'10px' }}>
                 <div style={{ fontSize:'16px', flexShrink:0 }}>{icon}</div>

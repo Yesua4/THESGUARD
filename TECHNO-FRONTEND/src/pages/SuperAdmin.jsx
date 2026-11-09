@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { useToast } from '../context/ToastContext'
+import Icon from '../components/Icon'
 
 // ── Super Admin — read-only directory of registered schools ───────────────────
 // This page is only accessible at /thesisguard-admin
@@ -105,12 +106,12 @@ export default function SuperAdmin() {
         {/* Stats */}
         <div style={S.statsGrid}>
           <div style={S.statCard}>
-            <div style={{ fontSize: '24px', marginBottom: '8px' }}>🏫</div>
+            <div style={{ fontSize: '24px', marginBottom: '8px' }}><Icon name="school" /></div>
             <div style={{ fontSize: '28px', fontWeight: '800', color: '#0a1f44' }}>{schools.length}</div>
             <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total Schools</div>
           </div>
           <div style={S.statCard}>
-            <div style={{ fontSize: '24px', marginBottom: '8px' }}>👤</div>
+            <div style={{ fontSize: '24px', marginBottom: '8px' }}><Icon name="user" /></div>
             <div style={{ fontSize: '28px', fontWeight: '800', color: '#0a1f44' }}>{schools.reduce((a, s) => a + (s.users_count || 0), 0)}</div>
             <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total Users</div>
           </div>

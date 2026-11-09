@@ -11,6 +11,7 @@ import { PROJECT_STATUSES, PROJECT_STATUS_LABEL } from '../../constants/projectS
 import { RecommendedBadge } from '../../components/dashboard/GroupRecommendation'
 import { similarityScoreColor, similarityBadgeStyle } from '../../utils/similarityColors'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
+import Icon from '../../components/Icon'
 
 function PageProjects() {
   const { user } = useAuth()
@@ -179,13 +180,13 @@ function PageProjects() {
                   <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...scoreBadge(selectedProject.similarity_score) }}>Similarity: {selectedProject.similarity_score}%</span>
                   <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...titleBadge(selectedProject.title_status) }}>Title: {selectedProject.title_status}</span>
                   {selectedProject.is_final_title && (
-                    <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'700', background:'#ede9fe', color:'#4c1d95' }}>🏆 Final Title</span>
+                    <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'700', background:'#ede9fe', color:'#4c1d95' }}><Icon name="award" /> Final Title</span>
                   )}
                   {selectedProject.defense_verdict && selectedProject.defense_verdict !== 'pending' && (
                     <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'700',
                       background: selectedProject.defense_verdict==='passed'?'#d1fae5':selectedProject.defense_verdict==='failed'?'#fee2e2':'#fef3c7',
                       color: selectedProject.defense_verdict==='passed'?'#065f46':selectedProject.defense_verdict==='failed'?'#9f1239':'#92400e' }}>
-                      🎓 Defense: {selectedProject.defense_verdict === 'revision' ? 'Needs Revision' : selectedProject.defense_verdict}
+                      <Icon name="graduation" /> Defense: {selectedProject.defense_verdict === 'revision' ? 'Needs Revision' : selectedProject.defense_verdict}
                     </span>
                   )}
                 </div>
@@ -205,7 +206,7 @@ function PageProjects() {
                   <div style={{ fontSize:'13px', fontWeight:'700', color:'#4c1d95', marginBottom:'4px' }}>After the title defense</div>
                   <div style={{ fontSize:'12px', color:'#5b21b6', marginBottom:'10px' }}>Set this as the group's final title once the panel has decided. Their other approved titles will be archived and the group notified.</div>
                   <button onClick={() => { if (confirm(`Set "${selectedProject.title}" as this group's FINAL title?`)) chooseFinal(selectedProject.id) }} style={{ padding:'8px 16px', borderRadius:'8px', border:'none', background:'linear-gradient(135deg,#4c1d95,#6d28d9)', color:'#fff', fontSize:'12px', fontWeight:'700', cursor:'pointer' }}>
-                    🏆 Set as final title
+                    <Icon name="award" /> Set as final title
                   </button>
                 </div>
               )
@@ -305,7 +306,7 @@ function PageProjects() {
       {lastResult && (
         <div style={{ borderRadius:'12px', padding:'14px 16px', marginBottom:'14px', background: lastResult.status==='flagged'?'#fee2e2':'#d1fae5', border:`1px solid ${lastResult.status==='flagged'?'#fecaca':'#a7f3d0'}` }}>
           <div style={{ fontSize:'13px', fontWeight:'600', color: lastResult.status==='flagged'?'#9f1239':'#065f46', marginBottom:'4px' }}>
-            {lastResult.status==='flagged' ? '🚩 Proposal flagged — high similarity detected' : '✅ Proposal submitted! Awaiting instructor title approval.'}
+            {lastResult.status==='flagged' ? 'Proposal flagged — high similarity detected' : '✓ Proposal submitted! Awaiting instructor title approval.'}
           </div>
           <div style={{ fontSize:'12px', color:'#64748b', display:'flex', alignItems:'center', gap:'10px', flexWrap:'wrap' }}>
             <span>Similarity score: <span style={{ fontWeight:'700', color: similarityScoreColor(lastResult.similarity_score) }}>{lastResult.similarity_score}%</span></span>
@@ -364,7 +365,7 @@ function PageProjects() {
                     onMouseOut={e => e.currentTarget.style.background='transparent'}>
                     <td style={{ padding:'12px 14px', fontWeight:'600', color:'#0a1f44' }}>
                       {p.title}
-                      {p.is_final_title && <span title="Final title (set by faculty after the title defense)" style={{ marginLeft:'6px' }}>🏆</span>}
+                      {p.is_final_title && <span title="Final title (set by faculty after the title defense)" style={{ marginLeft:'6px' }}><Icon name="award" /></span>}
                       {p.group?.recommended_for && <div style={{ marginTop:'4px' }}><RecommendedBadge group={p.group} /></div>}
                     </td>
                     <td style={{ padding:'12px 14px', color:'#94a3b8' }}>{p.batch||'—'}</td>

@@ -3,6 +3,7 @@ import api from '../../api/axios'
 import { SectionField } from './SectionPicker'
 import { useAuth } from '../../context/AuthContext'
 import { useSchoolStaffChannel } from '../../hooks/useSchoolStaffChannel'
+import Icon from '../Icon'
 
 const overlay = { position:'fixed', inset:0, background:'rgba(10,31,68,0.4)', zIndex:60, display:'flex', alignItems:'center', justifyContent:'center' }
 const header  = { background:'linear-gradient(135deg,#0a1f44,#1040a0)', padding:'18px 20px', display:'flex', justifyContent:'space-between', alignItems:'center' }
@@ -61,7 +62,7 @@ export function ImportClassListModal({ user, onClose, onDone }) {
           {!result ? (
             <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
               <div style={{ background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:'10px', padding:'12px 14px', fontSize:'12px', color:'#047857', lineHeight:'1.7' }}>
-                <div style={{ fontWeight:'700', color:'#065f46', marginBottom:'4px' }}>📋 Upload the class list from the registrar</div>
+                <div style={{ fontWeight:'700', color:'#065f46', marginBottom:'4px' }}><Icon name="clipboard" /> Upload the class list from the registrar</div>
                 • Accepts the registrar's <strong>.xls</strong> as is, or .xlsx / .csv with <strong>Student No.</strong> and <strong>Name</strong> columns.<br/>
                 • Students are matched to their accounts by <strong>Student No.</strong> No emails needed.<br/>
                 • Students who haven't signed up yet are enrolled automatically when they do.
@@ -89,7 +90,7 @@ export function ImportClassListModal({ user, onClose, onDone }) {
                 <div style={{ fontSize:'13px', color:'#475569' }}>enrolled{result.section ? ` in ${result.section}` : ''}</div>
                 <div style={{ fontSize:'12px', color:'#64748b', marginTop:'4px' }}>{result.message}</div>
               </div>
-              <ReportList title="⚠ Name on account differs from class list" color="#92400e" bg="#fef3c7" items={result.mismatches}
+              <ReportList title="Name on account differs from class list" color="#92400e" bg="#fef3c7" items={result.mismatches}
                 render={m => <>{m.student_id}: class list <strong>{m.name}</strong>, account <strong>{m.account_name}</strong></>} />
               <ReportList title="Not signed up yet: will be enrolled when they register" color="#1e40af" bg="#eff6ff" items={result.waiting}
                 render={w => `${w.student_id}: ${w.name}`} />

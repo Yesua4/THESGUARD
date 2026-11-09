@@ -4,6 +4,7 @@ import teamIC from '../assets/team-ic.jpg'
 import teamJM from '../assets/team-jm.jpg'
 import teamPG from '../assets/team-pg.jpg'
 import logo from '../assets/capstoneguard.png'
+import Icon from '../components/Icon'
 
 /* ─── Scroll-reveal hook ─────────────────────────────────────── */
 function useReveal() {
@@ -179,7 +180,7 @@ export default function LandingPage() {
             <h2 className="section-title">What is <span style={{color:'var(--accent)'}}>ThesisGuard?</span></h2>
             <p className="section-sub">ThesisGuard is a comprehensive web-based platform designed to centralize, secure, and streamline the management of thesis and capstone projects across all academic programs in Philippine higher education institutions.</p>
             <div className="about-points">
-              {[['🔒','Role-Based Access Control','Five distinct user roles with tailored dashboards and permissions — no more information overload or unauthorized access.'],['📊','NLP-Powered Similarity Detection','Combines SBERT, TF-IDF, spaCy, and NLTK to detect proposal similarities across title, abstract, and objectives.'],['📁','Digital Archival & Version Control','Every document revision is tracked. Approved projects are permanently archived in a searchable digital repository.']].map(([icon,title,desc]) => (
+              {[[<Icon name="lock" />,'Role-Based Access Control','Five distinct user roles with tailored dashboards and permissions — no more information overload or unauthorized access.'],[<Icon name="bar-chart" />,'NLP-Powered Similarity Detection','Combines SBERT, TF-IDF, spaCy, and NLTK to detect proposal similarities across title, abstract, and objectives.'],[<Icon name="folder" />,'Digital Archival & Version Control','Every document revision is tracked. Approved projects are permanently archived in a searchable digital repository.']].map(([icon,title,desc]) => (
                 <div key={title} className="about-point">
                   <div className="about-point-icon">{icon}</div>
                   <div className="about-point-text"><h4>{title}</h4><p>{desc}</p></div>
@@ -198,7 +199,7 @@ export default function LandingPage() {
           <p className="section-sub">ThesisGuard integrates all the tools needed for complete thesis and capstone project management from submission to archival.</p>
         </div>
         <div className="features-grid">
-          {[['🔐','Secure Role-Based Access','Five user roles each with precisely defined permissions and personalized dashboards.','Security'],['🧠','Proposal Similarity Detection','Hybrid NLP using SBERT, TF-IDF, spaCy, and NLTK for per-field similarity percentages.','NLP / AI'],['📄','Document Version Control','Complete revision history for all manuscripts. Upload PDF or DOCX, receive inline comments.','Documents'],['📈','Contribution Analytics','System-tracked activity logs measure individual participation — objective and auditable.','Analytics'],['📅','Defense Scheduling','Assign rooms and panelists. Students receive real-time in-app notifications.','Scheduling'],['📋','Reports & Archival','Generate reports, export as CSV, and archive approved projects permanently.','Reports']].map(([icon,title,desc,tag],i) => (
+          {[[<Icon name="lock" />,'Secure Role-Based Access','Five user roles each with precisely defined permissions and personalized dashboards.','Security'],[<Icon name="cpu" />,'Proposal Similarity Detection','Hybrid NLP using SBERT, TF-IDF, spaCy, and NLTK for per-field similarity percentages.','NLP / AI'],[<Icon name="file" />,'Document Version Control','Complete revision history for all manuscripts. Upload PDF or DOCX, receive inline comments.','Documents'],[<Icon name="trending-up" />,'Contribution Analytics','System-tracked activity logs measure individual participation — objective and auditable.','Analytics'],[<Icon name="calendar" />,'Defense Scheduling','Assign rooms and panelists. Students receive real-time in-app notifications.','Scheduling'],[<Icon name="clipboard" />,'Reports & Archival','Generate reports, export as CSV, and archive approved projects permanently.','Reports']].map(([icon,title,desc,tag],i) => (
             <div key={title} className={`feature-card reveal reveal-delay-${(i%3)+1}`}>
               <div className="feature-icon">{icon}</div>
               <div className="feature-title">{title}</div>
@@ -275,7 +276,7 @@ export default function LandingPage() {
           <p className="section-sub" style={{margin:'0 auto'}}>A robust full-stack architecture combining PHP, JavaScript, and Python for seamless performance.</p>
         </div>
         <div className="tech-grid">
-          {[['⚛️','React','User Interface','Frontend'],['🐘','Laravel 12','REST API & Backend Logic','Backend'],['🐍','Python FastAPI','NLP Similarity Service','Microservice'],['🗄️','MySQL','Database','Database'],['🤖','SBERT','Semantic Similarity','NLP'],['📊','TF-IDF','Lexical Similarity','NLP'],['🔑','Laravel Sanctum','Token Authentication','Security'],['🛡️','bcrypt + Pepper','Password Security','Security']].map(([icon,name,role,layer],i)=>(
+          {[[<Icon name="code" />,'React','User Interface','Frontend'],[<Icon name="server" />,'Laravel 12','REST API & Backend Logic','Backend'],[<Icon name="code" />,'Python FastAPI','NLP Similarity Service','Microservice'],[<Icon name="database" />,'MySQL','Database','Database'],[<Icon name="cpu" />,'SBERT','Semantic Similarity','NLP'],[<Icon name="bar-chart" />,'TF-IDF','Lexical Similarity','NLP'],[<Icon name="key" />,'Laravel Sanctum','Token Authentication','Security'],[<Icon name="shield" />,'bcrypt + Pepper','Password Security','Security']].map(([icon,name,role,layer],i)=>(
             <div key={name} className={`tech-card reveal reveal-delay-${(i%4)+1}`}>
               <div className="tech-icon">{icon}</div>
               <div className="tech-name">{name}</div>

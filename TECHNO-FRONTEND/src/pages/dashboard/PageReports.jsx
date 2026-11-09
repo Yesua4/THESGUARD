@@ -3,6 +3,7 @@ import api from '../../api/axios'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { similarityBadgeStyle } from '../../utils/similarityColors'
 import { useToast } from '../../context/ToastContext'
+import Icon from '../../components/Icon'
 
 function PageReports() {
   const { showToast } = useToast()
@@ -193,7 +194,7 @@ const exportPDF = () => {
             <div style={{ fontSize:'13px', color:'#64748b', fontWeight:'500' }}>{data.length} record(s) found</div>
             <div style={{ display:'flex', gap:'8px' }}>
               <button onClick={exportCSV} style={{ fontSize:'12px', padding:'8px 16px', borderRadius:'8px', border:'none', background:'linear-gradient(135deg,#059669,#047857)', color:'#fff', cursor:'pointer', fontWeight:'700' }}>↓ Export CSV</button>
-              <button onClick={exportPDF} style={{ fontSize:'12px', padding:'8px 16px', borderRadius:'8px', border:'none', background:'linear-gradient(135deg,#dc2626,#b91c1c)', color:'#fff', cursor:'pointer', fontWeight:'700' }}>🖨 Print / PDF</button>
+              <button onClick={exportPDF} style={{ fontSize:'12px', padding:'8px 16px', borderRadius:'8px', border:'none', background:'linear-gradient(135deg,#dc2626,#b91c1c)', color:'#fff', cursor:'pointer', fontWeight:'700' }}><Icon name="printer" /> Print / PDF</button>
             </div>
           </div>
 

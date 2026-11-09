@@ -10,6 +10,7 @@ import CommentComposer from './CommentComposer'
 import CommentSidebar from './CommentSidebar'
 import DocumentDiffViewer from './DocumentDiffViewer'
 import { PAGE_W, DEFAULT_MARGINS, markStructuralPageBreaks, paginate } from './pagination'
+import Icon from '../../../components/Icon'
 
 // Shown when no PDF-renderable version exists yet: either the file is a
 // Word doc whose automatic conversion failed (or hasn't been attempted,
@@ -39,7 +40,7 @@ function NonPdfFallback({ documentId, fileName, previewStatus }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '60px 20px', textAlign: 'center' }}>
-      <div style={{ fontSize: '36px' }}>📄</div>
+      <div style={{ fontSize: '36px' }}><Icon name="file" /></div>
       <div style={{ fontSize: '14px', fontWeight: 600, color: '#0a1f44' }}>Preview not available</div>
       <div style={{ fontSize: '12px', color: '#64748b', maxWidth: '340px' }}>{message}</div>
       <button
@@ -47,7 +48,7 @@ function NonPdfFallback({ documentId, fileName, previewStatus }) {
         disabled={downloading}
         style={{ marginTop: '6px', padding: '9px 18px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg,#0a1f44,#1040a0)', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: downloading ? 'default' : 'pointer', opacity: downloading ? 0.6 : 1 }}
       >
-        {downloading ? 'Downloading…' : '⬇ Download to view'}
+        {downloading ? 'Downloading…' : 'Download to view'}
       </button>
     </div>
   )
@@ -322,13 +323,13 @@ export default function DocumentReviewViewer({ document, onClose, statusActions 
             {isInAppDraft && (
               <button onClick={() => window.print()} title="Opens your browser's print dialog, with real A4 pagination -- this is an accurate preview of what printing or saving as PDF actually produces, not an on-screen approximation"
                 style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>
-                🖨 Print
+                <Icon name="printer" /> Print
               </button>
             )}
             {onEdit && (
               <button onClick={onEdit}
                 style={{ background: '#fff', border: 'none', color: '#0a1f44', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 700 }}>
-                ✏️ Edit
+                <Icon name="edit" /> Edit
               </button>
             )}
             <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: '28px', height: '28px', borderRadius: '6px', cursor: 'pointer', fontSize: '14px' }}>✕</button>

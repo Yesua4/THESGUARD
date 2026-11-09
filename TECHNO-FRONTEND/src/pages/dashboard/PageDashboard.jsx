@@ -5,6 +5,7 @@ import MiniCalendar from '../../components/dashboard/MiniCalendar'
 import QuickActionsWidget from '../../components/dashboard/QuickActionsWidget'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
 import { DEFENSE_TYPE_LABEL, timeRange } from '../../constants/defense'
+import Icon from '../../components/Icon'
 
 // The next defense (today or later), else the most recent one.
 function pickDefense(schedules) {
@@ -98,42 +99,42 @@ function PageDashboard({ user, onNavigate }) {
   const buildStats = () => {
     if (user?.role === 'student') {
       return [
-        ['Project Status',  studentStats?.status        || '…', '#1d4ed8', '📁'],
-        ['Title Status',    studentStats?.titleStatus   || '…', '#92400e', '⏳'],
-        ['Similarity',      studentStats?.similarity    || '…', '#065f46', '🔍'],
-        ['Defense Date',    studentStats?.defense       || '…', '#9f1239', '📅', studentStats?.defenseNote],
+        ['Project Status',  studentStats?.status        || '…', '#1d4ed8', <Icon name="folder" />],
+        ['Title Status',    studentStats?.titleStatus   || '…', '#92400e', <Icon name="clock" />],
+        ['Similarity',      studentStats?.similarity    || '…', '#065f46', <Icon name="search" />],
+        ['Defense Date',    studentStats?.defense       || '…', '#9f1239', <Icon name="calendar" />, studentStats?.defenseNote],
       ]
     }
     if (user?.role === 'adviser') {
       return [
-        ['My Groups',          adviserStats?.groups     ?? '…', '#065f46', '👥'],
-        ['Pending Docs',       adviserStats?.documents  ?? '…', '#92400e', '📄'],
-        ['Defenses Scheduled', adviserStats?.schedules  ?? '…', '#1d4ed8', '📅'],
-        ['Completed',          stats?.archived          ?? '…', '#065f46', '🎓'],
+        ['My Groups',          adviserStats?.groups     ?? '…', '#065f46', <Icon name="users" />],
+        ['Pending Docs',       adviserStats?.documents  ?? '…', '#92400e', <Icon name="file" />],
+        ['Defenses Scheduled', adviserStats?.schedules  ?? '…', '#1d4ed8', <Icon name="calendar" />],
+        ['Completed',          stats?.archived          ?? '…', '#065f46', <Icon name="graduation" />],
       ]
     }
     if (user?.role === 'panelist') {
       return [
-        ['For Review',   panelistStats?.forDefense ?? '…', '#1d4ed8', '📋'],
-        ['Approved',     panelistStats?.approved   ?? '…', '#065f46', '✅'],
-        ['Total Visible',panelistStats?.total      ?? '…', '#92400e', '📁'],
-        ['Evaluated',    panelistStats?.evaluated  ?? '…', '#9f1239', '⭐'],
+        ['For Review',   panelistStats?.forDefense ?? '…', '#1d4ed8', <Icon name="clipboard" />],
+        ['Approved',     panelistStats?.approved   ?? '…', '#065f46', <Icon name="check-circle" />],
+        ['Total Visible',panelistStats?.total      ?? '…', '#92400e', <Icon name="folder" />],
+        ['Evaluated',    panelistStats?.evaluated  ?? '…', '#9f1239', <Icon name="star" />],
       ]
     }
     if (user?.role === 'instructor') {
       return [
-        ['Pending Approval', stats?.pending  ?? '…', '#92400e', '⏳'],
-        ['Total Projects',   stats?.total    ?? '…', '#1d4ed8', '📁'],
-        ['Flagged',          stats?.flagged  ?? '…', '#9f1239', '🚩'],
-        ['Archived',         stats?.archived ?? '…', '#065f46', '🗄️'],
+        ['Pending Approval', stats?.pending  ?? '…', '#92400e', <Icon name="clock" />],
+        ['Total Projects',   stats?.total    ?? '…', '#1d4ed8', <Icon name="folder" />],
+        ['Flagged',          stats?.flagged  ?? '…', '#9f1239', <Icon name="flag" />],
+        ['Archived',         stats?.archived ?? '…', '#065f46', <Icon name="archive" />],
       ]
     }
     // admin
     return [
-      ['Total Projects', stats?.total    ?? '…', '#1d4ed8', '📁'],
-      ['Archived',       stats?.archived ?? '…', '#065f46', '🗄️'],
-      ['Pending Titles', stats?.pending  ?? '…', '#92400e', '⏳'],
-      ['Flagged',        stats?.flagged  ?? '…', '#9f1239', '🚩'],
+      ['Total Projects', stats?.total    ?? '…', '#1d4ed8', <Icon name="folder" />],
+      ['Archived',       stats?.archived ?? '…', '#065f46', <Icon name="archive" />],
+      ['Pending Titles', stats?.pending  ?? '…', '#92400e', <Icon name="clock" />],
+      ['Flagged',        stats?.flagged  ?? '…', '#9f1239', <Icon name="flag" />],
     ]
   }
 
@@ -163,7 +164,7 @@ function PageDashboard({ user, onNavigate }) {
             {new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </div>
           <div style={{ color: '#fff', fontSize: '20px', fontWeight: '700', marginBottom: '4px' }}>
-            {greeting}, {user?.name?.split(' ')[0]}! 👋
+            {greeting}, {user?.name?.split(' ')[0]}!
           </div>
           <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px' }}>
             Here's your capstone monitoring overview.
@@ -202,7 +203,7 @@ function PageDashboard({ user, onNavigate }) {
                     <div style={{ fontSize: '24px', fontWeight: '800', color: '#0a1f44', textTransform: 'capitalize' }}>{typeof value === 'string' ? value.replace(/_/g, ' ') : value}</div>
                     {note && <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>{note}</div>}
                   </div>
-                  <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>{icon}</div>
+                  <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: `${color}18`, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>{icon}</div>
                 </div>
               </div>
             ))}

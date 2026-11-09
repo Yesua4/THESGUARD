@@ -7,6 +7,7 @@ import { useAcademicTerms } from '../../hooks/useAcademicTerms'
 import GroupPanelEditor from '../../components/dashboard/GroupPanelEditor'
 import GroupRecommendation, { RecommendedBadge } from '../../components/dashboard/GroupRecommendation'
 import StageInstructorsEditor from '../../components/dashboard/StageInstructorsEditor'
+import Icon from '../../components/Icon'
 
 function PageGroups() {
   const { user } = useAuth()
@@ -267,7 +268,7 @@ function PageGroups() {
               </div>
               {Object.keys(sectionCounts).length > 1 && (
                 <div style={{ fontSize:'11px', color:'#b45309', marginTop:'4px' }}>
-                  ⚠ Selected students are from different sections ({Object.keys(sectionCounts).join(', ')}). The group will use {derivedSection}.
+                  <Icon name="alert" /> Selected students are from different sections ({Object.keys(sectionCounts).join(', ')}). The group will use {derivedSection}.
                 </div>
               )}
             </div>
@@ -385,9 +386,9 @@ function PageGroups() {
                   <div>
                     <div style={{ fontSize:'14px', fontWeight:'700', color:'#0a1f44', marginBottom:'6px' }}>{g.group_name}</div>
                     <div style={{ display:'flex', gap:'5px', flexWrap:'wrap' }}>
-                      {g.instructor && <span style={{ fontSize:'11px', background:'#dbeafe', color:'#1e40af', padding:'2px 8px', borderRadius:'20px', fontWeight:'600' }}>📋 {g.instructor.name}</span>}
+                      {g.instructor && <span style={{ fontSize:'11px', background:'#dbeafe', color:'#1e40af', padding:'2px 8px', borderRadius:'20px', fontWeight:'600' }}><Icon name="clipboard" /> {g.instructor.name}</span>}
                       {g.adviser
-                        ? <span style={{ fontSize:'11px', background:'#d1fae5', color:'#065f46', padding:'2px 8px', borderRadius:'20px', fontWeight:'600' }}>👨‍🏫 {g.adviser.name}</span>
+                        ? <span style={{ fontSize:'11px', background:'#d1fae5', color:'#065f46', padding:'2px 8px', borderRadius:'20px', fontWeight:'600' }}><Icon name="user" /> {g.adviser.name}</span>
                         : <span style={{ fontSize:'11px', background:'#fef3c7', color:'#92400e', padding:'2px 8px', borderRadius:'20px', fontWeight:'600' }}>No adviser yet</span>}
                       {String(g.instructor_id) === String(user.id) && <span style={{ fontSize:'11px', background:'#ede9fe', color:'#6d28d9', padding:'2px 8px', borderRadius:'20px', fontWeight:'600' }}>You created this</span>}
                       {String(g.adviser_id) === String(user.id) && <span style={{ fontSize:'11px', background:'#ccfbf1', color:'#0f766e', padding:'2px 8px', borderRadius:'20px', fontWeight:'600' }}>You are adviser</span>}

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import logo from '../assets/capstoneguard.png'
+import Icon from '../components/Icon'
 
 const STEPS = ['School Info', 'Admin Account', 'Confirm']
 
@@ -101,10 +102,10 @@ export default function RegisterSchool() {
 
             <div style={S.leftFeatures}>
               {[
-                ['🧠', 'AI Similarity Detection', 'SBERT + TF-IDF powered'],
-                ['📄', 'Document Review Pipeline', 'Version tracking + inline comments'],
-                ['📅', 'Defense Scheduling', 'Rooms, panelists, notifications'],
-                ['📊', 'Contribution Analytics', 'Track every member\'s participation'],
+                [<Icon name="cpu" />, 'AI Similarity Detection', 'SBERT + TF-IDF powered'],
+                [<Icon name="file" />, 'Document Review Pipeline', 'Version tracking + inline comments'],
+                [<Icon name="calendar" />, 'Defense Scheduling', 'Rooms, panelists, notifications'],
+                [<Icon name="bar-chart" />, 'Contribution Analytics', 'Track every member\'s participation'],
               ].map(([icon, title, sub]) => (
                 <div key={title} style={S.leftFeature}>
                   <div style={S.leftFeatureIcon}>{icon}</div>
@@ -212,14 +213,14 @@ export default function RegisterSchool() {
 
               <div style={S.confirmBox}>
                 <div style={S.confirmSection}>
-                  <div style={S.confirmSectionTitle}>🏫 School Information</div>
+                  <div style={S.confirmSectionTitle}><Icon name="school" /> School Information</div>
                   <div style={S.confirmRow}><span style={S.confirmKey}>Name</span><span style={S.confirmVal}>{form.school_name}</span></div>
                   <div style={S.confirmRow}><span style={S.confirmKey}>Email</span><span style={S.confirmVal}>{form.school_email}</span></div>
                   {form.school_address && <div style={S.confirmRow}><span style={S.confirmKey}>Address</span><span style={S.confirmVal}>{form.school_address}</span></div>}
                 </div>
                 <div style={S.confirmDivider} />
                 <div style={S.confirmSection}>
-                  <div style={S.confirmSectionTitle}>👤 Admin Account</div>
+                  <div style={S.confirmSectionTitle}><Icon name="user" /> Admin Account</div>
                   <div style={S.confirmRow}><span style={S.confirmKey}>Name</span><span style={S.confirmVal}>{form.admin_name}</span></div>
                   <div style={S.confirmRow}><span style={S.confirmKey}>Email</span><span style={S.confirmVal}>{form.admin_email}</span></div>
                   <div style={S.confirmRow}><span style={S.confirmKey}>Password</span><span style={S.confirmVal}>{'•'.repeat(12)}</span></div>
@@ -231,7 +232,7 @@ export default function RegisterSchool() {
           {/* Error */}
           {error && (
             <div style={S.errorBox}>
-              <span style={{marginRight:8}}>⚠</span>{error}
+              <span style={{marginRight:8}}><Icon name="alert" /></span>{error}
             </div>
           )}
 

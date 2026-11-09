@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import logo from '../assets/capstoneguard.png'
+import Icon from '../components/Icon'
 
 // ─── ICONS ────────────────────────────────────────────────────────────────────
 const GoogleIcon = () => (
@@ -457,7 +458,7 @@ export default function Login() {
                 <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e8ecf2', overflow: 'hidden' }}>
                   <div style={{ background: 'linear-gradient(135deg,#0a1f44,#1040a0)', padding: '20px', textAlign: 'center' }}>
                     <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255,255,255,0.12)', border: '1.5px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px', fontSize: '22px' }}>
-                      🔐
+                      <Icon name="lock" />
                     </div>
                     <div style={{ fontSize: '14px', fontWeight: '800', color: '#fff', marginBottom: '4px' }}>SSO Not Yet Configured</div>
                     <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>{ssoProvider} Single Sign-On</div>

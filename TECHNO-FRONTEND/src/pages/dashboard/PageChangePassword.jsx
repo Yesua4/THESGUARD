@@ -55,10 +55,10 @@ function PageChangePassword({ required = false, onDone }) {
           </div>
           <div style={{ padding:'20px' }}>
             {success && (
-              <div style={{ background:'#d1fae5', border:'1px solid #a7f3d0', borderRadius:'8px', padding:'10px 14px', marginBottom:'14px', fontSize:'13px', color:'#065f46', fontWeight:'600' }}>✅ {success}</div>
+              <div style={{ background:'#d1fae5', border:'1px solid #a7f3d0', borderRadius:'8px', padding:'10px 14px', marginBottom:'14px', fontSize:'13px', color:'#065f46', fontWeight:'600' }}>✓ {success}</div>
             )}
             {error && (
-              <div style={{ background:'#fee2e2', border:'1px solid #fecaca', borderRadius:'8px', padding:'10px 14px', marginBottom:'14px', fontSize:'13px', color:'#9f1239', fontWeight:'600' }}>❌ {error}</div>
+              <div style={{ background:'#fee2e2', border:'1px solid #fecaca', borderRadius:'8px', padding:'10px 14px', marginBottom:'14px', fontSize:'13px', color:'#9f1239', fontWeight:'600' }}>✕ {error}</div>
             )}
 
             <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:'14px' }}>

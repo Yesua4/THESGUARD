@@ -2,12 +2,13 @@ import { useMemo, useState } from 'react'
 import CommentCompare from './CommentCompare'
 import DocumentDiffViewer from './DocumentDiffViewer'
 import { COMMENT_STATUS as STATUS } from '../../../constants/commentStatus'
+import Icon from '../../../components/Icon'
 
 // Where a comment's highlight stands in the version being viewed (see
 // DocumentReviewViewer's anchorStates).
 const ANCHOR_NOTE = {
   relocated:    { text: 'Located in this version', bg: '#eff6ff', color: '#1e40af', icon: '↳' },
-  needs_review: { text: 'Original text changed — anchor needs review', bg: '#fff7ed', color: '#9a3412', icon: '⚠' },
+  needs_review: { text: 'Original text changed — anchor needs review', bg: '#fff7ed', color: '#9a3412', icon: <Icon name="alert" /> },
   locating:     { text: 'Looking for the original text…', bg: '#f8fafc', color: '#64748b', icon: '…' },
 }
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import Icon from '../../components/Icon'
 
 // Shown to a self-registered student until an instructor imports a class
 // list containing their Student No. The switch to the dashboard is live
@@ -37,7 +38,7 @@ export default function AwaitingEnrollment() {
   return (
     <div style={{ minHeight: '100vh', background: '#0a1f44', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Segoe UI', sans-serif", padding: '20px' }}>
       <div style={{ background: '#fff', borderRadius: '16px', padding: '32px', width: '100%', maxWidth: '440px', boxShadow: '0 24px 60px rgba(0,0,0,0.3)' }}>
-        <div style={{ fontSize: '32px', marginBottom: '8px' }}>⏳</div>
+        <div style={{ fontSize: '32px', marginBottom: '8px' }}><Icon name="clock" /></div>
         <div style={{ fontSize: '20px', fontWeight: 800, color: '#0a1f44', marginBottom: '8px' }}>Waiting for enrollment</div>
         <div style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.6, marginBottom: '18px' }}>
           Your account is ready. You'll get access the moment your instructor imports your class list. This page updates by itself.

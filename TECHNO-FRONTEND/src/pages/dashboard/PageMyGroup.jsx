@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import api from '../../api/axios'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
+import Icon from '../../components/Icon'
 
 function PageMyGroup() {
   const { user } = useAuth()
@@ -30,7 +31,7 @@ function PageMyGroup() {
     <div>
       <div style={{ fontSize:'18px', fontWeight:'700', color:'#0a1f44', marginBottom:'16px' }}>My Group</div>
       <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', padding:'48px', textAlign:'center' }}>
-        <div style={{ fontSize:'32px', marginBottom:'12px' }}>👥</div>
+        <div style={{ fontSize:'32px', marginBottom:'12px' }}><Icon name="users" /></div>
         <div style={{ fontSize:'14px', fontWeight:'600', color:'#0a1f44', marginBottom:'4px' }}>Not yet assigned to a group</div>
         <div style={{ fontSize:'12px', color:'#94a3b8' }}>Your instructor will assign you to a group. Check back later.</div>
       </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { subscribe } from '../utils/networkActivity'
+import Icon from './Icon'
 
 // Site-wide loading feedback (see src/utils/networkActivity.js):
 // a top progress bar while anything loads, a "still working" note when it
@@ -63,7 +64,7 @@ export default function NetworkIndicator() {
       {(slow || offline) && (
         <div role="status" aria-live="polite" style={{ position: 'fixed', bottom: '18px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999, background: offline ? '#7f1d1d' : '#0a1f44', color: '#fff', padding: '10px 16px', borderRadius: '999px', fontSize: '13px', fontWeight: 600, boxShadow: '0 8px 24px rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', gap: '8px', maxWidth: 'calc(100vw - 32px)' }}>
           {offline
-            ? <>⚠ You're offline. Check your internet connection, then try again.</>
+            ? <><Icon name="alert" /> You're offline. Check your internet connection, then try again.</>
             : <><span style={{ width: '12px', height: '12px', border: '2px solid #fff', borderRightColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'tg-spin 0.7s linear infinite', flexShrink: 0 }} /> Still working… your connection seems slow. Please wait, no need to click again.</>}
         </div>
       )}

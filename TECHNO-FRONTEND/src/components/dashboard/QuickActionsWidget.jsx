@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import api from '../../api/axios'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
+import Icon from '../Icon'
 
 function QuickActionsWidget({ user, onNavigate }) {
   const [items, setItems] = useState([])
@@ -18,14 +19,14 @@ function QuickActionsWidget({ user, onNavigate }) {
         api.get('/projects').then(res => {
           const pending = res.data.filter(p => p.title_status === 'pending').length
           const flagged = res.data.filter(p => p.similarity_score >= 60).length
-          if (pending > 0) tasks.push({ icon: '⏳', label: `${pending} title${pending > 1 ? 's' : ''} awaiting approval`, page: 'titleapproval', color: '#92400e', bg: '#fef3c7' })
-          if (flagged > 0) tasks.push({ icon: '🚩', label: `${flagged} project${flagged > 1 ? 's' : ''} flagged for similarity`, page: 'similarity', color: '#9f1239', bg: '#fee2e2' })
+          if (pending > 0) tasks.push({ icon: <Icon name="clock" />, label: `${pending} title${pending > 1 ? 's' : ''} awaiting approval`, page: 'titleapproval', color: '#92400e', bg: '#fef3c7' })
+          if (flagged > 0) tasks.push({ icon: <Icon name="flag" />, label: `${flagged} project${flagged > 1 ? 's' : ''} flagged for similarity`, page: 'similarity', color: '#9f1239', bg: '#fee2e2' })
         })
       )
       promises.push(
         api.get('/documents').then(res => {
           const pending = res.data.filter(d => d.status === 'pending').length
-          if (pending > 0) tasks.push({ icon: '📄', label: `${pending} document${pending > 1 ? 's' : ''} pending review`, page: 'docreview', color: '#1e40af', bg: '#dbeafe' })
+          if (pending > 0) tasks.push({ icon: <Icon name="file" />, label: `${pending} document${pending > 1 ? 's' : ''} pending review`, page: 'docreview', color: '#1e40af', bg: '#dbeafe' })
         }).catch(() => {})
       )
     }
@@ -34,7 +35,7 @@ function QuickActionsWidget({ user, onNavigate }) {
       promises.push(
         api.get('/documents').then(res => {
           const pending = res.data.filter(d => d.status === 'pending').length
-          if (pending > 0) tasks.push({ icon: '📄', label: `${pending} document${pending > 1 ? 's' : ''} to review`, page: 'docreview', color: '#1e40af', bg: '#dbeafe' })
+          if (pending > 0) tasks.push({ icon: <Icon name="file" />, label: `${pending} document${pending > 1 ? 's' : ''} to review`, page: 'docreview', color: '#1e40af', bg: '#dbeafe' })
         }).catch(() => {})
       )
     }
@@ -44,18 +45,18 @@ function QuickActionsWidget({ user, onNavigate }) {
         api.get('/projects').then(res => {
           const myProject = res.data.find(p => p.members?.some(m => m.user_id === user.id))
           if (!myProject) {
-            tasks.push({ icon: '📝', label: 'Submit your capstone proposal', page: 'projects', color: '#1e40af', bg: '#dbeafe' })
+            tasks.push({ icon: <Icon name="edit" />, label: 'Submit your capstone proposal', page: 'projects', color: '#1e40af', bg: '#dbeafe' })
           } else if (myProject.title_status === 'rejected') {
-            tasks.push({ icon: '❌', label: 'Title returned — revise your proposal', page: 'projects', color: '#9f1239', bg: '#fee2e2' })
+            tasks.push({ icon: <Icon name="x-circle" />, label: 'Title returned — revise your proposal', page: 'projects', color: '#9f1239', bg: '#fee2e2' })
           } else if (myProject.title_status === 'approved') {
-            tasks.push({ icon: '📤', label: 'Upload your chapter documents', page: 'submit', color: '#065f46', bg: '#d1fae5' })
+            tasks.push({ icon: <Icon name="upload" />, label: 'Upload your chapter documents', page: 'submit', color: '#065f46', bg: '#d1fae5' })
           }
         })
       )
       promises.push(
         api.get('/groups').then(res => {
           const myGroup = res.data.find(g => g.members?.some(m => m.user_id === user.id))
-          if (!myGroup) tasks.push({ icon: '👥', label: 'Not yet assigned to a group', page: 'mygroup', color: '#92400e', bg: '#fef3c7' })
+          if (!myGroup) tasks.push({ icon: <Icon name="users" />, label: 'Not yet assigned to a group', page: 'mygroup', color: '#92400e', bg: '#fef3c7' })
         })
       )
     }
@@ -64,7 +65,7 @@ function QuickActionsWidget({ user, onNavigate }) {
       promises.push(
         api.get('/projects').then(res => {
           const forDefense = res.data.filter(p => p.status === 'for_defense').length
-          if (forDefense > 0) tasks.push({ icon: '📋', label: `${forDefense} project${forDefense > 1 ? 's' : ''} ready for evaluation`, page: 'evaluate', color: '#4c1d95', bg: '#ede9fe' })
+          if (forDefense > 0) tasks.push({ icon: <Icon name="clipboard" />, label: `${forDefense} project${forDefense > 1 ? 's' : ''} ready for evaluation`, page: 'evaluate', color: '#4c1d95', bg: '#ede9fe' })
         })
       )
     }
@@ -83,7 +84,7 @@ function QuickActionsWidget({ user, onNavigate }) {
         To-Do
       </div>
       <div style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <span style={{ fontSize: '16px' }}>✨</span> All caught up — nothing pending.
+        <span style={{ fontSize: '16px' }}><Icon name="check-circle" /></span> All caught up — nothing pending.
       </div>
     </div>
   )
