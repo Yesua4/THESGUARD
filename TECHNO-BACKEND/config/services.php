@@ -2,6 +2,11 @@
 
 return [
 
+    // Email sending through Brevo's API (see config/mail.php 'brevo').
+    'brevo' => [
+        'key' => env('BREVO_API_KEY'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

@@ -37,6 +37,13 @@ return [
 
     'mailers' => [
 
+        // Brevo's HTTPS email API (MAIL_MAILER=brevo + BREVO_API_KEY). Used in
+        // production because Render's free plan blocks outgoing SMTP ports.
+        // Registered in AppServiceProvider::boot().
+        'brevo' => [
+            'transport' => 'brevo',
+        ],
+
         'smtp' => [
             'transport' => 'smtp',
             'scheme' => env('MAIL_SCHEME'),

@@ -27,6 +27,13 @@ class AppServiceProvider extends ServiceProvider
         // route that doesn't exist here, so every reset link is pointed at
         // the frontend's own reset-password page instead. The frontend then
         // submits {email, token, password} to POST /api/password/reset.
+        // Emails go out through Brevo's HTTPS API when MAIL_MAILER=brevo.
+        \Illuminate\Support\Facades\Mail::extend('brevo', function () {
+            return (new \Symfony\Component\Mailer\Bridge\Brevo\Transport\BrevoTransportFactory())->create(
+                new \Symfony\Component\Mailer\Transport\Dsn('brevo+api', 'default', (string) config('services.brevo.key'))
+            );
+        });
+
         ResetPassword::createUrlUsing(function ($user, string $token) {
             $frontend = rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/');
             return "{$frontend}/reset-password?token={$token}&email=" . urlencode($user->email);
