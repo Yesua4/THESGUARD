@@ -217,6 +217,10 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
   }, [offer])
 
   const handleMouseUp = useCallback(e => {
+    // Releasing the mouse on the "Add comment" button is not the end of a new
+    // selection -- treating it as one stretched the selection out to the
+    // button and pulled in words that were never chosen.
+    if (e.target.closest?.('[data-comment-offer]')) return
     const sel = window.getSelection()
     if (sel?.rangeCount && !sel.isCollapsed) snapSelectionEnd(textLayerRef.current, sel, e.clientX, e.clientY)
     const text = sel?.toString()?.trim()

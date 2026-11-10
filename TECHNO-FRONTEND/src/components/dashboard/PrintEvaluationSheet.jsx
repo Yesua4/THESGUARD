@@ -90,7 +90,7 @@ export default function PrintEvaluationSheet({ project, schedule, evaluation, pa
         </table>
 
         <div style={{ fontWeight: 700, marginBottom: '6px' }}>Verdict:</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 20px', marginBottom: '10px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '4px 20px', marginBottom: '10px' }}>
           {VERDICTS.map(([v, l]) => <div key={v}>{box(evaluation?.verdict === v)} {l}</div>)}
         </div>
         <div style={{ marginBottom: '6px' }}>

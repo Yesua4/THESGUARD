@@ -5,6 +5,7 @@ import { useProjectsChannel } from '../../hooks/useProjectChannel'
 import { DEFENSE_TYPE_LABEL, PANEL_ROLE_LABEL, timeRange } from '../../constants/defense'
 import { useAuth } from '../../context/AuthContext'
 import Icon from '../../components/Icon'
+import { humanStatus } from '../../utils/humanStatus'
 
 function PageMySchedule() {
   const { user } = useAuth()
@@ -106,7 +107,7 @@ function PageMySchedule() {
 
               {/* Status bar */}
               <div style={{ padding:'10px 24px', background: s.status==='completed'?'#d1fae5':s.status==='cancelled'?'#fee2e2':'#dbeafe', fontSize:'12px', fontWeight:'700', color: s.status==='completed'?'#065f46':s.status==='cancelled'?'#9f1239':'#1e40af', textTransform:'capitalize' }}>
-                Status: {s.status}
+                Status: {humanStatus(s.status)}
               </div>
             </div>
           ))}

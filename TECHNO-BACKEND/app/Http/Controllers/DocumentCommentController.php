@@ -96,8 +96,37 @@ class DocumentCommentController extends Controller {
             'anchor.quote.prefix' => 'sometimes|nullable|string|max:200',
             'anchor.quote.suffix' => 'sometimes|nullable|string|max:200',
             'anchor.block_id'     => 'sometimes|nullable|string|max:64',
+            // validate() keeps only keys that have a rule, so every part of the
+            // anchor must be listed here or it is silently dropped on save
+            // (that is how highlights lost their position on the page).
+            'anchor.v'            => 'sometimes|integer|min:1|max:9',
+            'anchor.start'        => 'sometimes|nullable|integer|min:0',
+            'anchor.end'          => 'sometimes|nullable|integer|min:0',
+            'anchor.x'            => 'sometimes|numeric|between:0,1',
+            'anchor.y'            => 'sometimes|numeric|between:0,1',
+            'anchor.rects'        => 'sometimes|array|max:200',
+            'anchor.rects.*.x'      => 'required_with:anchor.rects|numeric',
+            'anchor.rects.*.y'      => 'required_with:anchor.rects|numeric',
+            'anchor.rects.*.width'  => 'required_with:anchor.rects|numeric|min:0',
+            'anchor.rects.*.height' => 'required_with:anchor.rects|numeric|min:0',
             'comment'       => 'required|string|max:5000',
         ]);
+        // Legacy anchors are a plain list of boxes (or an {x, y} point); the
+        // keyed rules above don't cover a list, so check and keep it as sent.
+        $rawAnchor = $request->input('anchor');
+        if (is_array($rawAnchor) && $rawAnchor !== [] && array_is_list($rawAnchor)) {
+            $request->validate([
+                'anchor'          => 'array|max:200',
+                'anchor.*.x'      => 'required|numeric',
+                'anchor.*.y'      => 'required|numeric',
+                'anchor.*.width'  => 'required|numeric|min:0',
+                'anchor.*.height' => 'required|numeric|min:0',
+            ]);
+            $data['anchor'] = array_map(fn ($r) => [
+                'x' => (float) $r['x'], 'y' => (float) $r['y'], 'width' => (float) $r['width'], 'height' => (float) $r['height'],
+            ], $rawAnchor);
+        }
+
         $data['document_id'] = $documentId;
         $data['user_id']     = $request->user()->id;
 

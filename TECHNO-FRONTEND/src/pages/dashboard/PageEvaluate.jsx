@@ -219,7 +219,7 @@ function PageEvaluate() {
 
                 <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
                   <legend style={head}>Verdict</legend>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '6px' }}>
                     {VERDICTS.map(([v, l]) => (
                       <label key={v} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600, padding: '8px 10px', borderRadius: '8px', cursor: 'pointer', border: `1.5px solid ${form.verdict === v ? '#1d4ed8' : '#e2e8f0'}`, background: form.verdict === v ? '#eff6ff' : '#fff' }}>
                         <input type="radio" name="verdict" value={v} checked={form.verdict === v} onChange={() => setForm(f => ({ ...f, verdict: v }))} /> {l}

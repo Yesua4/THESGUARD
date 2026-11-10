@@ -58,7 +58,15 @@ function PageGroups() {
     </span>
   ) : null
 
-  const load = () => api.get('/groups').then(res => setGroups(res.data)).finally(() => setLoading(false))
+  const load = () => api.get('/groups').then(res => {
+    setGroups(res.data)
+    // Keep an open group panel in step with the fresh data (live updates).
+    setSelectedGroup(cur => {
+      if (!cur) return cur
+      const fresh = res.data.find(g => g.id === cur.id)
+      return fresh ? { ...cur, ...fresh } : cur
+    })
+  }).finally(() => setLoading(false))
 
   const loadAll = () => {
     load()
@@ -373,7 +381,7 @@ function PageGroups() {
               )}
             </div>
           )}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr', gap:'10px' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'minmax(0, 1fr)', gap:'10px' }}>
             {groups.filter(g => {
               if (!filterAdviser) return true
               if (filterAdviser === 'none') return !g.adviser_id

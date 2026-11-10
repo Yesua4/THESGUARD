@@ -9,6 +9,7 @@ import { useProjectChannel } from '../../../hooks/useProjectChannel'
 import Icon from '../../../components/Icon'
 import OnlyOfficeEditor from '../../../components/OnlyOfficeEditor'
 import normalizeImportedHtml from '../../../utils/normalizeImportedHtml'
+import { humanStatus } from '../../../utils/humanStatus'
 
 function PageSubmit({ initialDocumentId, initialCommentId = null, onConsumeInitialDocument }) {
   const { user } = useAuth()
@@ -502,7 +503,7 @@ function PageSubmit({ initialDocumentId, initialCommentId = null, onConsumeIniti
                       )}
                     </div>
                     <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'4px' }}>
-                      <span style={{ fontSize:'11px', padding:'2px 8px', borderRadius:'20px', fontWeight:'700', ...statusStyle(d.status) }}>{d.status}</span>
+                      <span style={{ fontSize:'11px', padding:'2px 8px', borderRadius:'20px', fontWeight:'700', ...statusStyle(d.status) }}>{humanStatus(d.status)}</span>
                       <div style={{ display:'flex', gap:'8px' }}>
                         {d.file_path && !d.file_path.endsWith('.pdf') && (
                           <span

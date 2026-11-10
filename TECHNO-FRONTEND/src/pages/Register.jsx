@@ -57,7 +57,7 @@ export default function Register() {
         {error && <div style={S.error}>{error}</div>}
         <form onSubmit={submit}>
           {field('last_name', 'Last Name', { required: true, placeholder: 'e.g. Dela Cruz', autoComplete: 'family-name' })}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '10px' }}>
             {field('first_name', 'First Name', { required: true, placeholder: 'e.g. Juan', autoComplete: 'given-name' })}
             {field('middle_name', 'Middle Name (optional)', { placeholder: 'e.g. Santos', autoComplete: 'additional-name' })}
           </div>

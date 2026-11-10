@@ -5,6 +5,7 @@ import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import SimilarityBreakdown from './SimilarityBreakdown'
 import { useProjectChannel } from '../../hooks/useProjectChannel'
 import Icon from '../../components/Icon'
+import { humanStatus } from '../../utils/humanStatus'
 
 function PageProgress() {
   const { user } = useAuth()
@@ -287,7 +288,7 @@ function PageProgress() {
                             if (!doc) return null
                             return (
                               <span key={type} style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', fontWeight: '600', background: doc.status === 'approved' ? '#d1fae5' : doc.status === 'needs_revision' ? '#fef3c7' : '#f1f5f9', color: doc.status === 'approved' ? '#065f46' : doc.status === 'needs_revision' ? '#92400e' : '#64748b' }}>
-                                {label[type]} v{doc.version} — {doc.status}
+                                {label[type]} v{doc.version} — {humanStatus(doc.status)}
                               </span>
                             )
                           })}

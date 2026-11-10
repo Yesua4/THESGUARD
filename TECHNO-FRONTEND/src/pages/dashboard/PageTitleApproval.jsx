@@ -21,7 +21,15 @@ function PageTitleApproval() {
 
   const load = () => {
     setLoading(true)
-    api.get('/projects').then(res => setProjects(res.data)).finally(() => setLoading(false))
+    api.get('/projects').then(res => {
+      setProjects(res.data)
+      // Keep an open proposal in step with the fresh data (live updates).
+      setSelected(cur => {
+        if (!cur) return cur
+        const fresh = res.data.find(p => p.id === cur.id)
+        return fresh ? { ...cur, ...fresh } : cur
+      })
+    }).finally(() => setLoading(false))
   }
 
   useEffect(() => { load() }, [])

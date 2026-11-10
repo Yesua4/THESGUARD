@@ -12,8 +12,11 @@ body { font-family: 'Inter', 'Segoe UI', sans-serif; }
 /* Reusable responsive layout helpers — grids and the review-viewer's
    PDF+sidebar split all collapse to a single stacked column on narrow
    screens instead of squeezing side-by-side. */
-.dg-grid-2 { grid-template-columns: 1fr 1fr; }
-.dg-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+.dg-grid-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.dg-grid-3 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); }
+/* Long one-line text (e.g. a project title) must shorten with "..." instead
+   of stretching its column -- and the page -- past the screen edge. */
+.dg-grid-2 > *, .dg-grid-3 > * { min-width: 0; }
 .dg-viewer-body { display: flex; overflow: hidden; }
 .dg-viewer-sidebar { width: 340px; flex-shrink: 0; }
 
@@ -35,12 +38,12 @@ body { font-family: 'Inter', 'Segoe UI', sans-serif; }
     margin-left: 0 !important;
   }
   .stat-grid {
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
   }
 
   /* ← ADD THESE NEW ONES */
   .dashboard-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
   }
   .dashboard-grid > div:last-child {
     display: flex;
@@ -56,11 +59,11 @@ body { font-family: 'Inter', 'Segoe UI', sans-serif; }
   }
 
   .stat-grid {
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
   }
 
   .dashboard-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 
   .topbar-date {
@@ -86,7 +89,7 @@ body { font-family: 'Inter', 'Segoe UI', sans-serif; }
   }
 
   .dg-grid-2, .dg-grid-3 {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 
   .dg-viewer-body {

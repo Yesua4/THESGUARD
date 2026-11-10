@@ -6,6 +6,7 @@ import QuickActionsWidget from '../../components/dashboard/QuickActionsWidget'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
 import { DEFENSE_TYPE_LABEL, timeRange } from '../../constants/defense'
 import Icon from '../../components/Icon'
+import { humanStatus } from '../../utils/humanStatus'
 
 // The next defense (today or later), else the most recent one.
 function pickDefense(schedules) {
@@ -234,7 +235,7 @@ function PageDashboard({ user, onNavigate }) {
                       <td style={{ padding: '11px 18px', color: '#94a3b8', fontWeight: '500', whiteSpace: 'nowrap' }}>{a.date}</td>
                       <td style={{ padding: '11px 18px', color: '#0a1f44', fontWeight: '500' }}>{a.activity}</td>
                       <td style={{ padding: '11px 18px' }}>
-                        <span style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '20px', fontWeight: '600', textTransform: 'capitalize', ...statusStyle(a.status) }}>{a.status}</span>
+                        <span style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '20px', fontWeight: '600', textTransform: 'capitalize', ...statusStyle(a.status) }}>{humanStatus(a.status)}</span>
                       </td>
                     </tr>
                   ))}

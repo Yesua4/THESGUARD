@@ -6,6 +6,7 @@ import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
 import { DEFENSE_TYPES, DEFENSE_TYPE_LABEL, PANEL_ROLES, PANEL_ROLE_LABEL, timeRange, nextDefenseType } from '../../constants/defense'
 import Icon from '../../components/Icon'
+import { humanStatus } from '../../utils/humanStatus'
 
 const EMPTY = { group_id: '', defense_type: 'title', defense_date: '', start_time: '', end_time: '', venue: '', panel: { chair: '', member1: '', member2: '' }, update_group_panel: true }
 
@@ -269,7 +270,7 @@ function PageSchedule() {
                       {s.defense_type && <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: '#ede9fe', color: '#5b21b6' }}>{DEFENSE_TYPE_LABEL[s.defense_type]}</span>}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
-                      {s.status && <span style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '20px', fontWeight: '700', ...statusStyle(s.status) }}>{s.status}</span>}
+                      {s.status && <span style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '20px', fontWeight: '700', ...statusStyle(s.status) }}>{humanStatus(s.status)}</span>}
                       {canSchedule && <button onClick={() => deleteSchedule(s.id)} style={{ fontSize: '11px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', padding: '0' }}>Cancel</button>}
                     </div>
                   </div>

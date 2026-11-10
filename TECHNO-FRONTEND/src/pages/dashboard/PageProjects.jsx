@@ -8,6 +8,7 @@ import ProjectTasks from './ProjectTasks'
 import FinalAbstractPanel from '../../components/dashboard/FinalAbstractPanel'
 import SimilarityBreakdown from './SimilarityBreakdown'
 import { PROJECT_STATUSES, PROJECT_STATUS_LABEL } from '../../constants/projectStatus'
+import { humanStatus } from '../../utils/humanStatus'
 import { RecommendedBadge } from '../../components/dashboard/GroupRecommendation'
 import { similarityScoreColor, similarityBadgeStyle } from '../../utils/similarityColors'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
@@ -30,7 +31,15 @@ function PageProjects() {
 
   const load = () => {
     setLoading(true)
-    api.get('/projects').then(res => setProjects(res.data)).finally(() => setLoading(false))
+    api.get('/projects').then(res => {
+      setProjects(res.data)
+      // Keep an open details panel in step with the fresh data (live updates).
+      setSelected(cur => {
+        if (!cur) return cur
+        const fresh = res.data.find(p => p.id === cur.id)
+        return fresh ? { ...cur, ...fresh } : cur
+      })
+    }).finally(() => setLoading(false))
   }
 
   useEffect(() => { load() }, [])
@@ -178,7 +187,7 @@ function PageProjects() {
                   <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...statusBadge(selectedProject.status) }}>{PROJECT_STATUS_LABEL[selectedProject.status] || selectedProject.status}</span>
                   <RecommendedBadge group={selectedProject.group} />
                   <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...scoreBadge(selectedProject.similarity_score) }}>Similarity: {selectedProject.similarity_score}%</span>
-                  <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...titleBadge(selectedProject.title_status) }}>Title: {selectedProject.title_status}</span>
+                  <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...titleBadge(selectedProject.title_status) }}>Title: {humanStatus(selectedProject.title_status)}</span>
                   {selectedProject.is_final_title && (
                     <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'700', background:'#ede9fe', color:'#4c1d95' }}><Icon name="award" /> Final Title</span>
                   )}
@@ -369,7 +378,7 @@ function PageProjects() {
                       {p.group?.recommended_for && <div style={{ marginTop:'4px' }}><RecommendedBadge group={p.group} /></div>}
                     </td>
                     <td style={{ padding:'12px 14px', color:'#94a3b8' }}>{p.batch||'—'}</td>
-                    <td style={{ padding:'12px 14px' }}><span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...titleBadge(p.title_status) }}>{p.title_status}</span></td>
+                    <td style={{ padding:'12px 14px' }}><span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...titleBadge(p.title_status) }}>{humanStatus(p.title_status)}</span></td>
                     <td style={{ padding:'12px 14px' }} onClick={e => { if (canChangeStatus) e.stopPropagation() }}>
                       {canChangeStatus ? (
                         <select value={p.status} onChange={e => updateStatus(p.id, e.target.value)} aria-label={`Status of ${p.title}`} title="Click to change the status"

@@ -77,6 +77,43 @@ class CommentAnchoringTest extends TestCase
         ])->assertStatus(201);
     }
 
+    // Every part of the anchor must be stored, not just the quote: without the
+    // boxes and offsets the highlight can't be drawn where the text is.
+    public function test_the_whole_anchor_is_saved_not_just_the_quote(): void
+    {
+        $v1 = $this->version(1);
+        Sanctum::actingAs($this->adviser);
+        $rects = [['x' => 0.1, 'y' => 0.4, 'width' => 0.5, 'height' => 0.02], ['x' => 0.1, 'y' => 0.42, 'width' => 0.2, 'height' => 0.02]];
+
+        $pdf = $this->postJson("/api/documents/{$v1->id}/comments", [
+            'page_number' => 1, 'selected_text' => 'GPS-based location services', 'comment' => 'Which library?',
+            'anchor' => ['v' => 2, 'kind' => 'pdf', 'rects' => $rects, 'start' => 120, 'end' => 147,
+                'quote' => ['exact' => 'GPS-based location services', 'prefix' => 'Utilize ', 'suffix' => ' to']],
+        ])->assertStatus(201)->json('id');
+        $saved = DocumentComment::find($pdf)->anchor;
+        $this->assertSame(2, $saved['v']);
+        $this->assertSame(120, $saved['start']);
+        $this->assertSame(147, $saved['end']);
+        $this->assertCount(2, $saved['rects']);
+        $this->assertEquals(0.4, $saved['rects'][0]['y']);
+
+        $html = $this->postJson("/api/documents/{$v1->id}/comments", [
+            'page_number' => 1, 'comment' => 'x', 'anchor' => $this->htmlAnchor(),
+        ])->assertStatus(201)->json('id');
+        $this->assertSame(4, DocumentComment::find($html)->anchor['start']);
+        $this->assertSame(32, DocumentComment::find($html)->anchor['end']);
+
+        $point = $this->postJson("/api/documents/{$v1->id}/comments", [
+            'page_number' => 1, 'comment' => 'Pinned here', 'anchor' => ['x' => 0.25, 'y' => 0.75],
+        ])->assertStatus(201)->json('id');
+        $this->assertEquals(['x' => 0.25, 'y' => 0.75], DocumentComment::find($point)->anchor);
+
+        $legacy = $this->postJson("/api/documents/{$v1->id}/comments", [
+            'page_number' => 1, 'comment' => 'Old style', 'anchor' => $rects,
+        ])->assertStatus(201)->json('id');
+        $this->assertCount(2, DocumentComment::find($legacy)->anchor);
+    }
+
     public function test_bad_or_oversized_anchors_are_rejected(): void
     {
         $v1 = $this->version(1);

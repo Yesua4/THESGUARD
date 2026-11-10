@@ -180,7 +180,7 @@ export default function PageAcademicCalendar() {
             <input list="tg-term-names" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. 1st Semester" style={input} required />
             <datalist id="tg-term-names">{TERM_NAMES.map(n => <option key={n} value={n} />)}</datalist>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '8px' }}>
             <div>
               <label style={label}>Starts</label>
               <input type="date" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} style={input} required />

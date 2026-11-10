@@ -4,6 +4,7 @@ import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { similarityBadgeStyle } from '../../utils/similarityColors'
 import { useToast } from '../../context/ToastContext'
 import Icon from '../../components/Icon'
+import { humanStatus } from '../../utils/humanStatus'
 
 function PageReports() {
   const { showToast } = useToast()
@@ -101,15 +102,15 @@ const exportPDF = () => {
       <td style={{ padding:'10px 14px', color:'#94a3b8', fontSize:'12px' }}>{item.batch}</td>,
       <td style={{ padding:'10px 14px', color:'#64748b', fontSize:'12px' }}>{item.members}</td>,
       <td style={{ padding:'10px 14px', fontSize:'12px' }}>{item.adviser}</td>,
-      <td style={{ padding:'10px 14px' }}><span style={{ fontSize:'11px', padding:'2px 8px', borderRadius:'20px', fontWeight:'700', background:statusBadge(item.title_status)[0], color:statusBadge(item.title_status)[1], textTransform:'capitalize' }}>{item.title_status}</span></td>,
-      <td style={{ padding:'10px 14px' }}><span style={{ fontSize:'11px', padding:'2px 8px', borderRadius:'20px', fontWeight:'700', background:statusBadge(item.status)[0], color:statusBadge(item.status)[1], textTransform:'capitalize' }}>{item.status}</span></td>,
+      <td style={{ padding:'10px 14px' }}><span style={{ fontSize:'11px', padding:'2px 8px', borderRadius:'20px', fontWeight:'700', background:statusBadge(item.title_status)[0], color:statusBadge(item.title_status)[1], textTransform:'capitalize' }}>{humanStatus(item.title_status)}</span></td>,
+      <td style={{ padding:'10px 14px' }}><span style={{ fontSize:'11px', padding:'2px 8px', borderRadius:'20px', fontWeight:'700', background:statusBadge(item.status)[0], color:statusBadge(item.status)[1], textTransform:'capitalize' }}>{humanStatus(item.status)}</span></td>,
       <td style={{ padding:'10px 14px' }}><span style={{ fontSize:'11px', padding:'2px 8px', borderRadius:'20px', fontWeight:'700', ...scoreBadge(item.similarity_score) }}>{item.similarity_score}%</span></td>,
     ]
     if (type === 'similarity') return [
       <td style={{ padding:'10px 14px', fontWeight:'600', color:'#0a1f44', fontSize:'12px' }}>{item.title}</td>,
       <td style={{ padding:'10px 14px', color:'#94a3b8', fontSize:'12px' }}>{item.batch}</td>,
       <td style={{ padding:'10px 14px', fontSize:'12px' }}>{item.adviser}</td>,
-      <td style={{ padding:'10px 14px' }}><span style={{ fontSize:'11px', padding:'2px 8px', borderRadius:'20px', fontWeight:'700', background:statusBadge(item.status)[0], color:statusBadge(item.status)[1], textTransform:'capitalize' }}>{item.status}</span></td>,
+      <td style={{ padding:'10px 14px' }}><span style={{ fontSize:'11px', padding:'2px 8px', borderRadius:'20px', fontWeight:'700', background:statusBadge(item.status)[0], color:statusBadge(item.status)[1], textTransform:'capitalize' }}>{humanStatus(item.status)}</span></td>,
       <td style={{ padding:'10px 14px' }}><span style={{ fontSize:'11px', padding:'2px 8px', borderRadius:'20px', fontWeight:'700', ...scoreBadge(item.similarity_score) }}>{item.similarity_score}%</span></td>,
     ]
     if (type === 'schedules') return [
@@ -119,7 +120,7 @@ const exportPDF = () => {
       <td style={{ padding:'10px 14px', fontSize:'12px' }}>{item.venue}</td>,
       <td style={{ padding:'10px 14px', fontSize:'12px' }}>{item.panelists}</td>,
       <td style={{ padding:'10px 14px', color:'#94a3b8', fontSize:'12px' }}>{item.members}</td>,
-      <td style={{ padding:'10px 14px' }}><span style={{ fontSize:'11px', padding:'2px 8px', borderRadius:'20px', fontWeight:'700', background:statusBadge(item.status)[0], color:statusBadge(item.status)[1], textTransform:'capitalize' }}>{item.status}</span></td>,
+      <td style={{ padding:'10px 14px' }}><span style={{ fontSize:'11px', padding:'2px 8px', borderRadius:'20px', fontWeight:'700', background:statusBadge(item.status)[0], color:statusBadge(item.status)[1], textTransform:'capitalize' }}>{humanStatus(item.status)}</span></td>,
     ]
     if (type === 'contributions') return [
       <td style={{ padding:'10px 14px', fontWeight:'600', color:'#0a1f44', fontSize:'12px' }}>{item.name}</td>,
@@ -133,7 +134,7 @@ const exportPDF = () => {
       <td style={{ padding:'10px 14px', fontWeight:'600', color:'#0a1f44', fontSize:'12px' }}>{item.project}</td>,
       <td style={{ padding:'10px 14px', fontSize:'12px', textTransform:'capitalize' }}>{item.type?.replace('_',' ')}</td>,
       <td style={{ padding:'10px 14px', fontSize:'12px' }}>v{item.version}</td>,
-      <td style={{ padding:'10px 14px' }}><span style={{ fontSize:'11px', padding:'2px 8px', borderRadius:'20px', fontWeight:'700', background:statusBadge(item.status)[0], color:statusBadge(item.status)[1], textTransform:'capitalize' }}>{item.status}</span></td>,
+      <td style={{ padding:'10px 14px' }}><span style={{ fontSize:'11px', padding:'2px 8px', borderRadius:'20px', fontWeight:'700', background:statusBadge(item.status)[0], color:statusBadge(item.status)[1], textTransform:'capitalize' }}>{humanStatus(item.status)}</span></td>,
       <td style={{ padding:'10px 14px', color:'#64748b', fontSize:'12px' }}>{item.version_note}</td>,
       <td style={{ padding:'10px 14px', fontSize:'12px' }}>{item.uploaded_by}</td>,
       <td style={{ padding:'10px 14px', color:'#94a3b8', fontSize:'12px' }}>{item.date}</td>,

@@ -100,6 +100,8 @@ function EnhancedTopBar({
       <div ref={notifRef} style={{ position: 'relative' }}>
         <button
           onClick={() => { setNotifOpen(v => !v); setProfileOpen(false) }}
+          aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+          title="Notifications"
           style={{
             position: 'relative', background: notifOpen ? '#f0f2f7' : 'none',
             border: 'none', cursor: 'pointer', borderRadius: '8px',
