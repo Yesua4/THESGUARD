@@ -394,6 +394,18 @@ class AuthController extends Controller {
         }
     }
 
+    // Edit Profile: staff can change their own display name (it shows on
+    // panels, minutes and comments). A student's name, email, Student No. and
+    // section must match the registrar's class list, so those are changed by
+    // their instructor or the admin instead.
+    public function updateProfile(Request $request) {
+        $user = $request->user();
+        abort_if($user->role === 'student' && !$user->acting_role, 403, 'Ask your instructor or the admin to change your name.');
+        $data = $request->validate(['name' => 'required|string|min:2|max:255']);
+        $user->forceFill(['name' => trim(preg_replace('/\s+/', ' ', $data['name']))])->save();
+        return response()->json(['message' => 'Profile saved.', 'user' => $user->fresh()->append(['roles', 'handled_sections'])]);
+    }
+
     public function changePassword(Request $request) {
         $request->validate([
             'current_password' => 'required',

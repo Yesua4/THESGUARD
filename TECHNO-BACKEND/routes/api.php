@@ -53,6 +53,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/me/switch-role', [AuthController::class, 'switchRole']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::put('profile/change-password', [AuthController::class, 'changePassword']);
+    Route::put('profile', [AuthController::class, 'updateProfile']);
 
     // Private/presence channel authorization for Reverb. This app is
     // API-only with Bearer-token Sanctum auth (no session cookies), so the

@@ -69,7 +69,7 @@ function PageRouter({ page, setPage, setUnreadCount, user, navTarget, clearNavTa
     case 'docreview':     return <PageDocumentReview initialDocumentId={target?.documentId} initialCommentId={target?.commentId} onConsumeInitialDocument={clearNavTarget} />
     case 'evaluate':      return <PageEvaluate />
     case 'changepassword':return <PageChangePassword />
-    case 'editprofile':   return <PageEditProfile />
+    case 'editprofile':   return <PageEditProfile onNavigate={setPage} />
     default:              return <PageDashboard user={user} />
   }
 }

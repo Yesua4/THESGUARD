@@ -106,4 +106,16 @@ class PasswordResetByStaffTest extends TestCase
         $this->postJson('/api/login', ['email' => $student->email, 'password' => 'PersonalPass2026'])
             ->assertOk()->assertJsonPath('user.must_change_password', false);
     }
+
+    public function test_staff_edit_their_name_but_students_cannot(): void
+    {
+        $adviser = User::factory()->role('adviser')->school($this->school->id)->create(['name' => 'Old Name']);
+        Sanctum::actingAs($adviser);
+        $this->putJson('/api/profile', ['name' => '  Rogelio   Dela Cruz ' ])->assertOk()->assertJsonPath('user.name', 'Rogelio Dela Cruz');
+
+        $student = User::factory()->role('student')->school($this->school->id)->create(['name' => 'Juan']);
+        Sanctum::actingAs($student);
+        $this->putJson('/api/profile', ['name' => 'Someone Else'])->assertStatus(403);
+        $this->assertSame('Juan', $student->fresh()->name);
+    }
 }
