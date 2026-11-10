@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import CommentCompare from './CommentCompare'
 import DocumentDiffViewer from './DocumentDiffViewer'
 import { COMMENT_STATUS as STATUS } from '../../../constants/commentStatus'
@@ -68,7 +68,7 @@ function Timeline({ events }) {
   )
 }
 
-function CommentCard({ c, n, active, anchorState, chapterVersions, actions, onSelect, onCompare }) {
+function CommentCard({ c, n, active, anchorState, chapterVersions, actions, onSelect, onHover, onCompare }) {
   const [mode, setMode] = useState(null) // reply | submit | reject | reopen
   const [text, setText] = useState('')
   const [revisionId, setRevisionId] = useState('')
@@ -98,7 +98,8 @@ function CommentCard({ c, n, active, anchorState, chapterVersions, actions, onSe
   }
 
   return (
-    <div onClick={() => onSelect?.(c)} style={{
+    <div data-comment-card={c.id} onClick={() => onSelect?.(c)}
+      onMouseEnter={() => onHover?.(c.id)} onMouseLeave={() => onHover?.(null)} style={{
       background: active ? '#eff6ff' : '#f8fafc', border: active ? '1.5px solid #1d4ed8' : '1.5px solid transparent',
       borderRadius: '10px', padding: '12px 14px', cursor: 'pointer', opacity: status === 'resolved' && !active ? 0.8 : 1,
     }}>
@@ -243,7 +244,12 @@ function CommentCard({ c, n, active, anchorState, chapterVersions, actions, onSe
   )
 }
 
-export default function CommentSidebar({ comments, anchorStates = {}, chapterVersions = [], actions, onSelect, activeCommentId }) {
+export default function CommentSidebar({ comments, anchorStates = {}, chapterVersions = [], actions, onSelect, onHover, activeCommentId }) {
+  // Clicking highlighted words in the document brings their card into view.
+  useEffect(() => {
+    if (!activeCommentId) return
+    document.querySelector(`[data-comment-card="${activeCommentId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [activeCommentId])
   const [filter, setFilter] = useState('all')
   const [sort, setSort] = useState('position')
   const [compare, setCompare] = useState(null) // { comment, attempt }
@@ -296,7 +302,7 @@ export default function CommentSidebar({ comments, anchorStates = {}, chapterVer
       {shown.length === 0 && <div style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center', padding: '20px 0' }}>No comments match this filter.</div>}
       {shown.map(({ c, n }) => (
         <CommentCard key={c.id} c={c} n={n} active={c.id === activeCommentId} anchorState={anchorStates[c.id]}
-          chapterVersions={chapterVersions} actions={actions} onSelect={onSelect}
+          chapterVersions={chapterVersions} actions={actions} onSelect={onSelect} onHover={onHover}
           onCompare={(comment, attempt) => setCompare({ comment, attempt })} />
       ))}
       {compare && (

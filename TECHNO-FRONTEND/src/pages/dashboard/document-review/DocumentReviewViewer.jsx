@@ -95,6 +95,10 @@ export default function DocumentReviewViewer({ document, onClose, statusActions 
   const bodyScrollRef = useRef(null)
   const [draft, setDraft] = useState(null)
   const [activeCommentId, setActiveCommentId] = useState(null)
+  const [hoverCommentId, setHoverCommentId] = useState(null)
+  // Bumped when a comment is picked in the list, so the viewer scrolls its
+  // highlighted words into view.
+  const [focusSeq, setFocusSeq] = useState(0)
   const [previousVersion, setPreviousVersion] = useState(null)
   // Every saved version of this chapter -- a student's correction must point
   // at one that's newer than where the comment was made.
@@ -268,6 +272,7 @@ export default function DocumentReviewViewer({ document, onClose, statusActions 
 
   const handleSelectComment = c => {
     setActiveCommentId(c.id)
+    setFocusSeq(n => n + 1)
     if (isInAppDraft) {
       draftContentRef.current?.querySelector(`mark[data-comment-id="${c.id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     } else {
@@ -367,7 +372,7 @@ export default function DocumentReviewViewer({ document, onClose, statusActions 
                 `}</style>
                 <style>{`
                   mark.tg-cmark { background: rgba(245,195,0,0.35); color: inherit; border-radius: 2px; cursor: pointer; padding: 0; }
-                  mark.tg-cmark-resolved { background: rgba(5,150,105,0.22); }
+                  mark.tg-cmark-resolved { background: transparent; }
                   mark.tg-cmark-carried { background: rgba(245,195,0,0.22); border-bottom: 2px dashed rgba(180,130,0,0.9); }
                   mark.tg-cmark-active { background: rgba(245,195,0,0.65); outline: 2px solid rgba(217,119,6,0.9); }
                   @media print { mark.tg-cmark { background: none !important; outline: none !important; border: none !important; } }
@@ -411,6 +416,9 @@ export default function DocumentReviewViewer({ document, onClose, statusActions 
                 onRelocated={setPdfRelocated}
                 onAnnotationClick={handleAnnotationClick}
                 activeAnnotationId={activeCommentId}
+                hoverAnnotationId={hoverCommentId}
+                focusSeq={focusSeq}
+                commentEnabled={canComment}
                 pendingDraft={draft}
                 onSubmitDraft={handleSubmitDraft}
                 onCancelDraft={() => setDraft(null)}
@@ -432,6 +440,7 @@ export default function DocumentReviewViewer({ document, onClose, statusActions 
               chapterVersions={chapterVersions}
               actions={commentApi}
               onSelect={handleSelectComment}
+              onHover={setHoverCommentId}
               activeCommentId={activeCommentId}
             />
           </div>

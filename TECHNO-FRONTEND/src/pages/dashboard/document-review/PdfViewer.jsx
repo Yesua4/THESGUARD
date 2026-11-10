@@ -4,6 +4,7 @@ import pdfWorkerSrc from 'pdfjs-dist/build/pdf.worker.min.js?url'
 import 'pdfjs-dist/web/pdf_viewer.css'
 import api from '../../../api/axios'
 import CommentComposer from './CommentComposer'
+import Icon from '../../../components/Icon'
 import { anchorRects, anchorPoint, buildQuote, locateQuote, textOffsetOf, rangeFromOffsets } from '../../../utils/commentAnchor'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc
@@ -59,7 +60,7 @@ const PRELOAD_MARGIN = '1000px 0px'
 // (reported by the parent's single IntersectionObserver via `visible`).
 // Everything here is unchanged from the old single-page PdfViewer, just
 // scoped to one page's own pageNumber/refs instead of a shared one.
-function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, annotations, textHighlights = [], onAnnotationClick, activeAnnotationId, pendingDraft, onSelection, onPageClick, onSubmitDraft, onCancelDraft }) {
+function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, annotations, textHighlights = [], onAnnotationClick, activeAnnotationId, hoverAnnotationId, focusSeq, commentEnabled = true, pendingDraft, onSelection, onPageClick, onSubmitDraft, onCancelDraft }) {
   const [rendered, setRendered] = useState(false)
   // Bumped each time this page's text layer finishes drawing, so highlights
   // located by text (comments carried over from an earlier version) can be
@@ -72,6 +73,10 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
   const pageContainerRef = useRef(null)
   const renderTaskRef = useRef(null)
   const justSelectedRef = useRef(false)
+  // Google Docs style: selecting text (or clicking a spot) only offers a
+  // small "Comment" button; the comment box opens when that's clicked.
+  const [offer, setOffer] = useState(null)
+  const dismissedRef = useRef(false)
 
   useEffect(() => {
     if (!visible || rendered || !width) return
@@ -190,6 +195,11 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
 
   // pdf.js's selection fix (see the endOfContent element above).
   const handleMouseDown = useCallback(e => {
+    if (!e.target.closest?.('[data-comment-offer]')) {
+      dismissedRef.current = !!offer // this click just closes the open button
+      setOffer(null)
+    }
+    justSelectedRef.current = false // a new press: any earlier drag is over
     const layer = textLayerRef.current
     const end = layer?.querySelector('.endOfContent')
     if (!layer || !end) return
@@ -204,7 +214,7 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
       window.removeEventListener('mouseup', release)
     }
     window.addEventListener('mouseup', release)
-  }, [])
+  }, [offer])
 
   const handleMouseUp = useCallback(e => {
     const sel = window.getSelection()
@@ -236,9 +246,34 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
       const end = textOffsetOf(layer, range.endContainer, range.endOffset)
       if (end > start) anchor = { ...anchor, quote: buildQuote(layer.textContent, start, end), start, end }
     }
-    onSelection?.({ pageNumber, selectedText: text, anchor })
-    sel.removeAllRanges()
-  }, [pageNumber, onSelection])
+    if (!commentEnabled) return
+    const last = rects[rects.length - 1]
+    setOffer({ kind: 'text', selection: { pageNumber, selectedText: text, anchor }, x: last.x + last.width, y: last.y + last.height })
+  }, [pageNumber, commentEnabled])
+
+  const takeOffer = useCallback(() => {
+    if (!offer) return
+    if (offer.kind === 'text') { onSelection?.(offer.selection); window.getSelection()?.removeAllRanges() }
+    else onPageClick?.({ pageNumber, anchor: offer.anchor })
+    setOffer(null)
+  }, [offer, onSelection, onPageClick, pageNumber])
+
+  // A press anywhere outside this page (the grey area, the comment list...)
+  // closes the button too.
+  useEffect(() => {
+    if (!offer) return
+    const onDown = e => { if (!pageContainerRef.current?.contains(e.target)) setOffer(null) }
+    window.addEventListener('mousedown', onDown)
+    return () => window.removeEventListener('mousedown', onDown)
+  }, [offer])
+
+  // Ctrl+Alt+M (Google Docs' shortcut) opens the comment box for the offer.
+  useEffect(() => {
+    if (!offer) return
+    const onKey = e => { if (e.ctrlKey && e.altKey && (e.key === 'm' || e.key === 'M')) { e.preventDefault(); takeOffer() } }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [offer, takeOffer])
 
   const handleContainerClick = useCallback(e => {
     if (justSelectedRef.current) { justSelectedRef.current = false; return }
@@ -246,13 +281,33 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
     const x = (e.clientX - containerRect.left) / containerRect.width
     const y = (e.clientY - containerRect.top) / containerRect.height
 
-    const hit = pageAnnotations.find(a => anchorRects(a.anchor)?.some(r =>
+    const hit = pageAnnotations.find(a => (!a.resolved || a.id === activeAnnotationId) && anchorRects(a.anchor)?.some(r =>
       x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height
     ))
-    if (hit) { onAnnotationClick?.(hit); return }
+    if (hit) { setOffer(null); onAnnotationClick?.(hit); return }
+    if (e.target.closest?.('[data-comment-offer]')) return
+    // A plain click: like Google Docs, nothing pops up. Commenters get a
+    // small "Comment here" button for pinning a comment to that spot
+    // (e.g. a figure without selectable text).
+    if (dismissedRef.current) { dismissedRef.current = false; return }
+    // On text, a click just places the cursor (as in Google Docs). On a
+    // blank spot -- e.g. a figure -- offer to pin a comment there.
+    if (e.target.closest?.('.textLayer span')) return
+    if (commentEnabled && onPageClick) setOffer({ kind: 'point', anchor: { x, y }, x, y })
+  }, [onPageClick, onAnnotationClick, pageAnnotations, commentEnabled, activeAnnotationId])
 
-    onPageClick?.({ pageNumber, anchor: { x, y } })
-  }, [pageNumber, onPageClick, onAnnotationClick, pageAnnotations])
+  // Selecting a comment in the list scrolls its highlighted words to the
+  // middle of the screen (after the page itself has scrolled into view).
+  const lastFocus = useRef(null)
+  useEffect(() => {
+    if (!focusSeq || lastFocus.current === focusSeq || !rendered) return
+    if (!pageAnnotations.some(a => a.id === activeAnnotationId)) return
+    lastFocus.current = focusSeq
+    const t = setTimeout(() => {
+      pageContainerRef.current?.querySelector(`[data-annot="${activeAnnotationId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 450)
+    return () => clearTimeout(t)
+  }, [focusSeq, rendered, pageAnnotations, activeAnnotationId])
 
   return (
     <div
@@ -285,6 +340,10 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
 
       {pageAnnotations.map(a => {
         const isActive = a.id === activeAnnotationId
+        const isHover = a.id === hoverAnnotationId
+        // Like Google Docs: resolved comments leave no mark on the text
+        // (they're still in the list, and show again when selected there).
+        if (a.resolved && !isActive) return null
         const raw = anchorRects(a.anchor)
         const rects = raw ? mergeLineRects(raw) : null
 
@@ -296,33 +355,19 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
               {rects.map((r, i) => (
                 <div
                   key={`${i}-${isActive}`}
+                  data-annot={i === 0 ? a.id : undefined}
                   title={title}
                   className={isActive ? 'annotation-pulse' : undefined}
                   style={{
                     position: 'absolute', left: `${r.x * 100}%`, top: `${r.y * 100}%`,
                     width: `${r.width * 100}%`, height: `${r.height * 100}%`,
-                    background: `rgba(${color},${isActive ? 0.55 : 0.32})`,
+                    background: `rgba(${color},${isActive ? 0.55 : isHover ? 0.45 : 0.3})`,
                     // Carried over from an earlier version: dashed outline.
                     outline: isActive ? `2px solid rgba(${color},0.9)` : (a.carried ? `1px dashed rgba(${color},0.95)` : 'none'),
                     pointerEvents: 'none', zIndex: 5, borderRadius: '2px',
                   }}
                 />
               ))}
-              <button
-                key={`badge-${isActive}`}
-                onClick={e => { e.stopPropagation(); onAnnotationClick?.(a) }}
-                title={a.title}
-                className={isActive ? 'pin-pulse' : undefined}
-                style={{
-                  position: 'absolute', left: `${rects[0].x * 100}%`, top: `${rects[0].y * 100}%`,
-                  transform: 'translate(-50%, -50%)', width: '20px', height: '20px', borderRadius: '50%',
-                  border: '2px solid #fff', background: a.resolved ? '#059669' : '#dc2626', color: '#fff',
-                  fontSize: '10px', fontWeight: 700, cursor: 'pointer', display: 'flex',
-                  alignItems: 'center', justifyContent: 'center', zIndex: 10, boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
-                }}
-              >
-                {a.index}
-              </button>
             </div>
           )
         }
@@ -331,6 +376,7 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
         return (
           <button
             key={`${a.id}-${isActive}`}
+            data-annot={a.id}
             onClick={e => { e.stopPropagation(); onAnnotationClick?.(a) }}
             title={a.title}
             className={isActive ? 'pin-pulse' : undefined}
@@ -359,6 +405,22 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
         />
       ))}
 
+      {offer && !pendingDraft && (
+        <button
+          type="button" data-comment-offer
+          onMouseDown={e => e.preventDefault()} onClick={e => { e.stopPropagation(); takeOffer() }}
+          title="Add a comment (Ctrl+Alt+M)"
+          style={{
+            position: 'absolute', zIndex: 12,
+            left: `min(calc(${offer.x * 100}% + 8px), calc(100% - 128px))`, top: `calc(${offer.y * 100}% + 6px)`,
+            display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 12px', borderRadius: '20px',
+            border: 'none', background: '#0a1f44', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+            boxShadow: '0 4px 14px rgba(10,31,68,0.35)', fontFamily: 'inherit', whiteSpace: 'nowrap',
+          }}>
+          <Icon name="comment" /> {offer.kind === 'text' ? 'Comment' : 'Comment here'}
+        </button>
+      )}
+
       {pendingDraft && (
         <CommentComposer draft={pendingDraft} onSubmit={onSubmitDraft} onCancel={onCancelDraft} />
       )}
@@ -372,7 +434,7 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
 // canvas/text layer, via one shared IntersectionObserver rooted on this
 // component's own scroll container, so a long document (dozens+ of pages)
 // doesn't pay the cost of rendering everything up front.
-export default function PdfViewer({ documentId, pageNumber, onPageCountChange, onPageNumberChange, onSelection, onPageClick, annotations = [], carried = [], onRelocated, onAnnotationClick, activeAnnotationId, pendingDraft, onSubmitDraft, onCancelDraft, scrollContainerRef }) {
+export default function PdfViewer({ documentId, pageNumber, onPageCountChange, onPageNumberChange, onSelection, onPageClick, annotations = [], carried = [], onRelocated, onAnnotationClick, activeAnnotationId, hoverAnnotationId, focusSeq, commentEnabled = true, pendingDraft, onSubmitDraft, onCancelDraft, scrollContainerRef }) {
   const [pdfDoc, setPdfDoc] = useState(null)
   const [numPages, setNumPages] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -547,6 +609,13 @@ export default function PdfViewer({ documentId, pageNumber, onPageCountChange, o
         @keyframes annotationPulse { 0% { filter: brightness(1); } 30% { filter: brightness(1.4); } 100% { filter: brightness(1); } }
         @keyframes pinPulse { 0% { transform: translate(-50%, -50%) scale(1); } 30% { transform: translate(-50%, -50%) scale(1.25); } 100% { transform: translate(-50%, -50%) scale(1); } }
         .annotation-pulse { animation: annotationPulse 0.6s ease-out; }
+        /* pdf.js draws the selection at 25% in the system accent colour,
+           which is often a faint grey. Google Docs' clear light blue: */
+        .textLayer { opacity: 1 !important; }
+        .textLayer ::selection { background: rgba(26,115,232,0.35); }
+        .textLayer ::-moz-selection { background: rgba(26,115,232,0.35); }
+        .textLayer br::selection { background: transparent; }
+        .textLayer br::-moz-selection { background: transparent; }
         .pin-pulse { animation: pinPulse 0.6s ease-out; }
       `}</style>
       {loading && <div style={{ padding: '40px', color: '#94a3b8', fontSize: '13px' }}>Loading document…</div>}
@@ -566,6 +635,9 @@ export default function PdfViewer({ documentId, pageNumber, onPageCountChange, o
                 textHighlights={carried.filter(c => relocations?.[c.id]?.pageNumber === n).map(c => ({ ...c, start: relocations[c.id].start, end: relocations[c.id].end }))}
                 onAnnotationClick={onAnnotationClick}
                 activeAnnotationId={activeAnnotationId}
+                hoverAnnotationId={hoverAnnotationId}
+                focusSeq={focusSeq}
+                commentEnabled={commentEnabled}
                 pendingDraft={pendingDraft && pendingDraft.pageNumber === n ? pendingDraft : null}
                 onSelection={onSelection}
                 onPageClick={onPageClick}
