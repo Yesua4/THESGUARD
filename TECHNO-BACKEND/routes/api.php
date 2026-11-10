@@ -41,6 +41,8 @@ Route::get('/onlyoffice/file/{id}', [\App\Http\Controllers\OnlyOfficeController:
     ->middleware('signed:relative')->name('onlyoffice.file');
 Route::post('/onlyoffice/callback/{id}', [\App\Http\Controllers\OnlyOfficeController::class, 'callback'])
     ->middleware('signed:relative')->name('onlyoffice.callback');
+Route::post('/onlyoffice/register', [\App\Http\Controllers\OnlyOfficeController::class, 'register'])
+    ->middleware('throttle:30,1');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);

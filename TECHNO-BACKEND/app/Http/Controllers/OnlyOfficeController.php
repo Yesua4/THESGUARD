@@ -35,7 +35,40 @@ class OnlyOfficeController extends Controller {
     private const VIEWABLE = ['docx', 'doc', 'odt', 'rtf'];
 
     public static function enabled(): bool {
-        return (bool) (config('services.onlyoffice.url') && config('services.onlyoffice.jwt_secret') && self::backendUrl());
+        return (bool) (self::serverUrl() && config('services.onlyoffice.jwt_secret') && self::backendUrl());
+    }
+
+    // Where the Document Server is right now: the address the defense laptop
+    // registered (it changes each time the laptop starts the editor, and
+    // lapses on its own if the laptop goes offline), else ONLYOFFICE_URL.
+    public static function serverUrl(): ?string {
+        $url = \App\Models\AppSetting::get('onlyoffice_url') ?: config('services.onlyoffice.url');
+        return $url ? rtrim($url, '/') : null;
+    }
+
+    // The defense laptop's start/stop scripts call this with a short-lived
+    // token signed with the shared ONLYOFFICE secret. url = null switches the
+    // editor off. The address lapses after 15 minutes unless refreshed (the
+    // start script refreshes it every few minutes while it runs).
+    public function register(Request $request) {
+        $secret = config('services.onlyoffice.jwt_secret');
+        abort_unless($secret, 503, 'The editor secret is not set up on the server.');
+        try {
+            $data = (array) JWT::decode((string) $request->input('token'), new Key($secret, 'HS256'));
+        } catch (Throwable $e) {
+            return response()->json(['message' => 'Invalid token.'], 403);
+        }
+        abort_unless(($data['purpose'] ?? null) === 'register', 403, 'Invalid token.');
+        // Must be a fresh, short-lived token (no long-lived replays).
+        abort_unless(isset($data['exp']) && (int) $data['exp'] - time() <= 600, 403, 'Invalid token.');
+        $url = $data['url'] ?? null;
+        if ($url !== null) {
+            abort_unless(is_string($url) && preg_match('#^https://[a-z0-9.-]+(:\d+)?/?$#i', $url), 422, 'The editor address must be an https:// address.');
+            \App\Models\AppSetting::put('onlyoffice_url', rtrim($url, '/'), now()->addMinutes(15));
+        } else {
+            \App\Models\AppSetting::put('onlyoffice_url', null);
+        }
+        return response()->json(['enabled' => self::enabled(), 'server_url' => self::serverUrl()]);
     }
 
     private static function backendUrl(): ?string {
@@ -46,7 +79,7 @@ class OnlyOfficeController extends Controller {
     public function status() {
         return response()->json([
             'enabled' => self::enabled(),
-            'server_url' => self::enabled() ? rtrim(config('services.onlyoffice.url'), '/') : null,
+            'server_url' => self::enabled() ? self::serverUrl() : null,
         ]);
     }
 
@@ -88,7 +121,7 @@ class OnlyOfficeController extends Controller {
         $config['token'] = JWT::encode($config, config('services.onlyoffice.jwt_secret'), 'HS256');
 
         return response()->json([
-            'server_url' => rtrim(config('services.onlyoffice.url'), '/'),
+            'server_url' => self::serverUrl(),
             'mode' => $mode,
             'config' => $config,
         ]);
@@ -136,7 +169,7 @@ class OnlyOfficeController extends Controller {
         if (!$document || !$document->project || !$fileUrl) return response()->json(['error' => 1]);
 
         // Only ever fetch from our own Document Server.
-        $allowedHost = parse_url((string) config('services.onlyoffice.url'), PHP_URL_HOST);
+        $allowedHost = parse_url((string) self::serverUrl(), PHP_URL_HOST);
         $fileHost = parse_url($fileUrl, PHP_URL_HOST);
         if (!$allowedHost || !$fileHost || strcasecmp($allowedHost, $fileHost) !== 0) {
             Log::warning("ONLYOFFICE callback for document {$id}: refused file URL host {$fileHost}");

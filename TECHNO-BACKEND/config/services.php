@@ -3,7 +3,8 @@
 return [
 
     // Word-quality .docx editing with a self-hosted ONLYOFFICE Document
-    // Server. Off until all three are set. backend_url = this backend's
+    // Server. Off until the secret + backend_url are set and a server address
+    // is known (url below, or registered at runtime by the defense laptop). backend_url = this backend's
     // public address (the Document Server downloads files and posts saves
     // there), e.g. https://thesguard-production.up.railway.app
     'onlyoffice' => [

@@ -110,4 +110,29 @@ class OnlyOfficeTest extends TestCase
         Http::assertNothingSent();
         $this->assertSame(1, Document::where('project_id', $this->project->id)->count());
     }
+
+    public function test_the_defense_laptop_registers_its_address_which_lapses(): void
+    {
+        config(['services.onlyoffice.url' => null]);
+        Sanctum::actingAs($this->student);
+        $this->getJson('/api/onlyoffice/status')->assertJsonPath('enabled', false);
+
+        $token = fn ($url, $ttl = 300) => JWT::encode(['purpose' => 'register', 'url' => $url, 'exp' => time() + $ttl], self::SECRET, 'HS256');
+        $this->postJson('/api/onlyoffice/register', ['token' => $token('https://abc-def.trycloudflare.com')])->assertOk()->assertJsonPath('enabled', true);
+        $this->getJson('/api/onlyoffice/status')->assertJsonPath('server_url', 'https://abc-def.trycloudflare.com');
+
+        // Wrong secret, long-lived token, or plain http: refused.
+        $this->postJson('/api/onlyoffice/register', ['token' => JWT::encode(['purpose' => 'register', 'url' => 'https://evil.example', 'exp' => time() + 60], 'another-secret-another-secret-12345', 'HS256')])->assertStatus(403);
+        $this->postJson('/api/onlyoffice/register', ['token' => $token('https://evil.example', 86400)])->assertStatus(403);
+        $this->postJson('/api/onlyoffice/register', ['token' => $token('http://insecure.example')])->assertStatus(422);
+
+        // Lapses on its own after 15 minutes without a refresh.
+        $this->travel(16)->minutes();
+        $this->getJson('/api/onlyoffice/status')->assertJsonPath('enabled', false);
+        $this->travelBack();
+
+        // Stop script switches it off right away.
+        $this->postJson('/api/onlyoffice/register', ['token' => $token('https://abc-def.trycloudflare.com')])->assertOk();
+        $this->postJson('/api/onlyoffice/register', ['token' => $token(null)])->assertOk()->assertJsonPath('enabled', false);
+    }
 }
