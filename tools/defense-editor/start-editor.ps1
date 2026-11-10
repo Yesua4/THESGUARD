@@ -4,6 +4,8 @@
 # laptop just goes offline, ThesisGuard switches it off by itself after 15 min.
 #
 # Needs: Docker Desktop, cloudflared.exe and secret.txt in this folder.
+# Docker installed on drive D: make its command available even before a restart.
+foreach ($d in @('D:\Docker\DockerDesktop\resources\bin', "$env:ProgramFiles\Docker\Docker\resources\bin")) { if ((Test-Path $d) -and ($env:PATH -notlike "*$d*")) { $env:PATH = "$d;$env:PATH" } }
 $ErrorActionPreference = 'Stop'
 $Here    = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Backend = 'https://thesguard-production.up.railway.app'
@@ -56,6 +58,22 @@ for ($i = 0; $i -lt 150 -and -not $healthy; $i++) {
     try { $healthy = ((Invoke-WebRequest "http://localhost:$Port/healthcheck" -UseBasicParsing -TimeoutSec 3).Content.Trim() -eq 'true') } catch {}
 }
 if (-not $healthy) { Fail 'The editor did not become ready in 5 minutes.' }
+
+# The editor restarts its own services once, ~2-3 minutes after starting,
+# while it prepares fonts. Anyone editing at that moment gets "Connection
+# is lost", so wait until it has been up 3+ minutes with no restart for 60s.
+Say '        Warming up (about 3 minutes)...'
+$started = [datetime](docker inspect -f '{{.State.StartedAt}}' $Name)
+$lastCount = -1; $stableSince = Get-Date
+for ($i = 0; $i -lt 120; $i++) {
+    $count = [int](docker exec $Name sh -c "grep -c 'spawned: .docservice.' /var/log/supervisor/supervisord.log 2>/dev/null || echo 0")
+    if ($count -ne $lastCount) { $lastCount = $count; $stableSince = Get-Date }
+    $upFor = ((Get-Date).ToUniversalTime() - $started.ToUniversalTime()).TotalSeconds
+    $ok = $false
+    try { $ok = ((Invoke-WebRequest "http://localhost:$Port/healthcheck" -UseBasicParsing -TimeoutSec 3).Content.Trim() -eq 'true') } catch {}
+    if ($ok -and $upFor -ge 200 -and ((Get-Date) - $stableSince).TotalSeconds -ge 60) { break }
+    Start-Sleep 5
+}
 Say '        Editor is ready.' Green
 
 # 3. Internet address (free Cloudflare tunnel; the address changes every start)

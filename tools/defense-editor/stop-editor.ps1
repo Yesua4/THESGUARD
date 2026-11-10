@@ -1,5 +1,7 @@
-# Switches the defense Word editor off: tells ThesisGuard, closes the
+﻿# Switches the defense Word editor off: tells ThesisGuard, closes the
 # internet tunnel and stops the editor so the laptop is back to normal.
+# Docker installed on drive D: make its command available even before a restart.
+foreach ($d in @('D:\Docker\DockerDesktop\resources\bin', "$env:ProgramFiles\Docker\Docker\resources\bin")) { if ((Test-Path $d) -and ($env:PATH -notlike "*$d*")) { $env:PATH = "$d;$env:PATH" } }
 $Here    = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Backend = 'https://thesguard-production.up.railway.app'
 $Secret  = (Get-Content (Join-Path $Here 'secret.txt') -Raw).Trim()
