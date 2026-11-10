@@ -8,7 +8,7 @@ import Icon from '../../../components/Icon'
 // DocumentReviewViewer's anchorStates).
 const ANCHOR_NOTE = {
   relocated:    { text: 'Located in this version', bg: '#eff6ff', color: '#1e40af', icon: '↳' },
-  needs_review: { text: 'Original text changed — anchor needs review', bg: '#fff7ed', color: '#9a3412', icon: <Icon name="alert" /> },
+  needs_review: { text: 'The commented text was changed or removed in this version', bg: '#fff7ed', color: '#9a3412', icon: <Icon name="alert" /> },
   locating:     { text: 'Looking for the original text…', bg: '#f8fafc', color: '#64748b', icon: '…' },
 }
 

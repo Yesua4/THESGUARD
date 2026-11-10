@@ -21,7 +21,7 @@ export default function CommentCompare({ comment, attempt, originDoc, revisionDo
       .then(([o, r]) => {
         if (cancelled) return
         const original = originalExcerpt(o, comment)
-        const revised = revisedExcerpt(r, original)
+        const revised = revisedExcerpt(r, original, o)
         setState({ loading: false, original, revised, parts: original && revised ? diffWords(original.text, revised.text) : null })
       })
       .catch(() => { if (!cancelled) setState({ loading: false, failed: true }) })
@@ -73,9 +73,11 @@ export default function CommentCompare({ comment, attempt, originDoc, revisionDo
                 <span><del style={{ color: '#9f1239' }}>− removed</del></span>
                 <span><ins style={{ color: '#065f46', textDecorationThickness: '2px' }}>+ added</ins></span>
                 <span>
-                  {how === 'same' ? 'Matched by paragraph (same paragraph in both versions).'
-                    : how === 'unchanged' ? 'This passage looks unchanged in the revision.'
-                    : how === 'closest' ? 'The original paragraph was moved or rewritten; showing the closest matching passage. Please double-check.'
+                  {how === 'same' ? 'The same paragraph in both versions.'
+                    : how === 'unchanged' ? 'This passage was not changed in the new version.'
+                    : how === 'replaced' ? 'On the right is what the student put in place of this passage.'
+                    : how === 'removed' ? 'The student removed this passage in the new version.'
+                    : how === 'closest' ? 'This passage could not be found in the same place, so this is the most similar passage. Please double-check.'
                     : ''}
                 </span>
               </div>

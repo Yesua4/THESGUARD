@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-import { diffWords } from 'diff'
-import { getDocumentText } from '../../../utils/revisionExcerpt'
+import { getDocumentText, cleanDiff } from '../../../utils/revisionExcerpt'
 
 // Compares two versions of the same document type (e.g. Chapter 1 v1 vs v2)
 // as a word-level text diff. Text comes from utils/revisionExcerpt: in-app
@@ -20,7 +19,7 @@ export default function DocumentDiffViewer({ oldDocument, newDocument, onClose }
     Promise.all([getDocumentText(oldDocument), getDocumentText(newDocument)])
       .then(([oldText, newText]) => {
         if (cancelled) return
-        setDiff(diffWords(oldText.text, newText.text))
+        setDiff(cleanDiff(oldText.text, newText.text))
       })
       .catch(() => { if (!cancelled) setError('Could not compare these versions — one or both documents have no text-based preview available.') })
       .finally(() => { if (!cancelled) setLoading(false) })
