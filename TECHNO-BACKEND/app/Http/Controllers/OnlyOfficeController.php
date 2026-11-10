@@ -149,6 +149,62 @@ class OnlyOfficeController extends Controller {
     // The Document Server reports editing status here. Status 2 = everyone
     // closed the editor and there are changes -> save as a new version.
     public function callback(Request $request, DocumentVersionService $versions, $id) {
+        $document = Document::with('project')->find($id);
+        if (!$document || !$document->project) return response()->json(['error' => 1]);
+        return $this->saveFromCallback($request, $versions, "document {$id}",
+            fn () => [$document->project, $document->type, (int) $document->uploaded_by, "Edited in ThesisGuard (from v{$document->version})", 'Edited']);
+    }
+
+    // "Write in the Word editor": a blank thesis page (A4, 1.5" left margin,
+    // Arial 12) that becomes the next version of this chapter when saved.
+    // Nothing is created until the student actually writes something.
+    public function configNew(Request $request, $projectId) {
+        abort_unless(self::enabled(), 503, 'The document editor is not set up yet.');
+        $user = $request->user();
+        $data = $request->validate(['type' => 'required|in:' . implode(',', array_keys(DocumentVersionService::TYPE_LABELS))]);
+        $project = \App\Models\Project::findOrFail($projectId);
+        abort_unless($user->role === 'student' && self::userCanAccessProject($user, $project->id), 403, 'Only the students of this project can write its documents.');
+        abort_unless($project->title_status === 'approved', 403, 'Title must be approved before writing documents.');
+
+        $base = self::backendUrl();
+        $label = DocumentVersionService::TYPE_LABELS[$data['type']];
+        $config = [
+            'document' => [
+                'fileType' => 'docx',
+                'key' => 'tgnew' . $project->id . '-' . Str::random(20),
+                'title' => "{$label} (new).docx",
+                'url' => $base . URL::temporarySignedRoute('onlyoffice.template', now()->addHours(6), [], false),
+                'permissions' => ['edit' => true, 'download' => true, 'print' => true, 'comment' => false, 'review' => false],
+            ],
+            'documentType' => 'word',
+            'editorConfig' => [
+                'mode' => 'edit',
+                'lang' => 'en',
+                'callbackUrl' => $base . URL::temporarySignedRoute('onlyoffice.callback-new', now()->addDays(2), ['project' => $project->id, 'type' => $data['type'], 'user' => $user->id], false),
+                'user' => ['id' => (string) $user->id, 'name' => $user->name],
+                'customization' => ['autosave' => true, 'forcesave' => false, 'compactHeader' => true, 'comments' => false, 'help' => false],
+            ],
+        ];
+        $config['token'] = JWT::encode($config, config('services.onlyoffice.jwt_secret'), 'HS256');
+        return response()->json(['server_url' => self::serverUrl(), 'mode' => 'edit', 'config' => $config]);
+    }
+
+    public function template() {
+        return response()->download(resource_path('templates/blank-thesis.docx'), 'blank-thesis.docx');
+    }
+
+    public function callbackNew(Request $request, DocumentVersionService $versions, $project, $type, $user) {
+        $p = \App\Models\Project::find($project);
+        if (!$p || !array_key_exists($type, DocumentVersionService::TYPE_LABELS)) return response()->json(['error' => 1]);
+        return $this->saveFromCallback($request, $versions, "new {$type} of project {$project}",
+            fn () => [$p, $type, (int) $user, 'Written in ThesisGuard', 'Wrote']);
+    }
+
+    // The Document Server reports editing status here. Status 2 = everyone
+    // closed the editor and there are changes -> save as a new version.
+    // Only with a valid token, only from our own Document Server, and each
+    // editing session once (ONLYOFFICE can repeat a callback).
+    private function saveFromCallback(Request $request, DocumentVersionService $versions, string $what, callable $target) {
         $secret = config('services.onlyoffice.jwt_secret');
         if (!$secret) return response()->json(['error' => 1]);
 
@@ -156,7 +212,7 @@ class OnlyOfficeController extends Controller {
         try {
             $data = (array) json_decode(json_encode(JWT::decode((string) $token, new Key($secret, 'HS256'))), true);
         } catch (Throwable $e) {
-            Log::warning("ONLYOFFICE callback for document {$id} had an invalid token: {$e->getMessage()}");
+            Log::warning("ONLYOFFICE callback for {$what} had an invalid token: {$e->getMessage()}");
             return response()->json(['error' => 1], 403);
         }
         $data = $data['payload'] ?? $data; // header-token variant wraps the body
@@ -164,40 +220,34 @@ class OnlyOfficeController extends Controller {
         $status = (int) ($data['status'] ?? 0);
         if (!in_array($status, [2, 6], true)) return response()->json(['error' => 0]);
 
-        $document = Document::with('project')->find($id);
         $fileUrl = (string) ($data['url'] ?? '');
-        if (!$document || !$document->project || !$fileUrl) return response()->json(['error' => 1]);
-
-        // Only ever fetch from our own Document Server.
+        if (!$fileUrl) return response()->json(['error' => 1]);
         $allowedHost = parse_url((string) self::serverUrl(), PHP_URL_HOST);
         $fileHost = parse_url($fileUrl, PHP_URL_HOST);
         if (!$allowedHost || !$fileHost || strcasecmp($allowedHost, $fileHost) !== 0) {
-            Log::warning("ONLYOFFICE callback for document {$id}: refused file URL host {$fileHost}");
+            Log::warning("ONLYOFFICE callback for {$what}: refused file URL host {$fileHost}");
             return response()->json(['error' => 1]);
         }
 
-        // ONLYOFFICE can repeat a callback; save each editing session once.
-        if (!Cache::add('onlyoffice-saved:' . ($data['key'] ?? $id), true, now()->addDays(3))) {
-            return response()->json(['error' => 0]);
-        }
+        $onceKey = 'onlyoffice-saved:' . ($data['key'] ?? $what);
+        if (!Cache::add($onceKey, true, now()->addDays(3))) return response()->json(['error' => 0]);
 
         try {
+            [$project, $type, $fallbackUserId, $note, $verb] = $target();
             $res = Http::timeout(60)->get($fileUrl);
             if (!$res->successful()) throw new \RuntimeException('download failed with ' . $res->status());
-            $path = "documents/{$document->project_id}/" . Str::uuid() . '.docx';
+            $path = "documents/{$project->id}/" . Str::uuid() . '.docx';
             Storage::disk('local')->put($path, $res->body());
 
             // Credit the student who edited (first editor in the session).
-            $editorId = (int) (($data['users'][0] ?? null) ?: $document->uploaded_by);
-            if (!self::userCanAccessProject(User::find($editorId) ?? new User(['role' => 'none']), $document->project_id)) {
-                $editorId = (int) $document->uploaded_by;
+            $editorId = (int) (($data['users'][0] ?? null) ?: $fallbackUserId);
+            if (!self::userCanAccessProject(User::find($editorId) ?? new User(['role' => 'none']), $project->id)) {
+                $editorId = $fallbackUserId;
             }
-
-            $versions->create($document->project, $document->type, $editorId, $path,
-                "Edited in ThesisGuard (from v{$document->version})", null, 'Edited');
+            $versions->create($project, $type, $editorId, $path, $note, null, $verb);
         } catch (Throwable $e) {
-            Cache::forget('onlyoffice-saved:' . ($data['key'] ?? $id));
-            Log::error("ONLYOFFICE save for document {$id} failed: {$e->getMessage()}");
+            Cache::forget($onceKey);
+            Log::error("ONLYOFFICE save for {$what} failed: {$e->getMessage()}");
             return response()->json(['error' => 1]);
         }
 

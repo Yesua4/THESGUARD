@@ -27,6 +27,7 @@ function PageSubmit({ initialDocumentId, initialCommentId = null, onConsumeIniti
   // Word-quality editor (ONLYOFFICE), when the school has set one up.
   const [officeEnabled, setOfficeEnabled] = useState(false)
   const [officeDoc, setOfficeDoc]         = useState(null)
+  const [officeNew, setOfficeNew]         = useState(false)
   useEffect(() => {
     api.get('/onlyoffice/status').then(res => setOfficeEnabled(!!res.data.enabled)).catch(() => {})
   }, [])
@@ -229,6 +230,10 @@ function PageSubmit({ initialDocumentId, initialCommentId = null, onConsumeIniti
 
   return (
     <div>
+      {officeNew && (
+        <OnlyOfficeEditor newFor={{ projectId: form.project_id, type: form.type }} title={`${typeLabel[form.type] || form.type} (new)`}
+          onClose={() => { setOfficeNew(false); setTimeout(loadDocs, 12000) }} />
+      )}
       {officeDoc && (
         <OnlyOfficeEditor documentId={officeDoc.id} title={`${typeLabel[officeDoc.type] || officeDoc.type} v${officeDoc.version}`}
           onClose={() => { setOfficeDoc(null); setTimeout(loadDocs, 12000) }} />
@@ -415,8 +420,20 @@ function PageSubmit({ initialDocumentId, initialCommentId = null, onConsumeIniti
                   </div>
                 ) : (
                   <div>
+                    {officeEnabled && (
+                      <div style={{ background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:'10px', padding:'12px 14px', marginBottom:'10px', display:'flex', alignItems:'center', gap:'12px', flexWrap:'wrap' }}>
+                        <div style={{ flex:1, minWidth:'200px' }}>
+                          <div style={{ fontSize:'13px', fontWeight:700, color:'#0a1f44' }}>The Word editor is available</div>
+                          <div style={{ fontSize:'12px', color:'#475569' }}>Write {typeLabel[form.type] || 'this document'} on a real Word page (thesis margins, Arial 12). It's saved as a new version when you close it.</div>
+                        </div>
+                        <button type="button" onClick={() => setOfficeNew(true)}
+                          style={{ padding:'9px 14px', borderRadius:'8px', border:'none', background:'linear-gradient(135deg,#0a1f44,#1040a0)', color:'#fff', fontWeight:700, fontSize:'12px', cursor:'pointer', whiteSpace:'nowrap' }}>
+                          <Icon name="file" /> Write in the Word editor
+                        </button>
+                      </div>
+                    )}
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'5px' }}>
-                      <label style={{ fontSize:'11px', fontWeight:'700', color:'#64748b', letterSpacing:'0.06em', textTransform:'uppercase' }}>Chapter Content</label>
+                      <label style={{ fontSize:'11px', fontWeight:'700', color:'#64748b', letterSpacing:'0.06em', textTransform:'uppercase' }}>{officeEnabled ? 'Or use the simple editor' : 'Chapter Content'}</label>
                       <button type="button" onClick={() => setFullScreen(true)} style={{ display:'flex', alignItems:'center', gap:'5px', fontSize:'11px', fontWeight:'700', color:'#1040a0', background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:'6px', padding:'4px 10px', cursor:'pointer' }}>
                         <Icon name="maximize" /> Full Screen
                       </button>

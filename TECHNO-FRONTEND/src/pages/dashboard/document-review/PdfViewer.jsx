@@ -8,6 +8,48 @@ import { anchorRects, anchorPoint, buildQuote, locateQuote, textOffsetOf, rangeF
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc
 
+// Released in empty space (past a line's end, in the margin, between
+// paragraphs)? End the selection at the text next to the pointer -- the end
+// of that line, or of the line just above a gap -- like Google Docs, instead
+// of wherever the browser guessed.
+function snapSelectionEnd(layer, sel, x, y) {
+  if (!layer || !sel?.rangeCount) return
+  const spans = [...layer.querySelectorAll('span')].filter(el => el.firstChild?.nodeType === 3 && el.textContent.trim())
+  if (!spans.length) return
+  const boxes = spans.map(el => ({ el, r: el.getBoundingClientRect() }))
+  if (boxes.some(b => x >= b.r.left && x <= b.r.right && y >= b.r.top && y <= b.r.bottom)) return // on text: fine as is
+  let line = boxes.filter(b => y >= b.r.top - 2 && y <= b.r.bottom + 2)
+  if (!line.length) {
+    // In a gap between lines: use the closest line above.
+    const above = boxes.filter(b => b.r.bottom <= y)
+    if (!above.length) return
+    const bottom = Math.max(...above.map(b => b.r.bottom))
+    line = above.filter(b => b.r.bottom >= bottom - 3)
+  }
+  const left = line.filter(b => b.r.right <= x + 1).sort((a, b) => b.r.right - a.r.right)[0]
+  const target = left ? { node: left.el.firstChild, offset: left.el.firstChild.length }
+    : { node: line.sort((a, b) => a.r.left - b.r.left)[0].el.firstChild, offset: 0 }
+  try { sel.extend(target.node, target.offset) } catch { /* selection outside the layer */ }
+}
+
+// A selection's getClientRects() returns one box per text span (often per
+// word). Merge boxes that sit on the same line and touch into one box per
+// line, so a highlight reads as a clean band instead of a row of tiles.
+function mergeLineRects(rects) {
+  const sorted = [...rects].sort((a, b) => (a.y - b.y) || (a.x - b.x))
+  const lines = []
+  sorted.forEach(r => {
+    const line = lines.find(l => Math.abs((l.y + l.height / 2) - (r.y + r.height / 2)) < Math.max(l.height, r.height) * 0.5
+      && r.x <= l.x + l.width + 0.02 && r.x + r.width >= l.x - 0.02)
+    if (line) {
+      const x1 = Math.min(line.x, r.x), y1 = Math.min(line.y, r.y)
+      const x2 = Math.max(line.x + line.width, r.x + r.width), y2 = Math.max(line.y + line.height, r.y + r.height)
+      Object.assign(line, { x: x1, y: y1, width: x2 - x1, height: y2 - y1 })
+    } else lines.push({ ...r })
+  })
+  return lines
+}
+
 // How far past the visible area (in px) a page starts rendering, so it's
 // already drawn by the time the user scrolls to it instead of popping in.
 const PRELOAD_MARGIN = '1000px 0px'
@@ -80,6 +122,14 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
         const textContent = await page.getTextContent()
         const textLayerTask = pdfjsLib.renderTextLayer({ textContentSource: textContent, container: textLayerDiv, viewport, textDivs: [] })
         await textLayerTask.promise
+        // Same trick as pdf.js's own viewer: an invisible block behind the
+        // text that, while dragging, covers the page from the press point
+        // down -- so when the mouse crosses a gap (between lines, past a
+        // line's end, the margin) the selection stops there instead of
+        // jumping to grab words you never dragged over.
+        const end = document.createElement('div')
+        end.className = 'endOfContent'
+        textLayerDiv.append(end)
         setTextReady(n => n + 1)
       } catch (err) {
         console.error(`PDF page ${pageNumber} text layer failed:`, err)
@@ -120,10 +170,10 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
       highlightsRef.current.forEach(h => {
         const range = rangeFromOffsets(layer, h.start, h.end)
         if (!range) return
-        const rects = Array.from(range.getClientRects()).filter(r => r.width > 0 && r.height > 0).map(r => ({
+        const rects = mergeLineRects(Array.from(range.getClientRects()).filter(r => r.width > 0 && r.height > 0).map(r => ({
           x: (r.left - box.left) / box.width, y: (r.top - box.top) / box.height,
           width: r.width / box.width, height: r.height / box.height,
-        }))
+        })))
         if (rects.length) next[h.id] = rects
       })
       setLocated(next)
@@ -136,22 +186,41 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
     // Located text highlights only while the page (and its text layer) is drawn.
     ...(rendered ? textHighlights.filter(h => located[h.id]).map(h => ({ ...h, anchor: located[h.id], carried: true })) : []),
   ], [annotations, textHighlights, located, rendered, pageNumber])
-  const pendingRects = pendingDraft ? anchorRects(pendingDraft.anchor) : null
+  const pendingRects = pendingDraft && anchorRects(pendingDraft.anchor) ? mergeLineRects(anchorRects(pendingDraft.anchor)) : null
 
-  const handleMouseUp = useCallback(() => {
+  // pdf.js's selection fix (see the endOfContent element above).
+  const handleMouseDown = useCallback(e => {
+    const layer = textLayerRef.current
+    const end = layer?.querySelector('.endOfContent')
+    if (!layer || !end) return
+    if (e.target !== layer) {
+      const b = layer.getBoundingClientRect()
+      end.style.top = `${(Math.max(0, (e.clientY - b.top) / b.height) * 100).toFixed(2)}%`
+    }
+    end.classList.add('active')
+    const release = () => {
+      end.style.top = ''
+      end.classList.remove('active')
+      window.removeEventListener('mouseup', release)
+    }
+    window.addEventListener('mouseup', release)
+  }, [])
+
+  const handleMouseUp = useCallback(e => {
     const sel = window.getSelection()
+    if (sel?.rangeCount && !sel.isCollapsed) snapSelectionEnd(textLayerRef.current, sel, e.clientX, e.clientY)
     const text = sel?.toString()?.trim()
     if (!text || sel.rangeCount === 0) return
 
     const containerRect = pageContainerRef.current.getBoundingClientRect()
-    const rects = Array.from(sel.getRangeAt(0).getClientRects())
+    const rects = mergeLineRects(Array.from(sel.getRangeAt(0).getClientRects())
       .filter(r => r.width > 0 && r.height > 0)
       .map(r => ({
         x: (r.left - containerRect.left) / containerRect.width,
         y: (r.top - containerRect.top) / containerRect.height,
         width: r.width / containerRect.width,
         height: r.height / containerRect.height,
-      }))
+      })))
 
     if (rects.length === 0) return
     justSelectedRef.current = true
@@ -189,6 +258,7 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
     <div
       ref={pageContainerRef}
       data-page-number={pageNumber}
+      onMouseDown={rendered ? handleMouseDown : undefined}
       onMouseUp={rendered ? handleMouseUp : undefined}
       onClick={rendered ? handleContainerClick : undefined}
       style={{
@@ -215,7 +285,8 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
 
       {pageAnnotations.map(a => {
         const isActive = a.id === activeAnnotationId
-        const rects = anchorRects(a.anchor)
+        const raw = anchorRects(a.anchor)
+        const rects = raw ? mergeLineRects(raw) : null
 
         if (rects) {
           const color = a.resolved ? '5,150,105' : '245,195,0'
@@ -282,7 +353,7 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
           style={{
             position: 'absolute', left: `${r.x * 100}%`, top: `${r.y * 100}%`,
             width: `${r.width * 100}%`, height: `${r.height * 100}%`,
-            background: 'rgba(29,78,216,0.35)', outline: '2px solid rgba(29,78,216,0.8)',
+            background: 'rgba(29,78,216,0.28)', boxShadow: 'inset 0 -2px 0 rgba(29,78,216,0.8)',
             zIndex: 6, borderRadius: '2px', pointerEvents: 'none',
           }}
         />

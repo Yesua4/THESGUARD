@@ -135,4 +135,29 @@ class OnlyOfficeTest extends TestCase
         $this->postJson('/api/onlyoffice/register', ['token' => $token('https://abc-def.trycloudflare.com')])->assertOk();
         $this->postJson('/api/onlyoffice/register', ['token' => $token(null)])->assertOk()->assertJsonPath('enabled', false);
     }
+
+    public function test_write_in_the_word_editor_starts_blank_and_saves_as_a_version(): void
+    {
+        Sanctum::actingAs($this->student);
+        $config = $this->getJson("/api/projects/{$this->project->id}/onlyoffice-new?type=chapter2")->assertOk()->json('config');
+        $this->get(parse_url($config['document']['url'], PHP_URL_PATH) . '?' . parse_url($config['document']['url'], PHP_URL_QUERY))->assertOk();
+
+        // Advisers don't start students' documents.
+        Sanctum::actingAs($this->adviser);
+        $this->getJson("/api/projects/{$this->project->id}/onlyoffice-new?type=chapter2")->assertStatus(403);
+
+        Http::fake(['docs.example.org/*' => Http::response('new chapter bytes', 200)]);
+        $cb = $config['editorConfig']['callbackUrl'];
+        $cbPath = parse_url($cb, PHP_URL_PATH) . '?' . parse_url($cb, PHP_URL_QUERY);
+        $body = ['key' => $config['document']['key'], 'status' => 2, 'url' => 'https://docs.example.org/cache/out.docx', 'users' => [(string) $this->student->id]];
+        $this->postJson($cbPath, ['token' => JWT::encode($body, self::SECRET, 'HS256')] + $body)->assertJsonPath('error', 0);
+
+        $doc = Document::where('project_id', $this->project->id)->where('type', 'chapter2')->sole();
+        $this->assertSame(1, (int) $doc->version);
+        $this->assertSame((int) $this->student->id, (int) $doc->uploaded_by);
+
+        // Closed without writing anything (status 4): nothing saved.
+        $this->postJson($cbPath, ['token' => JWT::encode(['key' => 'other', 'status' => 4], self::SECRET, 'HS256'), 'status' => 4])->assertJsonPath('error', 0);
+        $this->assertSame(1, Document::where('project_id', $this->project->id)->where('type', 'chapter2')->count());
+    }
 }

@@ -21,7 +21,9 @@ function loadDocsApi(serverUrl) {
   return scriptPromise
 }
 
-export default function OnlyOfficeEditor({ documentId, title, onClose }) {
+// documentId: edit that uploaded .docx. newFor {projectId, type}: start a
+// blank thesis page that becomes the chapter's next version when saved.
+export default function OnlyOfficeEditor({ documentId, newFor, title, onClose }) {
   const editorRef = useRef(null)
   const holderId = `oo-editor-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   const [state, setState] = useState({ loading: true, error: '', mode: null })
@@ -30,7 +32,9 @@ export default function OnlyOfficeEditor({ documentId, title, onClose }) {
     let cancelled = false
     ;(async () => {
       try {
-        const res = await api.get(`/documents/${documentId}/onlyoffice`)
+        const res = newFor
+          ? await api.get(`/projects/${newFor.projectId}/onlyoffice-new`, { params: { type: newFor.type } })
+          : await api.get(`/documents/${documentId}/onlyoffice`)
         await loadDocsApi(res.data.server_url)
         if (cancelled) return
         editorRef.current = new window.DocsAPI.DocEditor(holderId, {
@@ -53,7 +57,7 @@ export default function OnlyOfficeEditor({ documentId, title, onClose }) {
       cancelled = true
       try { editorRef.current?.destroyEditor() } catch { /* already gone */ }
     }
-  }, [documentId, holderId])
+  }, [documentId, newFor?.projectId, newFor?.type, holderId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div role="dialog" aria-modal="true" aria-label={`Editing ${title}`}

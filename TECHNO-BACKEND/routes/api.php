@@ -41,6 +41,10 @@ Route::get('/onlyoffice/file/{id}', [\App\Http\Controllers\OnlyOfficeController:
     ->middleware('signed:relative')->name('onlyoffice.file');
 Route::post('/onlyoffice/callback/{id}', [\App\Http\Controllers\OnlyOfficeController::class, 'callback'])
     ->middleware('signed:relative')->name('onlyoffice.callback');
+Route::get('/onlyoffice/template', [\App\Http\Controllers\OnlyOfficeController::class, 'template'])
+    ->middleware('signed:relative')->name('onlyoffice.template');
+Route::post('/onlyoffice/callback-new/{project}/{type}/{user}', [\App\Http\Controllers\OnlyOfficeController::class, 'callbackNew'])
+    ->middleware('signed:relative')->name('onlyoffice.callback-new');
 Route::post('/onlyoffice/register', [\App\Http\Controllers\OnlyOfficeController::class, 'register'])
     ->middleware('throttle:30,1');
 
@@ -130,6 +134,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/minutes/{id}/import-panel-comments', [DefenseMinutesController::class, 'importPanelComments']);
     Route::get('/onlyoffice/status', [\App\Http\Controllers\OnlyOfficeController::class, 'status']);
     Route::get('/documents/{id}/onlyoffice', [\App\Http\Controllers\OnlyOfficeController::class, 'config']);
+    Route::get('/projects/{id}/onlyoffice-new', [\App\Http\Controllers\OnlyOfficeController::class, 'configNew']);
     Route::put('/minute-items/{id}', [DefenseMinutesController::class, 'updateItem']);
     Route::delete('/minute-items/{id}', [DefenseMinutesController::class, 'destroyItem']);
     Route::get('/projects/{project}/checklists', [ProjectChecklistController::class, 'index']);
