@@ -11,6 +11,7 @@ import EnhancedTopBar from '../../components/dashboard/EnhancedTopBar'
 import UserAvatar from '../../components/dashboard/UserAvatar'
 import PageRouter from './PageRouter'
 import { adminTitle } from '../../utils/research'
+import { SCHOOL_ADMIN_ONLY } from '../../config/pageAccess'
 
 function DashboardShell() {
   const { user, logout, refreshUser, switchRole } = useAuth()
@@ -94,7 +95,8 @@ function DashboardShell() {
     navigate('/login')
   }
 
-  const navItems = NAV[user?.role]     || NAV.student
+  // Institute admins don't get the school-wide settings (e.g. Institutes).
+  const navItems = (NAV[user?.role] || NAV.student).filter(i => !(SCHOOL_ADMIN_ONLY.includes(i.id) && user?.institute_id))
   const groups   = NAV_GROUPS[user?.role] || NAV_GROUPS.student
   const meta     = ROLE_META[user?.role]  || ROLE_META.student
 

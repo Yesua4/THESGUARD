@@ -34,7 +34,7 @@ function PageRouter({ page, setPage, setUnreadCount, user, navTarget, clearNavTa
 
   // A page that isn't in this role's menu never opens (e.g. a student can't
   // open Manage Groups through a link). The server checks again on its side.
-  if (!canOpen(user?.role, page)) {
+  if (!canOpen(user?.role, page, user)) {
     return (
       <div style={{ background: '#fff', border: '1px solid #e8ecf2', borderRadius: '14px', padding: '48px 24px', textAlign: 'center' }}>
         <div style={{ fontSize: '28px', marginBottom: '8px' }}><Icon name="lock" /></div>

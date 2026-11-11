@@ -4,7 +4,12 @@ import { NAV } from './nav'
 const ALWAYS_OPEN = ['dashboard', 'notifications', 'changepassword', 'editprofile']
 
 // Can this role open this page? Only pages in the role's own menu.
-const canOpen = (role, page) => ALWAYS_OPEN.includes(page) || !!NAV[role]?.some(item => item.id === page)
+// School-wide settings: only the school admin (an admin with no institute).
+export const SCHOOL_ADMIN_ONLY = ['institutes']
+
+const canOpen = (role, page, user = null) =>
+  (!SCHOOL_ADMIN_ONLY.includes(page) || !user?.institute_id)
+  && (ALWAYS_OPEN.includes(page) || !!NAV[role]?.some(item => item.id === page))
 
 // Where a shortcut (notification, dashboard card) should take this role:
 // the page itself if they have it, otherwise the closest page they do have.
