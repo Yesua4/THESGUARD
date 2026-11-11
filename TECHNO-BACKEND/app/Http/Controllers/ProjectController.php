@@ -58,7 +58,7 @@ class ProjectController extends Controller {
             ->when($user->school_id, fn($q) => $q->where('school_id', $user->school_id))
             ->orderByDesc('batch')
             ->orderBy('title')
-            ->get(['id', 'title', 'description', 'abstract', 'abstract_is_final', 'objectives', 'keywords', 'batch', 'program', 'adviser_id', 'status']);
+            ->get(['id', 'title', 'description', 'abstract', 'abstract_is_final', 'objectives', 'keywords', 'batch', 'program', 'adviser_id', 'adviser_name', 'status']);
 
         return response()->json($projects);
     }
@@ -134,6 +134,7 @@ class ProjectController extends Controller {
                 'batch'         => $batch ? substr($batch, 0, 20) : null,
                 'program'       => $program ?: null,
                 'adviser_id'    => $adviserId,
+                'adviser_name'  => $adviserName ? substr($adviserName, 0, 255) : null,
                 'instructor_id' => null,
                 'status'        => 'archived',
                 'title_status'  => 'approved',

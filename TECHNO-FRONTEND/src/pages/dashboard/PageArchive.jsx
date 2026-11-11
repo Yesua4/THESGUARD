@@ -71,13 +71,14 @@ function PageArchive() {
 
   const years     = [...new Set(projects.map(p => p.batch).filter(Boolean))]
   const programs  = [...new Set(projects.map(p => p.program).filter(Boolean))]
-  const advisers  = [...new Set(projects.map(p => p.adviser?.name).filter(Boolean))]
+  const adviserOf = p => p.adviser?.name || p.adviser_name
+  const advisers  = [...new Set(projects.map(adviserOf).filter(Boolean))]
   const filtered  = projects.filter(p => {
     const q = search.toLowerCase()
     return (!q || p.title?.toLowerCase().includes(q) || p.keywords?.toLowerCase().includes(q)) &&
            (!yearFilter || p.batch === yearFilter) &&
            (!programFilter || p.program === programFilter) &&
-           (!adviserFilter || p.adviser?.name === adviserFilter)
+           (!adviserFilter || adviserOf(p) === adviserFilter)
   })
 
   const inputStyle = { border:'1.5px solid #e2e8f0', borderRadius:'8px', padding:'8px 12px', fontSize:'13px', outline:'none', background:'#f8fafc', fontFamily:'inherit' }
@@ -252,7 +253,7 @@ function PageArchive() {
                       <span style={{ color:'#1d4ed8', fontSize:'10px', marginRight:'8px' }}>{expandedId === p.id ? '▾' : '▸'}</span>{p.title}
                     </td>
                     <td style={{ padding:'12px 14px', color:'#64748b' }}>{p.program || '—'}</td>
-                    <td style={{ padding:'12px 14px', color:'#64748b' }}>{p.adviser?.name || '—'}</td>
+                    <td style={{ padding:'12px 14px', color:'#64748b' }}>{adviserOf(p) || '—'}</td>
                     <td style={{ padding:'12px 14px' }}>
                       {p.batch ? <span style={{ fontSize:'11px', background:'#dbeafe', color:'#1e40af', padding:'3px 10px', borderRadius:'20px', fontWeight:'700' }}>{p.batch}</span> : <span style={{ color:'#94a3b8' }}>—</span>}
                     </td>
