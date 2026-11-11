@@ -288,7 +288,9 @@ function DashboardShell() {
     {/* ── MAIN CONTENT ── */}
     <div className="main-content" style={{
       marginLeft: sidebarOpen ? '232px' : '64px',
-      flex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column',
+      // minWidth 0: a wide table inside scrolls by itself instead of
+      // stretching the whole page past the screen edge.
+      flex: 1, minWidth: 0, minHeight: '100vh', display: 'flex', flexDirection: 'column',
       transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     }}>
       {/* Top bar */}
@@ -309,7 +311,7 @@ function DashboardShell() {
 
 
       {/* Page content */}
-      <div className="page-content" style={{ padding: '24px', flex: 1 }}>
+      <div className="page-content" style={{ padding: '24px', flex: 1, minWidth: 0 }}>
         {/* keyed by role + handled sections so every page remounts and
             refetches the moment either changes (switched here, or edited
             live by the admin) */}

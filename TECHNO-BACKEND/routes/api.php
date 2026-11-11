@@ -154,6 +154,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/schedules', [ReportController::class, 'schedules']);
     Route::get('/reports/contributions', [ReportController::class, 'contributions']);
     Route::get('/reports/document-revisions', [ReportController::class, 'documentRevisions']);
+    Route::get('/reports/evaluations', [ReportController::class, 'evaluations']);
+    Route::get('/reports/options', [ReportController::class, 'options']);
     Route::delete('/users/{id}', [AuthController::class, 'deleteUser']);
     Route::post('/users/{id}/reset-password', [AuthController::class, 'resetUserPassword']);
     Route::get('evaluations', [EvaluationController::class, 'index']);
