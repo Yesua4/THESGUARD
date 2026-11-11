@@ -6,6 +6,8 @@ import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
 import { PANEL_ROLES, PANEL_ROLE_LABEL, timeRange, nextDefenseType } from '../../constants/defense'
 import { defenseTypesFor, defenseLabel, researchTypeOf, RESEARCH_LABEL } from '../../utils/research'
+import ScheduleSummary, { ViewSwitch } from '../../components/dashboard/ScheduleSummary'
+import { useScheduleView, scheduleStatus, statusPillStyle } from '../../utils/scheduleView'
 import Icon from '../../components/Icon'
 import { humanStatus } from '../../utils/humanStatus'
 import { SkeletonCards } from '../../components/Skeleton'
@@ -104,12 +106,9 @@ function PageSchedule() {
   }
 
   const canSchedule = ['instructor', 'admin', 'adviser'].includes(user?.role)
+  const [view, setView] = useScheduleView()
   const inputStyle = { border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '9px 12px', fontSize: '13px', outline: 'none', background: '#f8fafc', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' }
   const labelStyle = { fontSize: '11px', fontWeight: '700', color: '#64748b', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: '5px' }
-  const statusStyle = s => ({
-    background: s === 'completed' ? '#d1fae5' : s === 'cancelled' ? '#fee2e2' : '#dbeafe',
-    color: s === 'completed' ? '#065f46' : s === 'cancelled' ? '#9f1239' : '#1e40af',
-  })
 
   // People who can't sit on this group's panel.
   const excluded = new Set([String(group?.adviser_id || ''), ...(group?.members || []).map(m => String(m.user_id))])
@@ -258,6 +257,9 @@ function PageSchedule() {
           No defense schedules yet. {canSchedule && 'Click "+ Schedule Defense" to add one.'}
         </div>
       ) : (
+        <>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}><ViewSwitch view={view} onChange={setView} /></div>
+        {view === 'list' ? <ScheduleSummary schedules={schedules} user={user} onCancel={canSchedule ? deleteSchedule : undefined} /> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {schedules.map(s => (
             <div key={s.id} style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8ecf2', overflow: 'hidden' }}>
@@ -274,7 +276,7 @@ function PageSchedule() {
                       {s.defense_type && <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: '#ede9fe', color: '#5b21b6' }}>{defenseLabel(s.defense_type, researchTypeOf(s.group))}{researchTypeOf(s.group) === 'thesis' ? ` · ${RESEARCH_LABEL.thesis}` : ''}</span>}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
-                      {s.status && <span style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '20px', fontWeight: '700', ...statusStyle(s.status) }}>{humanStatus(s.status)}</span>}
+                      <span style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '20px', fontWeight: '700', ...statusPillStyle(s) }}>{humanStatus(scheduleStatus(s))}</span>
                       {canSchedule && <button onClick={() => deleteSchedule(s.id)} style={{ fontSize: '11px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', padding: '0' }}>Cancel</button>}
                     </div>
                   </div>
@@ -299,6 +301,8 @@ function PageSchedule() {
             </div>
           ))}
         </div>
+        )}
+        </>
       )}
     </div>
   )

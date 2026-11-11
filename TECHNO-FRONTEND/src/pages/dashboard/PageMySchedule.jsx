@@ -2,11 +2,14 @@ import { useState, useEffect } from 'react'
 import api from '../../api/axios'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
-import { DEFENSE_TYPE_LABEL, PANEL_ROLE_LABEL, timeRange } from '../../constants/defense'
+import { PANEL_ROLE_LABEL, timeRange } from '../../constants/defense'
 import { useAuth } from '../../context/AuthContext'
 import Icon from '../../components/Icon'
 import { humanStatus } from '../../utils/humanStatus'
 import { SkeletonCards } from '../../components/Skeleton'
+import ScheduleSummary, { ViewSwitch } from '../../components/dashboard/ScheduleSummary'
+import { useScheduleView, scheduleStatus, statusPillStyle } from '../../utils/scheduleView'
+import { defenseLabel, researchTypeOf } from '../../utils/research'
 
 function PageMySchedule() {
   const { user } = useAuth()
@@ -16,6 +19,7 @@ function PageMySchedule() {
     : "None of your groups has a defense scheduled yet."
   const [schedules, setSchedules] = useState([])
   const [loading, setLoading]     = useState(true)
+  const [view, setView] = useScheduleView()
 
   const load = () => api.get('/schedules').then(res => setSchedules(res.data)).finally(() => setLoading(false))
 
@@ -34,7 +38,10 @@ function PageMySchedule() {
 
   return (
     <div>
-      <div style={{ fontSize:'18px', fontWeight:'700', color:'#0a1f44', marginBottom:'16px' }}>{heading}</div>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:'10px', flexWrap:'wrap', marginBottom:'16px' }}>
+        <div style={{ fontSize:'18px', fontWeight:'700', color:'#0a1f44' }}>{heading}</div>
+        {schedules.length > 0 && <ViewSwitch view={view} onChange={setView} />}
+      </div>
 
       {loading ? (
         <SkeletonCards count={2} label="Loading your schedule" />
@@ -44,13 +51,15 @@ function PageMySchedule() {
           <div style={{ fontSize:'14px', fontWeight:'600', color:'#0a1f44', marginBottom:'4px' }}>No defense scheduled yet</div>
           <div style={{ fontSize:'12px', color:'#94a3b8' }}>{emptyNote}</div>
         </div>
+      ) : view === 'list' ? (
+        <ScheduleSummary schedules={schedules} user={user} />
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
           {schedules.map(s => (
             <div key={s.id} style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', overflow:'hidden' }}>
               {/* Header */}
               <div style={{ background:'linear-gradient(135deg,#0a1f44,#1040a0)', padding:'20px 24px' }}>
-                <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.5)', fontWeight:'700', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'6px' }}>{DEFENSE_TYPE_LABEL[s.defense_type] || 'Defense'} · Confirmed</div>
+                <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.5)', fontWeight:'700', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'6px' }}>{defenseLabel(s.defense_type, researchTypeOf(s.group)) || 'Defense'} · {humanStatus(scheduleStatus(s))}</div>
                 <div style={{ fontSize:'20px', fontWeight:'800', color:'#fff', marginBottom:'4px' }}>{formatDate(s.defense_date)}</div>
                 <div style={{ display:'flex', gap:'16px' }}>
                   <span style={{ fontSize:'13px', color:'rgba(255,255,255,0.7)', display:'flex', alignItems:'center', gap:'5px' }}><Icon name="clock" /> {timeRange(s)}</span>
@@ -107,8 +116,8 @@ function PageMySchedule() {
               </div>
 
               {/* Status bar */}
-              <div style={{ padding:'10px 24px', background: s.status==='completed'?'#d1fae5':s.status==='cancelled'?'#fee2e2':'#dbeafe', fontSize:'12px', fontWeight:'700', color: s.status==='completed'?'#065f46':s.status==='cancelled'?'#9f1239':'#1e40af', textTransform:'capitalize' }}>
-                Status: {humanStatus(s.status)}
+              <div style={{ padding:'10px 24px', fontSize:'12px', fontWeight:'700', ...statusPillStyle(s) }}>
+                Status: {humanStatus(scheduleStatus(s))}
               </div>
             </div>
           ))}
