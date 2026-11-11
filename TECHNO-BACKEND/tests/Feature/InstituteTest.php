@@ -67,12 +67,43 @@ class InstituteTest extends TestCase
         $this->assertSame($this->ic->id, $new([])->assertCreated()->json('institute_id')); // defaults to own
         $new(['institute_id' => $this->ited->id])->assertStatus(403);
         $new(['institute_id' => null, 'roles' => ['admin']])->assertStatus(403); // can't create a school admin
-        $this->putJson("/api/users/{$this->schoolAdmin->id}", ['name' => 'Changed'])->assertOk(); // no institute change asked
+        $this->putJson("/api/users/{$this->schoolAdmin->id}", ['name' => 'Changed'])->assertStatus(403); // not theirs to edit
         $this->putJson("/api/users/{$this->schoolAdmin->id}", ['institute_id' => $this->ic->id])->assertStatus(403);
 
         Sanctum::actingAs($this->schoolAdmin);
         $this->assertSame($this->ited->id, $new(['institute_id' => $this->ited->id])->assertCreated()->json('institute_id'));
         $this->assertNull($new(['roles' => ['admin']])->assertCreated()->json('institute_id')); // another school admin
+    }
+
+    // An institute admin must not be able to take over the school admin's
+    // account (a reset shows the temporary password) or touch other institutes.
+    public function test_institute_admins_cannot_manage_the_school_admin_or_other_institutes(): void
+    {
+        $icAdmin = $this->instituteAdmin($this->ic);
+        $mine = User::factory()->role('instructor')->school($this->school->id)->create();
+        $mine->forceFill(['institute_id' => $this->ic->id])->save();
+        $theirs = User::factory()->role('instructor')->school($this->school->id)->create();
+        $theirs->forceFill(['institute_id' => $this->ited->id])->save();
+
+        Sanctum::actingAs($icAdmin);
+        $this->postJson("/api/users/{$this->schoolAdmin->id}/reset-password")->assertStatus(403);
+        $this->deleteJson("/api/users/{$this->schoolAdmin->id}")->assertStatus(403);
+        $this->putJson("/api/users/{$this->schoolAdmin->id}", ['name' => 'Hijacked'])->assertStatus(403);
+        $this->postJson("/api/users/{$theirs->id}/reset-password")->assertStatus(403);
+        $this->deleteJson("/api/users/{$theirs->id}")->assertStatus(403);
+        $this->assertSame($this->schoolAdmin->name, $this->schoolAdmin->fresh()->name);
+
+        // Their own institute is fine, including another admin for it.
+        $this->postJson("/api/users/{$mine->id}/reset-password")->assertOk();
+        $this->putJson("/api/users/{$mine->id}", ['name' => 'Renamed'])->assertOk();
+        $this->postJson('/api/users', ['name' => 'Second IC Admin', 'email' => 'ic2@x.com', 'password' => 'APassword12345', 'roles' => ['admin']])
+            ->assertCreated()->assertJsonPath('institute_id', $this->ic->id);
+        $this->deleteJson("/api/users/{$mine->id}")->assertOk();
+
+        // The school admin can manage everyone.
+        Sanctum::actingAs($this->schoolAdmin);
+        $this->postJson("/api/users/{$icAdmin->id}/reset-password")->assertOk();
+        $this->postJson("/api/users/{$theirs->id}/reset-password")->assertOk();
     }
 
     public function test_thesis_groups_have_no_pre_deployment_defense(): void

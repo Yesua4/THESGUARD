@@ -226,6 +226,7 @@ class AuthController extends Controller {
 
         $user = User::findOrFail($id);
         abort_if($caller->school_id && (int) $user->school_id !== (int) $caller->school_id, 403, "This account is not in your school.");
+        if ((int) $caller->id !== (int) $user->id) $this->assertAdminCanManage($caller, $user);
         $handledSections = $data['handled_sections'] ?? null;
         unset($data['handled_sections']);
 
@@ -361,6 +362,7 @@ class AuthController extends Controller {
         if ($caller->role !== 'admin') {
             $this->assertInstructorCanManage($caller, $user);
         }
+        $this->assertAdminCanManage($caller, $user);
 
         // Easy to read out loud or type: no 0/O, 1/l/I.
         $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
@@ -393,11 +395,21 @@ class AuthController extends Controller {
         if ($caller->role !== 'admin') {
             $this->assertInstructorCanManage($caller, $user);
         }
+        $this->assertAdminCanManage($caller, $user);
 
         $schoolId = $user->school_id;
         $user->delete();
         app(\App\Services\LiveUpdateService::class)->directory($schoolId, 'user_deleted');
         return response()->json(['message' => 'Deleted']);
+    }
+
+    // An institute admin manages only accounts in their own institute, and
+    // never the school admin (resetting that password would hand them the
+    // school admin's account). The school admin manages everyone in the school.
+    private function assertAdminCanManage(User $caller, User $target): void {
+        if ($caller->role !== 'admin' || $caller->isSchoolAdmin()) return;
+        abort_if($target->isSchoolAdmin(), 403, 'Only the school administrator can change the school administrator\'s account.');
+        abort_unless((int) $target->institute_id === (int) $caller->institute_id, 403, 'This account is in another institute.');
     }
 
     // Instructors manage student accounts only -- and, once the admin has

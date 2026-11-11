@@ -120,6 +120,10 @@ function PageUsers() {
     </select>
   )
   const instituteName = u => u.institute?.name
+  // Institute admins manage only their own institute, never the school admin
+  // (same rule as the server).
+  const canManageRow = u => user?.role !== 'admin' || schoolAdmin || u.id === user?.id
+    || (!isSchoolAdmin(u) && (u.institute_id ?? null) === (user?.institute_id ?? null))
 
   const load = () => {
     api.get('/users').then(res => setUsers(res.data)).finally(() => setLoading(false))
@@ -605,6 +609,7 @@ const createUser = async e => {
                         ) : (u.section || '—')}
                       </td>
                       <td style={{ padding:'12px 14px' }}>
+                        {canManageRow(u) ? (
                         <div style={{ display:'flex', gap:'6px' }}>
                           <button onClick={() => startEdit(u)}
     style={{ fontSize:'11px', padding:'5px 12px', borderRadius:'6px', border:'1.5px solid #e2e8f0', background:'#fff', cursor:'pointer', color:'#1d4ed8', fontWeight:'600' }}>Edit</button>
@@ -613,6 +618,11 @@ const createUser = async e => {
                             )}
                             <button onClick={() => deleteUser(u.id, u.name)} style={{ fontSize:'11px', padding:'5px 12px', borderRadius:'6px', border:'1.5px solid #fecaca', background:'#fff', cursor:'pointer', color:'#dc2626', fontWeight:'600' }}>Delete</button>
                           </div>
+                        ) : (
+                          <span style={{ fontSize:'11px', color:'#94a3b8' }} title={isSchoolAdmin(u) ? 'Only the school administrator can change this account.' : 'This account is in another institute.'}>
+                            {isSchoolAdmin(u) ? 'School admin' : 'Other institute'}
+                          </span>
+                        )}
                         </td>
                       </>
                     )}
