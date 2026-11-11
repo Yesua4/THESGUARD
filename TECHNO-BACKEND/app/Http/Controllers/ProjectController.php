@@ -13,7 +13,7 @@ class ProjectController extends Controller {
 
     public function index(Request $request) {
         $user  = $request->user();
-        $query = Project::with('adviser', 'instructor', 'members', 'group', 'group.members.user', 'group.adviser', 'group.recommender:id,name');
+        $query = Project::withoutEmbeddings()->with('adviser', 'instructor', 'members', 'group', 'group.members.user', 'group.adviser', 'group.recommender:id,name');
 
         // ── School isolation ──────────────────────────────────
         if ($user->school_id) {
@@ -198,9 +198,7 @@ class ProjectController extends Controller {
         }
 
         // Only compare against projects from the same school
-        $archived = Project::whereIn('status', ['approved', 'archived'])
-            ->when($user->school_id, fn($q) => $q->where('school_id', $user->school_id))
-            ->get();
+        $archived = \App\Services\ArchivePool::for($user->school_id);
 
         // Try Python NLP first, fallback to PHP cosine similarity
         try {
@@ -609,10 +607,7 @@ class ProjectController extends Controller {
         $user     = $request->user();
         $project  = Project::findOrFail($id);
         abort_unless(\App\Http\Controllers\Concerns\AuthorizesDocumentAccess::userCanManageProject($user, $project), 403, 'You do not have access to this project.');
-        $archived = Project::whereIn('status', ['approved', 'archived'])
-                        ->where('id', '!=', $id)
-                        ->when($project->school_id, fn($q) => $q->where('school_id', $project->school_id))
-                        ->get();
+        $archived = \App\Services\ArchivePool::for($project->school_id, (int) $id);
 
         try {
             $archivedForPython = $archived->map(fn($p) => [

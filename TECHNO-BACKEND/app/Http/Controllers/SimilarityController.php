@@ -15,11 +15,9 @@ class SimilarityController extends Controller {
 
         // Compare only against this school's own projects: another school's
         // titles and abstracts must never show up in the results.
-        $pool = fn () => Project::whereIn('status', ['approved', 'archived'])
-            ->when($request->user()->school_id, fn ($q, $id) => $q->where('school_id', $id));
+        $pool = fn () => \App\Services\ArchivePool::for($request->user()->school_id);
 
         $archived = $pool()
-            ->get(['id', 'title', 'abstract', 'objectives', 'title_embedding', 'abstract_embedding', 'objectives_embedding'])
             ->map(fn($p) => [
                 'id'                   => $p->id,
                 'title'                => $p->title ?? '',
@@ -50,7 +48,7 @@ class SimilarityController extends Controller {
             // Fallback to PHP cosine similarity
             $svc = new \App\Services\SimilarityService();
             $results = $svc->checkAgainstArchive($data,
-                $pool()->get()
+                $pool()
             );
             $top = $results[0] ?? null;
             return response()->json([

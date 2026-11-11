@@ -18,6 +18,19 @@ class Project extends Model {
         });
     }
 
+    public const EMBEDDINGS = ['title_embedding', 'abstract_embedding', 'objectives_embedding'];
+
+    // Large vectors used only on the server for similarity; never sent out.
+    protected $hidden = self::EMBEDDINGS;
+
+    // Every column except the embeddings, so lists don't pull them from
+    // the database at all (they were most of the plan's data transfer).
+    public function scopeWithoutEmbeddings($query) {
+        static $columns = null;
+        $columns ??= array_values(array_diff(\Illuminate\Support\Facades\Schema::getColumnListing('projects'), self::EMBEDDINGS));
+        return $query->select(array_map(fn ($c) => 'projects.' . $c, $columns));
+    }
+
     protected $casts = [
         'is_final_title'       => 'boolean',
         'title_embedding'      => 'array',

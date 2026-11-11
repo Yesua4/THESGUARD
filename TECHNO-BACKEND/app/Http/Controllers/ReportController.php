@@ -52,7 +52,7 @@ class ReportController extends Controller {
     // Projects this report may include, after the filters. Old archived
     // projects imported without a group only follow the academic-year filter.
     private function projectScope(Request $request, User $user) {
-        $q = Project::query()->when($user->school_id, fn ($q) => $q->where('school_id', $user->school_id));
+        $q = Project::withoutEmbeddings()->when($user->school_id, fn ($q) => $q->where('school_id', $user->school_id));
         if (!$this->narrowed($request, $user)) return $q;
         $groupIds = $this->groups($request, $user)->pluck('id');
         $byGroupOnly = $user->sectionScope() !== null || $request->query('section') || $request->query('group_id');
