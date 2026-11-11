@@ -8,6 +8,7 @@ import GroupPanelEditor from '../../components/dashboard/GroupPanelEditor'
 import GroupRecommendation, { RecommendedBadge } from '../../components/dashboard/GroupRecommendation'
 import StageInstructorsEditor from '../../components/dashboard/StageInstructorsEditor'
 import Icon from '../../components/Icon'
+import { SkeletonCards } from '../../components/Skeleton'
 
 function PageGroups() {
   const { user } = useAuth()
@@ -362,7 +363,7 @@ function PageGroups() {
       )}
 
       {loading ? (
-        <div style={{ textAlign:'center', padding:'40px', color:'#94a3b8', fontSize:'13px' }}>Loading groups...</div>
+        <SkeletonCards count={4} label="Loading groups" />
       ) : groups.length === 0 ? (
         <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', padding:'48px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>
           {user?.role === 'instructor' ? 'No groups yet. Click "+ Create Group" to start.' : 'You are not assigned to any group yet.'}

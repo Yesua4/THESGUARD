@@ -6,6 +6,7 @@ import { useSchoolActivity } from '../../../hooks/useSchoolActivity'
 import { typeLabel, statusStyle, statusLabel, fileIcon, fileStyle } from '../../../utils/documentDisplay'
 import DocumentReviewViewer from './DocumentReviewViewer'
 import { useProjectsChannel } from '../../../hooks/useProjectChannel'
+import { SkeletonCards } from '../../../components/Skeleton'
 
 function PageDocumentReview({ initialDocumentId, initialCommentId = null, onConsumeInitialDocument }) {
   const { user } = useAuth()
@@ -227,7 +228,7 @@ function PageDocumentReview({ initialDocumentId, initialCommentId = null, onCons
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontSize: '13px' }}>Loading documents...</div>
+        <SkeletonCards count={4} columns={2} label="Loading documents" />
       ) : (
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', fontSize: '12px', color: '#64748b' }}>

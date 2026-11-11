@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import api from '../../api/axios'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useToast } from '../../context/ToastContext'
+import { SkeletonLines } from '../../components/Skeleton'
 
 const panelLabelStyle = { fontSize: '10px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '6px', display: 'block' }
 const inputStyle = { border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', outline: 'none', background: '#f8fafc', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' }
@@ -76,7 +77,7 @@ function ProjectTasks({ project, user, canAssign }) {
       )}
 
       {loading ? (
-        <div style={{ fontSize: '12px', color: '#94a3b8' }}>Loading tasks...</div>
+        <SkeletonLines lines={2} h={9} />
       ) : tasks.length === 0 ? (
         <div style={{ fontSize: '12px', color: '#94a3b8' }}>No tasks assigned yet.</div>
       ) : (

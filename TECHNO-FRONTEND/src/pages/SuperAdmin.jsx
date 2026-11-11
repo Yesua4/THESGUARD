@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { useToast } from '../context/ToastContext'
 import Icon from '../components/Icon'
+import { SkeletonTable } from '../components/Skeleton'
 
 // ── Super Admin — read-only directory of registered schools ───────────────────
 // This page is only accessible at /thesisguard-admin
@@ -128,7 +129,7 @@ export default function SuperAdmin() {
 
         {/* Schools table */}
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '60px', color: '#94a3b8', fontSize: '13px' }}>Loading schools...</div>
+          <SkeletonTable rows={5} cols={5} bare label="Loading schools" />
         ) : filtered.length === 0 ? (
           <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8ecf2', padding: '60px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
             {schools.length === 0 ? 'No schools registered yet.' : 'No schools match your search.'}

@@ -7,6 +7,7 @@ import { similarityBadgeStyle } from '../../utils/similarityColors'
 import { useToast } from '../../context/ToastContext'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
 import Icon from '../../components/Icon'
+import { SkeletonTable } from '../../components/Skeleton'
 
 function PageTitleApproval() {
   const { user } = useAuth()
@@ -218,7 +219,7 @@ function PageTitleApproval() {
       </div>
 
       {loading ? (
-        <div style={{ textAlign:'center', padding:'40px', color:'#94a3b8', fontSize:'13px' }}>Loading...</div>
+        <SkeletonTable rows={6} cols={5} label="Loading proposals" />
       ) : filtered.length === 0 ? (
         <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', padding:'48px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>
           {words.length ? <>No {filter} proposals match "<strong>{search.trim()}</strong>".{' '}

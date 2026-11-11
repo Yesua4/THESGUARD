@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
 import Icon from '../../components/Icon'
+import { SkeletonTable } from '../../components/Skeleton'
 
 function PageArchive() {
   const { user } = useAuth()
@@ -224,7 +225,7 @@ function PageArchive() {
       </div>
 
       {loading ? (
-        <div style={{ textAlign:'center', padding:'40px', color:'#94a3b8', fontSize:'13px' }}>Loading archive...</div>
+        <SkeletonTable rows={6} cols={4} label="Loading archive" />
       ) : filtered.length === 0 ? (
         <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', padding:'48px', textAlign:'center' }}>
           <div style={{ fontSize:'28px', marginBottom:'8px' }}><Icon name="archive" /></div>

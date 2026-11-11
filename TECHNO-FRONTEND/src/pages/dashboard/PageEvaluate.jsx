@@ -8,6 +8,7 @@ import { DEFENSE_TYPE_LABEL, PANEL_ROLE_LABEL } from '../../constants/defense'
 import { INDIVIDUAL_CRITERIA, GROUP_CRITERIA, VERDICTS, VERDICT_LABEL, verdictStyle } from '../../constants/evaluation'
 import PrintEvaluationSheet from '../../components/dashboard/PrintEvaluationSheet'
 import Icon from '../../components/Icon'
+import { SkeletonCards } from '../../components/Skeleton'
 
 // Panelist evaluation, following the school's defense evaluation sheet:
 // individual grade per presenter (Disposition 30 + Delivery 70), group grade
@@ -285,7 +286,7 @@ function PageEvaluate() {
       <div style={{ fontSize: '18px', fontWeight: '700', color: '#0a1f44', marginBottom: '16px' }}>Evaluate Projects</div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontSize: '13px' }}>Loading...</div>
+        <SkeletonCards count={3} icon={false} label="Loading projects" />
       ) : projects.length === 0 ? (
         <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8ecf2', padding: '48px', textAlign: 'center' }}>
           <div style={{ fontSize: '28px', marginBottom: '8px' }}><Icon name="clipboard" /></div>

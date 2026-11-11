@@ -6,6 +6,7 @@ import api from '../../../api/axios'
 import CommentComposer from './CommentComposer'
 import Icon from '../../../components/Icon'
 import { anchorRects, anchorPoint, buildQuote, locateQuote, textOffsetOf, rangeFromOffsets } from '../../../utils/commentAnchor'
+import { SkeletonDocument, SkeletonLines } from '../../../components/Skeleton'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc
 
@@ -336,7 +337,7 @@ function Page({ pdfDoc, pageNumber, visible, width, fallbackHeight, onMeasured, 
     >
       {!rendered && (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#cbd5e1', fontSize: '11px' }}>
-          {visible ? 'Loading…' : null}
+          {visible ? <div style={{ width: '70%' }}><SkeletonLines lines={6} /></div> : null}
         </div>
       )}
       <canvas ref={canvasRef} style={{ display: rendered ? 'block' : 'none', width: '100%' }} />
@@ -622,7 +623,7 @@ export default function PdfViewer({ documentId, pageNumber, onPageCountChange, o
         .textLayer br::-moz-selection { background: transparent; }
         .pin-pulse { animation: pinPulse 0.6s ease-out; }
       `}</style>
-      {loading && <div style={{ padding: '40px', color: '#94a3b8', fontSize: '13px' }}>Loading document…</div>}
+      {loading && <SkeletonDocument />}
       {error && <div style={{ padding: '40px', color: '#dc2626', fontSize: '13px' }}>{error}</div>}
       {!loading && !error && (
         <div style={{ width: '100%' }}>

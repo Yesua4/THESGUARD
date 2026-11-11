@@ -7,6 +7,7 @@ import { useProjectChannel } from '../../hooks/useProjectChannel'
 import PrintMinutes from '../../components/dashboard/PrintMinutes'
 import { DEFENSE_TYPE_LABEL } from '../../constants/defense'
 import Icon from '../../components/Icon'
+import { SkeletonCards, SkeletonPage, SkeletonTable } from '../../components/Skeleton'
 
 // Defense minutes monitoring plus the pre-deployment and final manuscript
 // routing checklists. Reviewers record panel comments; students record the
@@ -201,7 +202,7 @@ function MinutesTab({ project, user }) {
     catch (err) { showToast(err.response?.data?.message || 'Could not delete the minutes.') }
   }
 
-  if (loading) return <div style={{ textAlign:'center', padding:'40px', color:'#94a3b8', fontSize:'13px' }}>Loading minutes...</div>
+  if (loading) return <SkeletonCards count={3} icon={false} label="Loading minutes" />
 
   const allItems = minutes.flatMap(m => m.items || [])
   const counts = ['pending', 'addressed', 'verified'].map(s => [s, allItems.filter(i => i.status === s).length])
@@ -338,7 +339,7 @@ function ChecklistTab({ projectId, type, user }) {
     catch (err) { showToast(err.response?.data?.message || 'Could not remove the item.') }
   }
 
-  if (loading) return <div style={{ textAlign:'center', padding:'40px', color:'#94a3b8', fontSize:'13px' }}>Loading checklist...</div>
+  if (loading) return <SkeletonTable rows={5} cols={3} label="Loading checklist" />
 
   const done = items.filter(i => i.is_done).length
   const pct = items.length ? Math.round(done / items.length * 100) : 0
@@ -421,7 +422,7 @@ function PageMinutes() {
   // Live: a newly approved title shows up in the project picker.
   useSchoolActivity(['projects'], loadProjects)
 
-  if (loading) return <div style={{ textAlign:'center', padding:'60px', color:'#94a3b8', fontSize:'13px' }}>Loading...</div>
+  if (loading) return <SkeletonPage cards={2} />
 
   return (
     <div>

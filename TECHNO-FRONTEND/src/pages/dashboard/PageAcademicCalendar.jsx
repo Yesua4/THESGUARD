@@ -3,6 +3,7 @@ import api from '../../api/axios'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useToast } from '../../context/ToastContext'
 import { useAcademicTerms } from '../../hooks/useAcademicTerms'
+import { SkeletonTable } from '../../components/Skeleton'
 
 const TERM_NAMES = ['1st Semester', '2nd Semester', 'Summer', '1st Trimester', '2nd Trimester', '3rd Trimester']
 const emptyForm = { academic_year: '', name: '', start_date: '', end_date: '' }
@@ -201,7 +202,7 @@ export default function PageAcademicCalendar() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {!loaded ? (
-            <div style={{ padding: '30px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>Loading…</div>
+            <SkeletonTable rows={3} cols={3} bare label="Loading terms" />
           ) : years.length === 0 ? (
             <div style={{ background: '#fff', borderRadius: '14px', border: '1px dashed #cbd5e1', padding: '30px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
               No academic calendar yet. Add the first term on the left. Example: <strong>2026-2027</strong>, <strong>1st Semester</strong>, June 1 to Aug 31.

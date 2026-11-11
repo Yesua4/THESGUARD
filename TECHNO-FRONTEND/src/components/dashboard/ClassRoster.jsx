@@ -4,6 +4,7 @@ import { SectionField } from './SectionPicker'
 import { useAuth } from '../../context/AuthContext'
 import { useSchoolStaffChannel } from '../../hooks/useSchoolStaffChannel'
 import Icon from '../Icon'
+import { SkeletonTable } from '../Skeleton'
 
 const overlay = { position:'fixed', inset:0, background:'rgba(10,31,68,0.4)', zIndex:60, display:'flex', alignItems:'center', justifyContent:'center' }
 const header  = { background:'linear-gradient(135deg,#0a1f44,#1040a0)', padding:'18px 20px', display:'flex', justifyContent:'space-between', alignItems:'center' }
@@ -157,7 +158,7 @@ export function RosterModal({ onClose }) {
         <div style={{ overflowY:'auto', flex:1 }}>
           {error && <div style={{ margin:'12px 20px', background:'#fee2e2', color:'#9f1239', fontSize:'12px', padding:'10px 12px', borderRadius:'8px' }}>{error}</div>}
           {rows === null ? (
-            <div style={{ padding:'30px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>Loading…</div>
+            <SkeletonTable rows={5} cols={4} bare label="Loading class roster" />
           ) : shown.length === 0 ? (
             <div style={{ padding:'30px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>No students yet. Import a class list to start.</div>
           ) : (

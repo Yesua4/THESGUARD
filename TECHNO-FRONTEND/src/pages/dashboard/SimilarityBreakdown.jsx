@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import api from '../../api/axios'
 import { highlightOverlap } from '../../utils/textOverlap'
 import { similarityBarColor, similarityScoreColor, similarityBadgeStyle, SIMILARITY_MODERATE, SIMILARITY_HIGH } from '../../utils/similarityColors'
+import { SkeletonLines } from '../../components/Skeleton'
 
 // Plain-language "how to read this" for students, so faculty don't have to
 // explain the similarity check every time.
@@ -164,7 +165,7 @@ function MatchRow({ match, rank }) {
           </div>
 
           {loading ? (
-            <div style={{ fontSize: '11px', color: '#94a3b8' }}>Loading matched text...</div>
+            <SkeletonLines lines={3} h={9} />
           ) : matchedProject && (matchedProject.abstract || matchedProject.objectives) ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {matchedProject.abstract && (
@@ -222,7 +223,7 @@ function SimilarityBreakdown({ projectId, overallScore, forStudent = false }) {
       .finally(() => setLoading(false))
   }, [projectId])
 
-  if (loading) return <div style={{ fontSize:'12px', color:'#94a3b8' }}>Loading similarity data...</div>
+  if (loading) return <SkeletonLines lines={3} h={9} />
 
   const scores = details ?? { title_score:null, abstract_score:null, objectives_score:null, matched_title:null }
 

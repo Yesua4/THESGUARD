@@ -4,6 +4,7 @@ import api from '../../api/axios'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
 import Icon from '../../components/Icon'
+import { SkeletonCards } from '../../components/Skeleton'
 
 function PageContributions() {
   const { user } = useAuth()
@@ -100,7 +101,7 @@ function PageContributions() {
       </div>
 
       {loading ? (
-        <div style={{ textAlign:'center', padding:'40px', color:'#94a3b8', fontSize:'13px' }}>Loading...</div>
+        <SkeletonCards count={4} columns={2} label="Loading contributions" />
       ) : !data || data.total === 0 ? (
         <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', padding:'48px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>
           No contributions yet. Activities are logged automatically when documents are uploaded.

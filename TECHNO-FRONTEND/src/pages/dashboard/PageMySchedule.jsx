@@ -6,6 +6,7 @@ import { DEFENSE_TYPE_LABEL, PANEL_ROLE_LABEL, timeRange } from '../../constants
 import { useAuth } from '../../context/AuthContext'
 import Icon from '../../components/Icon'
 import { humanStatus } from '../../utils/humanStatus'
+import { SkeletonCards } from '../../components/Skeleton'
 
 function PageMySchedule() {
   const { user } = useAuth()
@@ -36,7 +37,7 @@ function PageMySchedule() {
       <div style={{ fontSize:'18px', fontWeight:'700', color:'#0a1f44', marginBottom:'16px' }}>{heading}</div>
 
       {loading ? (
-        <div style={{ textAlign:'center', padding:'40px', color:'#94a3b8', fontSize:'13px' }}>Loading...</div>
+        <SkeletonCards count={2} label="Loading your schedule" />
       ) : schedules.length === 0 ? (
         <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', padding:'48px', textAlign:'center' }}>
           <div style={{ fontSize:'32px', marginBottom:'12px' }}><Icon name="calendar" /></div>

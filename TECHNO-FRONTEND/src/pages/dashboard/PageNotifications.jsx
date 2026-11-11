@@ -4,6 +4,7 @@ import echo from '../../echo'
 import { destinationFor } from '../../utils/notificationDestination'
 import stripEmoji from '../../utils/stripEmoji'
 import Icon from '../../components/Icon'
+import { SkeletonCards } from '../../components/Skeleton'
 
 function PageNotifications({ onRead, user, onNavigate }) {
   const [notifications, setNotifications] = useState([])
@@ -70,7 +71,7 @@ function PageNotifications({ onRead, user, onNavigate }) {
       </div>
 
       {loading ? (
-        <div style={{ textAlign:'center', padding:'40px', color:'#94a3b8', fontSize:'13px' }}>Loading notifications...</div>
+        <SkeletonCards count={5} lines={1} label="Loading notifications" />
       ) : !notifications || notifications.length === 0 ? (
         <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', padding:'48px', textAlign:'center' }}>
           <div style={{ fontSize:'36px', marginBottom:'12px' }}><Icon name="bell" /></div>

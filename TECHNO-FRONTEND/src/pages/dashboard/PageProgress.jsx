@@ -6,6 +6,7 @@ import SimilarityBreakdown from './SimilarityBreakdown'
 import { useProjectChannel } from '../../hooks/useProjectChannel'
 import Icon from '../../components/Icon'
 import { humanStatus } from '../../utils/humanStatus'
+import { SkeletonPage } from '../../components/Skeleton'
 
 function PageProgress() {
   const { user } = useAuth()
@@ -37,7 +38,7 @@ function PageProgress() {
   // student has a project id to listen on.
   useSchoolActivity(['projects', 'groups', 'schedules', 'documents'], load)
 
-  if (loading) return <div style={{ textAlign:'center', padding:'60px', color:'#94a3b8', fontSize:'13px' }}>Loading your progress...</div>
+  if (loading) return <SkeletonPage label="Loading your progress" />
 
   // ── Generalized stage definitions ────────────────────────────────────────
   // Phase 1 (Semester 1 equivalent)

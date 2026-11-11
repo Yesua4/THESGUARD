@@ -4,6 +4,7 @@ import api from '../../api/axios'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
 import Icon from '../../components/Icon'
+import { SkeletonPage } from '../../components/Skeleton'
 
 function PageMyGroup() {
   const { user } = useAuth()
@@ -25,7 +26,7 @@ function PageMyGroup() {
   // Live: being added to/removed from a group, adviser or members changing.
   useSchoolActivity(['groups', 'projects'], load)
 
-  if (loading) return <div style={{ textAlign:'center', padding:'60px', color:'#94a3b8', fontSize:'13px' }}>Loading...</div>
+  if (loading) return <SkeletonPage label="Loading your group" />
 
   if (!group) return (
     <div>

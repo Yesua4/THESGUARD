@@ -13,6 +13,7 @@ import { RecommendedBadge } from '../../components/dashboard/GroupRecommendation
 import { similarityScoreColor, similarityBadgeStyle } from '../../utils/similarityColors'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
 import Icon from '../../components/Icon'
+import { SkeletonTable } from '../../components/Skeleton'
 
 function PageProjects() {
   const { user } = useAuth()
@@ -336,7 +337,7 @@ function PageProjects() {
       )}
 
       {loading ? (
-        <div style={{ textAlign:'center', padding:'40px', color:'#94a3b8', fontSize:'13px' }}>Loading projects...</div>
+        <SkeletonTable rows={6} cols={5} label="Loading projects" />
       ) : projects.length === 0 ? (
         <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', padding:'48px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>
           {user?.role==='student' ? 'No proposals yet. Click "+ Submit Proposal" to start.'

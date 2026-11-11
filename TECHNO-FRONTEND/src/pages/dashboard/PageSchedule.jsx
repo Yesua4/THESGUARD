@@ -7,6 +7,7 @@ import { useProjectsChannel } from '../../hooks/useProjectChannel'
 import { DEFENSE_TYPES, DEFENSE_TYPE_LABEL, PANEL_ROLES, PANEL_ROLE_LABEL, timeRange, nextDefenseType } from '../../constants/defense'
 import Icon from '../../components/Icon'
 import { humanStatus } from '../../utils/humanStatus'
+import { SkeletonCards } from '../../components/Skeleton'
 
 const EMPTY = { group_id: '', defense_type: 'title', defense_date: '', start_time: '', end_time: '', venue: '', panel: { chair: '', member1: '', member2: '' }, update_group_panel: true }
 
@@ -248,7 +249,7 @@ function PageSchedule() {
       )}
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontSize: '13px' }}>Loading schedules...</div>
+        <SkeletonCards count={3} label="Loading schedules" />
       ) : schedules.length === 0 ? (
         <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8ecf2', padding: '48px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
           No defense schedules yet. {canSchedule && 'Click "+ Schedule Defense" to add one.'}

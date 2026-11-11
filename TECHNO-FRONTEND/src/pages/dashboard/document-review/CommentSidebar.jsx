@@ -3,6 +3,7 @@ import CommentCompare from './CommentCompare'
 import DocumentDiffViewer from './DocumentDiffViewer'
 import { COMMENT_STATUS as STATUS } from '../../../constants/commentStatus'
 import Icon from '../../../components/Icon'
+import { SkeletonLines } from '../../../components/Skeleton'
 
 // Where a comment's highlight stands in the version being viewed (see
 // DocumentReviewViewer's anchorStates).
@@ -51,7 +52,7 @@ const EVENT_TEXT = {
 }
 
 function Timeline({ events }) {
-  if (!events) return <div style={{ fontSize: '11px', color: '#94a3b8' }}>Loading history…</div>
+  if (!events) return <SkeletonLines lines={2} h={8} />
   return (
     <ol style={{ listStyle: 'none', margin: 0, padding: 0, borderLeft: '2px solid #e2e8f0' }}>
       {events.map(ev => (

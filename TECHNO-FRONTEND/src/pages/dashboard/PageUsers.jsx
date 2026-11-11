@@ -7,6 +7,7 @@ import { SectionPicker, SectionField } from '../../components/dashboard/SectionP
 import { ImportClassListModal, RosterModal } from '../../components/dashboard/ClassRoster'
 import { useSchoolStaffChannel } from '../../hooks/useSchoolStaffChannel'
 import Icon from '../../components/Icon'
+import { SkeletonTable } from '../../components/Skeleton'
 
 // Student and admin accounts hold only that one role; the faculty roles
 // (instructor, adviser, panelist) can be combined freely.
@@ -466,7 +467,7 @@ const createUser = async e => {
 )}
 
       {loading ? (
-        <div style={{ textAlign:'center', padding:'40px', color:'#94a3b8', fontSize:'13px' }}>Loading users...</div>
+        <SkeletonTable rows={8} cols={6} label="Loading accounts" />
       ) : (
         <div>
           {/* Bulk section assign bar — shows when students are selected */}

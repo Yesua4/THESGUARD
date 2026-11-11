@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import api from '../../api/axios'
 import { COMMENT_STATUS } from '../../constants/commentStatus'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
+import { SkeletonCards } from '../../components/Skeleton'
 
 // Comment progress across every project the user can see (spec §12-13).
 // Students: their project's comments by status, with a progress bar.
@@ -102,7 +103,7 @@ export default function PageCommentReview({ user, onOpen }) {
       </div>
 
       {error && <div role="alert" style={{ background: '#fee2e2', color: '#9f1239', borderRadius: '10px', padding: '10px 14px', fontSize: '13px' }}>{error}</div>}
-      {!data && !error && <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontSize: '13px' }}>Loading…</div>}
+      {!data && !error && <SkeletonCards count={4} label="Loading comments" />}
 
       {data && (
         <>
