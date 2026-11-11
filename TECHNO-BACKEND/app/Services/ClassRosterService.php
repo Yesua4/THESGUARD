@@ -161,6 +161,8 @@ class ClassRosterService {
             'school_id'           => $entry->school_id,
             'section'             => $entry->section,
             'awaiting_enrollment' => false,
+            // Enrolled by an instructor of an institute -> the student joins it.
+            'institute_id'        => $student->institute_id ?? ($entry->instructor_id ? User::whereKey($entry->instructor_id)->value('institute_id') : null),
         ])->save();
         $entry->update([
             'user_id'       => $student->id,

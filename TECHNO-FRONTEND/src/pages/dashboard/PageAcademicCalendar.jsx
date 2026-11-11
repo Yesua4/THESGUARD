@@ -47,7 +47,7 @@ function CapstonePlan({ terms }) {
   }
 
   const remove = async st => {
-    if (!confirm(`Delete "${st.name}" from the capstone plan?`)) return
+    if (!confirm(`Delete "${st.name}" from the research stages?`)) return
     try { await api.delete(`/capstone-stages/${st.id}`); load() } catch { showToast('Could not delete.') }
   }
 
@@ -56,16 +56,16 @@ function CapstonePlan({ terms }) {
 
   return (
     <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8ecf2', padding: '18px', marginTop: '16px' }}>
-      <div style={{ fontSize: '14px', fontWeight: 700, color: '#0a1f44' }}>Capstone plan</div>
+      <div style={{ fontSize: '14px', fontWeight: 700, color: '#0a1f44' }}>Research stages (capstone / thesis)</div>
       <div style={{ fontSize: '12px', color: '#64748b', margin: '2px 0 14px' }}>
-        When each capstone stage is taken. Example: Capstone 1 in 2nd year, 2nd term; Capstone 2 in 3rd year, 1st term.
+        When each stage is taken. Example: Capstone 1 (or Thesis 1) in 3rd year, 2nd term; Capstone 2 (or Thesis 2) in 4th year, 1st term.
         Groups move to the next stage by themselves when the calendar reaches it.
       </div>
       <form onSubmit={save} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', alignItems: 'end' }}>
         <div>
           <label style={label} htmlFor="stage-name">Stage name</label>
-          <input id="stage-name" list="tg-stage-names" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Capstone 1" style={input} required />
-          <datalist id="tg-stage-names"><option value="Capstone 1" /><option value="Capstone 2" /></datalist>
+          <input id="stage-name" list="tg-stage-names" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Capstone 1 or Thesis 1" style={input} required />
+          <datalist id="tg-stage-names"><option value="Capstone 1" /><option value="Capstone 2" /><option value="Thesis 1" /><option value="Thesis 2" /></datalist>
         </div>
         <div>
           <label style={label} htmlFor="stage-year">Year level</label>

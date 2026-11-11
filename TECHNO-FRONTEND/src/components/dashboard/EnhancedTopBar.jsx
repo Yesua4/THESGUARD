@@ -6,6 +6,7 @@ import { ROLE_META, userRoles } from '../../constants/roles'
 import { useAcademicTerms, termLabel } from '../../hooks/useAcademicTerms'
 import UserAvatar from './UserAvatar'
 import Icon from '../Icon'
+import { adminTitle } from '../../utils/research'
 
 function EnhancedTopBar({
   user, unreadCount, loggingOut, handleLogout,
@@ -22,7 +23,7 @@ function EnhancedTopBar({
   const assignedRoles = userRoles(user)
   // The admin acting as another role keeps admin access; say so.
   const actingAsAdmin = user?.base_role === 'admin' && user?.role !== 'admin'
-  const roleLabel = actingAsAdmin ? `${meta.label} · Admin` : meta.label
+  const roleLabel = actingAsAdmin ? `${meta.label} · Admin` : (adminTitle(user) || meta.label)
   const { currentTerm } = useAcademicTerms()
 
   // Clicking a notification opens what it's about (same rule as the

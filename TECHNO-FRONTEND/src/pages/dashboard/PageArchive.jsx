@@ -89,7 +89,7 @@ function PageArchive() {
       <div style={{ background:'linear-gradient(135deg,#0a1f44,#1040a0)', borderRadius:'14px', padding:'20px 24px', marginBottom:'16px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
         <div>
           <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.5)', fontWeight:'700', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'4px' }}>Digital Archive</div>
-          <div style={{ fontSize:'18px', fontWeight:'700', color:'#fff', marginBottom:'2px' }}>Archived Capstone Projects</div>
+          <div style={{ fontSize:'18px', fontWeight:'700', color:'#fff', marginBottom:'2px' }}>Archived Capstone & Thesis Projects</div>
           <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.55)' }}>{projects.length} project{projects.length !== 1 ? 's' : ''} archived</div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:'14px' }}>

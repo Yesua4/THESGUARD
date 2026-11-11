@@ -2,7 +2,7 @@
 // ROLE_LABELS on the backend).
 export const DEFENSE_TYPES = [
   ['title', 'Title Defense'],
-  ['outline', 'Outline Defense'],
+  ['outline', 'Outline / Proposal Defense'],
   ['pre_deployment', 'Pre-Deployment Defense'],
   ['final', 'Final Defense'],
 ]

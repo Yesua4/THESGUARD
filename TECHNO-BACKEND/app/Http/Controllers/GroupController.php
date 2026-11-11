@@ -78,6 +78,20 @@ class GroupController extends Controller {
         abort_unless($group->isManageableBy($request->user()), 403, 'This group is not in a section you handle.');
     }
 
+    // An institute of this school; the school admin may choose any, everyone
+    // else only their own (or none when they have none).
+    private function instituteFor(Request $request, $instituteId): ?int {
+        $caller = $request->user();
+        $instituteId = $instituteId === '' || $instituteId === null ? null : (int) $instituteId;
+        if ($instituteId !== null) {
+            abort_unless(\App\Models\Institute::whereKey($instituteId)->where('school_id', $caller->school_id)->exists(), 422, 'Choose an institute of your school.');
+        }
+        if (!$caller->isSchoolAdmin() && $caller->institute_id) {
+            abort_unless($instituteId === (int) $caller->institute_id, 403, 'You can only put groups in your own institute.');
+        }
+        return $instituteId;
+    }
+
     public function store(Request $request) {
         $this->assertCanManageGroups($request);
         $data = $request->validate([
@@ -86,6 +100,7 @@ class GroupController extends Controller {
             'academic_term_id' => 'nullable|integer',
             'section'    => 'nullable|string|max:100',
             'adviser_id' => 'nullable|integer',
+            'institute_id' => 'nullable|integer',
             'members'    => 'required|array|min:1',
             'members.*'  => 'integer',
             'leader_id'  => 'required|integer',
@@ -139,6 +154,8 @@ class GroupController extends Controller {
             'instructor_id' => $request->user()->id,
             'adviser_id'    => $data['adviser_id'] ?? null,
             'school_id'     => $request->user()->school_id, // ── school isolation
+            // Not chosen -> the creator's institute (which decides capstone vs thesis).
+            'institute_id'  => $this->instituteFor($request, array_key_exists('institute_id', $data) ? $data['institute_id'] : $caller->institute_id),
         ]);
 
         foreach ($data['members'] as $userId) {
@@ -167,6 +184,9 @@ class GroupController extends Controller {
             abort_unless($request->user()->handlesSection($request->input('section')), 403, 'You can only move groups into sections you handle.');
         }
         $changes = $request->only(['group_name', 'batch', 'section', 'adviser_id']);
+        if ($request->has('institute_id')) {
+            $changes['institute_id'] = $this->instituteFor($request, $request->input('institute_id'));
+        }
         if ($request->has('academic_term_id')) {
             $term = $this->termFor($request, $request->input('academic_term_id'));
             $changes['academic_term_id'] = $term?->id;

@@ -116,6 +116,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('users/{id}', [AuthController::class, 'updateUser']);
     Route::post('/users', [AuthController::class, 'createUser']);
     Route::apiResource('groups', GroupController::class);
+    Route::get('institutes', [\App\Http\Controllers\InstituteController::class, 'index']);
+    Route::post('institutes', [\App\Http\Controllers\InstituteController::class, 'store']);
+    Route::put('institutes/{id}', [\App\Http\Controllers\InstituteController::class, 'update']);
+    Route::delete('institutes/{id}', [\App\Http\Controllers\InstituteController::class, 'destroy']);
     Route::put('groups/{id}/panel', [GroupController::class, 'setPanel']);
     Route::put('groups/{id}/recommendation', [GroupController::class, 'recommend']);
     Route::put('groups/{id}/stage-instructors', [GroupController::class, 'setStageInstructors']);

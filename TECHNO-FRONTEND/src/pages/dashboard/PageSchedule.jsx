@@ -4,7 +4,8 @@ import { useToast } from '../../context/ToastContext'
 import api from '../../api/axios'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
-import { DEFENSE_TYPES, DEFENSE_TYPE_LABEL, PANEL_ROLES, PANEL_ROLE_LABEL, timeRange, nextDefenseType } from '../../constants/defense'
+import { PANEL_ROLES, PANEL_ROLE_LABEL, timeRange, nextDefenseType } from '../../constants/defense'
+import { defenseTypesFor, defenseLabel, researchTypeOf, RESEARCH_LABEL } from '../../utils/research'
 import Icon from '../../components/Icon'
 import { humanStatus } from '../../utils/humanStatus'
 import { SkeletonCards } from '../../components/Skeleton'
@@ -51,7 +52,9 @@ function PageSchedule() {
   const chooseGroup = id => {
     const g = groups.find(x => String(x.id) === String(id))
     // The defense the group was recommended for, else the next one in order.
-    const type = g ? (g.recommended_for || nextDefenseType(schedules.filter(s => s.group_id === g.id))) : 'title'
+    let type = g ? (g.recommended_for || nextDefenseType(schedules.filter(s => s.group_id === g.id))) : 'title'
+    // Thesis groups skip the pre-deployment defense.
+    if (type === 'pre_deployment' && researchTypeOf(g) === 'thesis') type = 'final'
     const gp = Object.fromEntries((g?.panel || []).map(p => [p.role, String(p.user_id)]))
     setForm(f => ({ ...f, group_id: id, defense_type: type, panel: type === 'title' ? EMPTY.panel : { ...EMPTY.panel, ...gp } }))
   }
@@ -82,7 +85,7 @@ function PageSchedule() {
     setSaving(true)
     try {
       await api.post('/schedules', { ...form, panel: panelPayload })
-      setSuccess(`${DEFENSE_TYPE_LABEL[form.defense_type]} scheduled for ${group?.group_name}.`)
+      setSuccess(`${defenseLabel(form.defense_type, researchTypeOf(group))} scheduled for ${group?.group_name}.`)
       setShowForm(false); setForm(EMPTY); setConflicts(null); setOtherRoom(false)
       load(); loadGroups()
     } catch (err) {
@@ -145,7 +148,7 @@ function PageSchedule() {
               <div>
                 <label style={labelStyle} htmlFor="sch-type">Type of defense</label>
                 <select id="sch-type" value={form.defense_type} onChange={e => chooseType(e.target.value)} required style={inputStyle}>
-                  {DEFENSE_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  {defenseTypesFor(researchTypeOf(group)).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
                 {group && <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '3px' }}>{group.recommended_for ? 'From what the group was recommended for.' : "Suggested from the group's previous defenses."}</div>}
               </div>
@@ -268,7 +271,7 @@ function PageSchedule() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px', gap: '10px' }}>
                     <div>
                       <div style={{ fontSize: '14px', fontWeight: '700', color: '#0a1f44', marginBottom: '2px' }}>{s.group?.group_name || s.project?.title || '—'}</div>
-                      {s.defense_type && <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: '#ede9fe', color: '#5b21b6' }}>{DEFENSE_TYPE_LABEL[s.defense_type]}</span>}
+                      {s.defense_type && <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: '#ede9fe', color: '#5b21b6' }}>{defenseLabel(s.defense_type, researchTypeOf(s.group))}{researchTypeOf(s.group) === 'thesis' ? ` · ${RESEARCH_LABEL.thesis}` : ''}</span>}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
                       {s.status && <span style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '20px', fontWeight: '700', ...statusStyle(s.status) }}>{humanStatus(s.status)}</span>}

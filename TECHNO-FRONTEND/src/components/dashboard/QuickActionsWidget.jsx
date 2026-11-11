@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import api from '../../api/axios'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import Icon from '../Icon'
+import { researchWord } from '../../utils/research'
 
 function QuickActionsWidget({ user, onNavigate }) {
   const [items, setItems] = useState([])
@@ -45,7 +46,7 @@ function QuickActionsWidget({ user, onNavigate }) {
         api.get('/projects').then(res => {
           const myProject = res.data.find(p => p.members?.some(m => m.user_id === user.id))
           if (!myProject) {
-            tasks.push({ icon: <Icon name="edit" />, label: 'Submit your capstone proposal', page: 'projects', color: '#1e40af', bg: '#dbeafe' })
+            tasks.push({ icon: <Icon name="edit" />, label: `Submit your ${user?.institute ? researchWord(user, { lower: true }) : 'capstone / thesis'} proposal`, page: 'projects', color: '#1e40af', bg: '#dbeafe' })
           } else if (myProject.title_status === 'rejected') {
             tasks.push({ icon: <Icon name="x-circle" />, label: 'Title returned — revise your proposal', page: 'projects', color: '#9f1239', bg: '#fee2e2' })
           } else if (myProject.title_status === 'approved') {

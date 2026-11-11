@@ -219,6 +219,7 @@ class AuthController extends Controller {
             'roles.*'    => 'string|in:' . implode(',', User::ROLES),
             'student_id' => 'nullable|string|unique:users,student_id,' . $id,
             'section'    => 'nullable|string|max:100',
+            'institute_id' => 'sometimes|nullable|integer',
             'handled_sections'   => 'sometimes|array',
             'handled_sections.*' => 'string|max:100',
         ]);
@@ -254,6 +255,10 @@ class AuthController extends Controller {
             }
         }
 
+        if (array_key_exists('institute_id', $data)) {
+            $data['institute_id'] = $this->allowedInstitute($caller, $data['institute_id'], $user);
+        }
+
         $user->update($data);
         if ($roles !== null) {
             $user->syncRoles($roles);
@@ -265,6 +270,21 @@ class AuthController extends Controller {
         $live->directory($user->school_id ?? $caller->school_id, 'user_updated');
 
         return response()->json($user->fresh()->append(['roles', 'handled_sections']));
+    }
+
+    // Which institute an account may be put in by this person. The school
+    // admin may pick any institute of the school (or none). Everyone else --
+    // institute admins and instructors -- can only use their own, so they
+    // can't create school admins or move people into another institute.
+    private function allowedInstitute(User $caller, $instituteId, ?User $target = null): ?int {
+        $instituteId = $instituteId === '' || $instituteId === null ? null : (int) $instituteId;
+        if ($instituteId !== null) {
+            abort_unless(\App\Models\Institute::whereKey($instituteId)->where('school_id', $caller->school_id)->exists(), 422, 'Choose an institute of your school.');
+        }
+        if ($caller->isSchoolAdmin()) return $instituteId;
+        abort_if($target && $target->isSchoolAdmin(), 403, 'Only the school administrator can change the school administrator.');
+        abort_unless($caller->institute_id ? $instituteId === (int) $caller->institute_id : $instituteId === null, 403, 'You can only add people to your own institute.');
+        return $instituteId;
     }
 
     public function createUser(Request $request) {
@@ -280,6 +300,7 @@ class AuthController extends Controller {
             'roles.*'    => 'string|in:' . implode(',', User::ROLES),
             'student_id' => 'nullable|string|unique:users,student_id',
             'section'    => 'nullable|string|max:100',
+            'institute_id' => 'nullable|integer',
             'handled_sections'   => 'sometimes|array',
             'handled_sections.*' => 'string|max:100',
         ]);
@@ -314,6 +335,8 @@ class AuthController extends Controller {
 
         $data['role']      = $roles[0];
         $data['school_id'] = $caller->school_id ?? null;
+        // Not chosen -> the creator's own institute.
+        $data['institute_id'] = $this->allowedInstitute($caller, array_key_exists('institute_id', $data) ? $data['institute_id'] : $caller->institute_id);
         $data['password']  = Hash::make($data['password'] . $this->pepper());
         $user = User::create($data);
         // The admin/instructor chose this password -> the person picks their own at first sign-in.
@@ -574,6 +597,7 @@ class AuthController extends Controller {
             'section'    => $section ?: null,
             'role'       => $role,
             'school_id'  => $admin->school_id,
+            'institute_id' => $admin->institute_id, // imported into the importer's institute
             'password'   => \Illuminate\Support\Facades\Hash::make($password . $this->pepper()),
         ]);
         // Someone else chose this password -> they pick their own at first sign-in.

@@ -9,6 +9,7 @@ import GroupRecommendation, { RecommendedBadge } from '../../components/dashboar
 import StageInstructorsEditor from '../../components/dashboard/StageInstructorsEditor'
 import Icon from '../../components/Icon'
 import { SkeletonCards } from '../../components/Skeleton'
+import { isSchoolAdmin, RESEARCH_LABEL } from '../../utils/research'
 
 function PageGroups() {
   const { user } = useAuth()
@@ -23,7 +24,9 @@ function PageGroups() {
   const [memberSearch, setMemberSearch] = useState('')
   const [filterAdviser, setFilterAdviser] = useState('')
   const [groupedStudents, setGroupedStudents] = useState([])
-  const [form, setForm] = useState({ group_name:'', batch:'', academic_term_id:'', section:'', adviser_id:'', members:[], leader_id:'' })
+  const [form, setForm] = useState({ group_name:'', batch:'', academic_term_id:'', section:'', adviser_id:'', members:[], leader_id:'', institute_id:null })
+  const [institutes, setInstitutes] = useState([])
+  useEffect(() => { api.get('/institutes').then(res => setInstitutes(res.data)).catch(() => {}) }, [])
 
   // Academic year + term come from the admin's calendar, pre-set to the
   // term today falls in (live: follows calendar edits and the date rolling
@@ -111,7 +114,8 @@ function PageGroups() {
     if (!form.leader_id) { showToast('Please select a group leader.'); return }
     setSaving(true)
     try {
-      await api.post('/groups', form)
+      // Only the school admin picks; others' groups go to their own institute.
+      await api.post('/groups', isSchoolAdmin(user) ? form : { ...form, institute_id: user?.institute_id ?? null })
       setShowForm(false)
       setForm({ group_name:'', ...termDefaults(), section:'', adviser_id:'', members:[], leader_id:'' })
       setMemberSearch('')
@@ -243,6 +247,15 @@ function PageGroups() {
                 <label style={labelStyle}>Group Name</label>
                 <input value={form.group_name} onChange={e => setForm({...form, group_name:e.target.value})} style={inputStyle} placeholder="e.g. Group Alpha" required />
               </div>
+              {isSchoolAdmin(user) && institutes.length > 0 && (
+                <div>
+                  <label style={labelStyle}>Institute <span style={{ color:'#cbd5e1', textTransform:'none', fontWeight:'400' }}>(capstone or thesis)</span></label>
+                  <select value={form.institute_id ?? ''} onChange={e => setForm({ ...form, institute_id: e.target.value === '' ? null : Number(e.target.value) })} style={inputStyle}>
+                    <option value="">No institute (capstone)</option>
+                    {institutes.map(i => <option key={i.id} value={i.id}>{i.name} · {RESEARCH_LABEL[i.research_type]}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label style={labelStyle}>Academic Year</label>
                 {years.length > 0 ? (
@@ -399,6 +412,7 @@ function PageGroups() {
                       {g.adviser
                         ? <span style={{ fontSize:'11px', background:'#d1fae5', color:'#065f46', padding:'2px 8px', borderRadius:'20px', fontWeight:'600' }}><Icon name="user" /> {g.adviser.name}</span>
                         : <span style={{ fontSize:'11px', background:'#fef3c7', color:'#92400e', padding:'2px 8px', borderRadius:'20px', fontWeight:'600' }}>No adviser yet</span>}
+                      {g.institute && <span title={g.institute.name} style={{ fontSize:'11px', background: g.research_type === 'thesis' ? '#fef3c7' : '#e0f2fe', color: g.research_type === 'thesis' ? '#92400e' : '#075985', padding:'2px 8px', borderRadius:'20px', fontWeight:'600' }}>{RESEARCH_LABEL[g.research_type]} · {g.institute.name}</span>}
                       {String(g.instructor_id) === String(user.id) && <span style={{ fontSize:'11px', background:'#ede9fe', color:'#6d28d9', padding:'2px 8px', borderRadius:'20px', fontWeight:'600' }}>You created this</span>}
                       {String(g.adviser_id) === String(user.id) && <span style={{ fontSize:'11px', background:'#ccfbf1', color:'#0f766e', padding:'2px 8px', borderRadius:'20px', fontWeight:'600' }}>You are adviser</span>}
                     </div>

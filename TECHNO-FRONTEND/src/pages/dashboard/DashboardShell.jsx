@@ -10,6 +10,7 @@ import { ROLE_META } from '../../constants/roles'
 import EnhancedTopBar from '../../components/dashboard/EnhancedTopBar'
 import UserAvatar from '../../components/dashboard/UserAvatar'
 import PageRouter from './PageRouter'
+import { adminTitle } from '../../utils/research'
 
 function DashboardShell() {
   const { user, logout, refreshUser, switchRole } = useAuth()
@@ -166,8 +167,8 @@ function DashboardShell() {
             borderRadius: '20px', padding: '4px 10px',
           }}>
             <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f5c300' }} />
-            <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
-              {meta.label}
+            <span title={user?.institute ? user.institute.name : undefined} style={{ color: 'rgba(255,255,255,0.75)', fontSize: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px' }}>
+              {adminTitle(user) || meta.label}
             </span>
           </div>
         </div>

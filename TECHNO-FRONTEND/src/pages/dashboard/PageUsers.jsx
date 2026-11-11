@@ -4,6 +4,7 @@ import { useToast } from '../../context/ToastContext'
 import api from '../../api/axios'
 import { ROLE_ORDER, userRoles } from '../../constants/roles'
 import { SectionPicker, SectionField } from '../../components/dashboard/SectionPicker'
+import { isSchoolAdmin, RESEARCH_LABEL } from '../../utils/research'
 import { ImportClassListModal, RosterModal } from '../../components/dashboard/ClassRoster'
 import { useSchoolStaffChannel } from '../../hooks/useSchoolStaffChannel'
 import Icon from '../../components/Icon'
@@ -108,6 +109,17 @@ function PageUsers() {
   const [selectedIds, setSelectedIds]   = useState([])
   const [showClassList, setShowClassList] = useState(false)
   const [showRoster, setShowRoster]       = useState(false)
+  const [institutes, setInstitutes]       = useState([])
+  const schoolAdmin = isSchoolAdmin(user)
+  useEffect(() => { api.get('/institutes').then(res => setInstitutes(res.data)).catch(() => {}) }, [])
+  // Only the school admin chooses; everyone else adds people to their own institute.
+  const instituteSelect = (value, onChange, compact) => (
+    <select value={value ?? ''} onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))} style={{ ...inputStyle, ...(compact ? { padding: '6px 10px', marginTop: '6px' } : {}) }} aria-label="Institute">
+      <option value="">No institute (school-wide)</option>
+      {institutes.map(i => <option key={i.id} value={i.id}>{i.name} · {RESEARCH_LABEL[i.research_type]}</option>)}
+    </select>
+  )
+  const instituteName = u => u.institute?.name
 
   const load = () => {
     api.get('/users').then(res => setUsers(res.data)).finally(() => setLoading(false))
@@ -122,7 +134,7 @@ function PageUsers() {
 const createUser = async e => {
   e.preventDefault(); setAddingUser(true)
   try {
-    await api.post('/users', newUser)
+    await api.post('/users', schoolAdmin ? newUser : { ...newUser, institute_id: user?.institute_id ?? null })
     setShowAddUser(false)
     setNewUser({ name:'', email:'', password:'', roles:['student'], student_id:'', section:'', handled_sections:[] })
     load()
@@ -145,7 +157,7 @@ const createUser = async e => {
   } finally { setAddingUser(false) }
 }
 
-  const startEdit  = u => { setEditing(u.id); setEditForm({ name:u.name, email:u.email, roles:userRoles(u), student_id:u.student_id||'', section:u.section||'', handled_sections:u.handled_sections||[] }) }
+  const startEdit  = u => { setEditing(u.id); setEditForm({ name:u.name, email:u.email, roles:userRoles(u), student_id:u.student_id||'', section:u.section||'', handled_sections:u.handled_sections||[], institute_id:u.institute_id ?? null }) }
   const cancelEdit = () => { setEditing(null); setEditForm({}) }
   const handleEdit = e => setEditForm({...editForm, [e.target.name]: e.target.value})
 
@@ -155,6 +167,7 @@ const createUser = async e => {
     const payload = { ...editForm }
     if (user?.role !== 'admin' || id === user?.id) delete payload.roles
     if (user?.role !== 'admin') delete payload.handled_sections
+    if (!schoolAdmin) delete payload.institute_id
     try { await api.put(`/users/${id}`, payload); setEditing(null); load() }
     catch (err) { showToast(err.response?.data?.message || 'Error updating user.') }
     finally { setSaving(false) }
@@ -286,6 +299,16 @@ const createUser = async e => {
                   <label style={labelStyle}>Roles <span style={{ color:'#cbd5e1', textTransform:'none', fontWeight:'400' }}>(faculty can have several)</span></label>
                   <RoleChecks roles={newUser.roles} onChange={roles => setNewUser({...newUser, roles})} />
                 </div>
+              )}
+              {schoolAdmin && institutes.length > 0 && (
+                <div>
+                  <label style={labelStyle}>Institute <span style={{ color:'#cbd5e1', textTransform:'none', fontWeight:'400' }}>(decides capstone or thesis)</span></label>
+                  {instituteSelect(newUser.institute_id, institute_id => setNewUser({...newUser, institute_id}))}
+                  {newUser.roles.includes('admin') && <div style={{ fontSize:'11px', color:'#64748b', marginTop:'4px' }}>{newUser.institute_id ? 'This admin will manage this institute.' : 'With no institute, this admin is a school administrator.'}</div>}
+                </div>
+              )}
+              {!schoolAdmin && user?.institute && (
+                <div style={{ fontSize:'12px', color:'#64748b' }}>Will be added to <b>{user.institute.name}</b>.</div>
               )}
               {user?.role === 'admin' && newUser.roles.includes('instructor') && (
                 <div>
@@ -524,6 +547,7 @@ const createUser = async e => {
                           <td style={{ padding:'8px 14px' }}>
                             <RoleChecks compact roles={editForm.roles || []} disabled={u.id === user?.id}
                               onChange={roles => setEditForm({ ...editForm, roles })} />
+                            {schoolAdmin && institutes.length > 0 && instituteSelect(editForm.institute_id, institute_id => setEditForm({ ...editForm, institute_id }), true)}
                           </td>
                         )}
                         <td style={{ padding:'8px 14px' }}><input name="email" value={editForm.email} onChange={handleEdit} style={{ ...inputStyle, padding:'6px 10px' }} /></td>
@@ -550,7 +574,11 @@ const createUser = async e => {
                             <div style={{ width:'28px', height:'28px', borderRadius:'50%', fontSize:'10px', fontWeight:'700', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, ...rolePill(u.role) }}>
                               {u.name?.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()}
                             </div>
-                            {u.name}
+                            <div style={{ minWidth:0 }}>
+                              {u.name}
+                              {instituteName(u) && <div style={{ fontSize:'10px', color:'#64748b', fontWeight:600 }}>{instituteName(u)}</div>}
+                              {u.role === 'admin' && !u.institute_id && userRoles(u).includes('admin') && <div style={{ fontSize:'10px', color:'#be123c', fontWeight:700 }}>School Admin</div>}
+                            </div>
                           </div>
                         </td>
                         {user?.role === 'admin' && (

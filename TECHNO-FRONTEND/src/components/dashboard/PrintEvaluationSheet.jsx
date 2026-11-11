@@ -1,5 +1,5 @@
 import { INDIVIDUAL_CRITERIA, GROUP_CRITERIA, VERDICTS } from '../../constants/evaluation'
-import { DEFENSE_TYPE_LABEL } from '../../constants/defense'
+import { defenseLabel, researchTypeOf } from '../../utils/research'
 import Icon from '../Icon'
 
 // A panelist's evaluation laid out like the paper sheet, for printing or
@@ -7,7 +7,7 @@ import Icon from '../Icon'
 // hidden while printing.
 export default function PrintEvaluationSheet({ project, schedule, evaluation, panelistName, onClose }) {
   const presenters = evaluation?.individual_scores || []
-  const type = DEFENSE_TYPE_LABEL[schedule?.defense_type] || 'Defense'
+  const type = defenseLabel(schedule?.defense_type, researchTypeOf(project)) || 'Defense'
   const date = schedule?.defense_date ? new Date(schedule.defense_date).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : ''
   const cell = { border: '1px solid #000', padding: '6px 8px', verticalAlign: 'top', fontSize: '11pt' }
   const box = on => (on ? '[ ✓ ]' : '[   ]')

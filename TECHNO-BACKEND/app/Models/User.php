@@ -18,8 +18,11 @@ class User extends Authenticatable {
 
     protected $fillable = [
         'name', 'last_name', 'first_name', 'middle_name', 'email', 'password', 'role', 'student_id', 'section', 'school_id',
-        'google_id', 'avatar',
+        'google_id', 'avatar', 'institute_id',
     ];
+
+    // Small and needed on almost every screen (labels, capstone vs thesis).
+    protected $with = ['institute'];
 
     protected $hidden = ['password', 'remember_token', 'roleAssignments', 'sectionAssignments'];
 
@@ -32,6 +35,16 @@ class User extends Authenticatable {
     // ── Relationships ─────────────────────────────────────────
     public function school() {
         return $this->belongsTo(School::class);
+    }
+
+    public function institute() {
+        return $this->belongsTo(Institute::class)->select(['id', 'name', 'research_type']);
+    }
+
+    // The school's own administrator: an admin not tied to one institute.
+    // Admins assigned to an institute are that institute's administrator.
+    public function isSchoolAdmin(): bool {
+        return $this->role === 'admin' && !$this->institute_id;
     }
 
     public function roleAssignments() {

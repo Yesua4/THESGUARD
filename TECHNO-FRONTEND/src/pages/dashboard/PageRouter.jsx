@@ -12,6 +12,7 @@ import PageUsers from './PageUsers'
 import PageArchive from './PageArchive'
 import PageReports from './PageReports'
 import PageSettings from './PageSettings'
+import PageInstitutes from './PageInstitutes'
 import PageMyGroup from './PageMyGroup'
 import PageNotifications from './PageNotifications'
 import PageDocumentReview from './document-review/PageDocumentReview'
@@ -61,6 +62,7 @@ function PageRouter({ page, setPage, setUnreadCount, user, navTarget, clearNavTa
     case 'minutes':       return <PageMinutes />
     case 'reports':       return <PageReports />
     case 'settings':      return <PageSettings />
+    case 'institutes':    return <PageInstitutes />
     case 'panelcomments': return <PagePanelComments user={user} />
     case 'comments':      return <PageCommentReview user={user} onOpen={onNotificationNavigate} />
     case 'calendar':      return <PageAcademicCalendar />

@@ -6,8 +6,20 @@ class Group extends Model {
     protected $table = 'groups';
     protected $fillable = [
         'group_name', 'batch', 'academic_term_id', 'start_year_level', 'section', 'instructor_id', 'adviser_id', 'school_id',
-        'recommended_for', 'recommended_by', 'recommended_at',
+        'recommended_for', 'recommended_by', 'recommended_at', 'institute_id',
     ];
+
+    protected $with = ['institute'];
+    // capstone | thesis, from the group's institute (no institute = capstone).
+    protected $appends = ['research_type'];
+
+    public function institute() {
+        return $this->belongsTo(Institute::class)->select(['id', 'name', 'research_type']);
+    }
+
+    public function getResearchTypeAttribute(): string {
+        return $this->institute?->research_type ?? 'capstone';
+    }
 
     protected $casts = ['recommended_at' => 'datetime'];
 

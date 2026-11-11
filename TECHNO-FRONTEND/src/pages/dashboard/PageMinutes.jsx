@@ -17,7 +17,7 @@ import { SkeletonCards, SkeletonPage, SkeletonTable } from '../../components/Ske
 const STAFF = ['admin', 'instructor', 'adviser', 'panelist']
 const DEFENSE_TYPES = { title: 'Title Defense', outline: 'Outline Defense', pre_deployment: 'Pre-deployment Defense', final: 'Final Defense' }
 const PANEL_ROLES = [['chair', 'Panel Chair'], ['member1', 'Panel Member 1'], ['member2', 'Panel Member 2'], ['adviser', 'Adviser']]
-const ROLE_LABELS = { student: 'Students', adviser: 'Adviser', panelist: 'Panel', instructor: 'Capstone Instructor', admin: 'Dean / Admin' }
+const ROLE_LABELS = { student: 'Students', adviser: 'Adviser', panelist: 'Panel', instructor: 'Capstone / Thesis Instructor', admin: 'Dean / Admin' }
 const STATUS_STYLE = {
   pending:   { label: 'Pending',   background: '#fef3c7', color: '#92400e' },
   addressed: { label: 'Addressed', background: '#dbeafe', color: '#1e40af' },

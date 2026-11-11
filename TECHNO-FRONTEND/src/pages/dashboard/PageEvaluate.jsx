@@ -9,6 +9,7 @@ import { INDIVIDUAL_CRITERIA, GROUP_CRITERIA, VERDICTS, VERDICT_LABEL, verdictSt
 import PrintEvaluationSheet from '../../components/dashboard/PrintEvaluationSheet'
 import Icon from '../../components/Icon'
 import { SkeletonCards } from '../../components/Skeleton'
+import { defenseLabel, researchTypeOf } from '../../utils/research'
 
 // Panelist evaluation, following the school's defense evaluation sheet:
 // individual grade per presenter (Disposition 30 + Delivery 70), group grade
@@ -141,7 +142,7 @@ function PageEvaluate() {
                 <select id="ev-defense" value={scheduleId} onChange={e => chooseDefense(e.target.value)} style={{ ...input, textAlign: 'left' }}>
                   {defenses.map(s => (
                     <option key={s.id} value={s.id}>
-                      {DEFENSE_TYPE_LABEL[s.defense_type] || 'Defense'} — {new Date(s.defense_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}{onPanel(s) ? '' : ' (not on your panel)'}
+                      {defenseLabel(s.defense_type, researchTypeOf(selected)) || 'Defense'} — {new Date(s.defense_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}{onPanel(s) ? '' : ' (not on your panel)'}
                     </option>
                   ))}
                 </select>
@@ -156,6 +157,11 @@ function PageEvaluate() {
             {schedule && (onPanel(schedule) || user.role === 'admin' || user.base_role === 'admin') ? (
               <form onSubmit={submit} style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '16px', borderBottom: '1px solid #f8fafc' }}>
                 {myRole && <div style={{ fontSize: '12px', color: '#5b21b6', fontWeight: 600 }}>You are the {PANEL_ROLE_LABEL[myRole]} for this defense.</div>}
+                {researchTypeOf(selected) === 'thesis' && (
+                  <div style={{ fontSize: '12px', color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '8px 12px' }}>
+                    This is a thesis group. The sheet below is the capstone evaluation sheet; a thesis sheet hasn't been set up yet, so score what applies and explain in Remarks.
+                  </div>
+                )}
                 {success && <div role="status" style={{ background: '#d1fae5', border: '1px solid #a7f3d0', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#065f46', fontWeight: '600' }}>✓ {success}</div>}
 
                 <div>

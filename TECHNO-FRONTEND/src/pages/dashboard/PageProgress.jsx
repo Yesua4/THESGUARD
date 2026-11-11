@@ -7,6 +7,7 @@ import { useProjectChannel } from '../../hooks/useProjectChannel'
 import Icon from '../../components/Icon'
 import { humanStatus } from '../../utils/humanStatus'
 import { SkeletonPage } from '../../components/Skeleton'
+import { researchWord } from '../../utils/research'
 
 function PageProgress() {
   const { user } = useAuth()
@@ -195,7 +196,7 @@ function PageProgress() {
       }}>
         <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '150px', height: '150px', borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', marginBottom: '6px', fontWeight: '600' }}>MY THESIS / CAPSTONE PROGRESS</div>
+          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', marginBottom: '6px', fontWeight: '600' }}>MY {user?.institute ? researchWord(user).toUpperCase() : 'THESIS / CAPSTONE'} PROGRESS</div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <div style={{ color: '#fff', fontSize: '20px', fontWeight: '700' }}>
               {completedCount} of {allStages.length} stages completed

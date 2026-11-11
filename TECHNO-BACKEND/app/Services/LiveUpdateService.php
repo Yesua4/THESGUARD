@@ -30,6 +30,7 @@ class LiveUpdateService {
         Models\GroupPanelist::class        => ['groups', 'schedules'],
         Models\GroupStageInstructor::class => ['groups', 'projects'],
         Models\Room::class                 => ['rooms'],
+        Models\Institute::class            => ['institutes', 'users', 'groups'],
         Models\Document::class             => ['documents'],
         Models\DocumentComment::class      => ['documents', 'comments'],
         Models\DocumentCommentReply::class => ['comments'],

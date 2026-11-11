@@ -108,6 +108,8 @@ class ScheduleController extends Controller {
         $this->assertCanScheduleFor($request->user(), $groupId);
         if ($existing && (int) $existing->group_id !== $groupId) $this->assertCanScheduleFor($request->user(), (int) $existing->group_id);
         $type = array_key_exists('defense_type', $data) ? $data['defense_type'] : $existing?->defense_type;
+        abort_if($type === 'pre_deployment' && \App\Models\Group::find($groupId)?->research_type === 'thesis', 422,
+            'Thesis groups have no pre-deployment defense. Choose the title, proposal or final defense.');
 
         $start = Times::minutes($data['start_time'] ?? $data['defense_time'] ?? null)
             ?? ($existing ? Times::window($existing)[0] : null);

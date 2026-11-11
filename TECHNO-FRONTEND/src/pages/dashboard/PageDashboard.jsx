@@ -7,6 +7,7 @@ import { useProjectsChannel } from '../../hooks/useProjectChannel'
 import { DEFENSE_TYPE_LABEL, timeRange } from '../../constants/defense'
 import Icon from '../../components/Icon'
 import { humanStatus } from '../../utils/humanStatus'
+import { researchWord } from '../../utils/research'
 
 // The next defense (today or later), else the most recent one.
 function pickDefense(schedules) {
@@ -168,7 +169,7 @@ function PageDashboard({ user, onNavigate }) {
             {greeting}, {user?.name?.split(' ')[0]}!
           </div>
           <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px' }}>
-            Here's your capstone monitoring overview.
+            Here's your {user?.role === 'student' ? researchWord(user, { lower: true }) : 'capstone and thesis'} monitoring overview.
           </div>
         </div>
         <div className="role-badge" style={{ background: 'rgba(245,195,0,0.15)', border: '1px solid rgba(245,195,0,0.3)', borderRadius: '12px', padding: '10px 16px', position: 'relative', zIndex: 1, flexShrink: 0 }}>
