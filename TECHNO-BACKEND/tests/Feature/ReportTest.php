@@ -116,6 +116,16 @@ class ReportTest extends TestCase
             ->assertJsonPath('0.verdict', 'passed_with_revisions')->assertJsonPath('0.defense_type', 'outline');
     }
 
+    public function test_year_list_only_holds_real_academic_years(): void
+    {
+        $this->groupWithProject('BSIT 4A', '2026-2027');
+        foreach (['Not shown in the pag', '2025', '2024-2025'] as $i => $batch) {
+            Project::create(['title' => "Old $i", 'school_id' => $this->school->id, 'status' => 'archived', 'title_status' => 'approved', 'batch' => $batch]);
+        }
+        Sanctum::actingAs($this->admin);
+        $this->assertSame(['2026-2027', '2024-2025'], $this->getJson('/api/reports/options')->assertOk()->json('academic_years'));
+    }
+
     public function test_another_schools_data_never_appears(): void
     {
         $this->groupWithProject('BSIT 4A');

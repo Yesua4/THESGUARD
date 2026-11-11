@@ -81,6 +81,9 @@ class ReportController extends Controller {
             ->merge(Project::when($user->school_id, fn ($q) => $q->where('school_id', $user->school_id))->whereNotNull('batch')->distinct()->pluck('batch'))
             ->merge(AcademicTerm::when($user->school_id, fn ($q) => $q->where('school_id', $user->school_id))->pluck('academic_year'))
             ->filter()->map(fn ($y) => preg_replace('/\s*[\x{2010}-\x{2015}\-]\s*/u', '-', trim($y)))
+            // Only real academic years ("2025-2026"). Old archive imports can hold
+            // notes like "Not shown in the page" or a single year in that column.
+            ->filter(fn ($y) => preg_match('/^\d{4}-\d{4}$/', $y))
             ->unique()->sortDesc()->values();
         return response()->json([
             'school'         => $user->school_id ? School::find($user->school_id)?->name : null,

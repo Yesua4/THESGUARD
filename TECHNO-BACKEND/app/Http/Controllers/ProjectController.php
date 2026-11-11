@@ -96,6 +96,9 @@ class ProjectController extends Controller {
             $objectives = trim($row['objectives'] ?? $row['Objectives'] ?? '');
             $keywords   = trim($row['keywords']   ?? $row['Keywords']   ?? '');
             $batch      = trim($row['batch']      ?? $row['Batch']      ?? $row['year'] ?? $row['Year'] ?? '');
+            // A year column holding a note (e.g. "Not shown in the page") is not a year.
+            if (!preg_match('/\d{4}/', $batch)) $batch = '';
+            $batch = preg_replace('/\s*[\x{2010}-\x{2015}\-]\s*/u', '-', $batch);
             $program    = trim($row['program']    ?? $row['Program']    ?? '');
             $adviserName = trim($row['adviser']   ?? $row['Adviser']    ?? '');
 
