@@ -6,54 +6,47 @@ import Icon from '../components/Icon'
 import { SkeletonTable } from '../components/Skeleton'
 
 // ── Super Admin — read-only directory of registered schools ───────────────────
-// This page is only accessible at /thesisguard-admin
+// Only the ThesisGuard owner sees it (the server checks OWNER_EMAILS). URL: /thesisguard-admin
 
 export default function SuperAdmin() {
   const navigate = useNavigate()
   const { showToast } = useToast()
-  const [authed, setAuthed]   = useState(false)
-  const [pin, setPin]         = useState('')
-  const [pinError, setPinError] = useState('')
+  // gate: 'checking' -> 'ok' | 'signin' (not signed in) | 'denied' (not the owner)
+  const [gate, setGate]       = useState('checking')
   const [schools, setSchools] = useState([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch]   = useState('')
 
-  // Simple PIN protection for demo — in production use proper auth
-  const DEMO_PIN = '2026'
-
-  const handlePin = e => {
-    e.preventDefault()
-    if (pin === DEMO_PIN) {
-      setAuthed(true)
-      loadSchools()
-    } else {
-      setPinError('Incorrect PIN.')
-      setPin('')
-    }
-  }
-
+  // Only the ThesisGuard owner (OWNER_EMAILS on the server) gets this list;
+  // the server decides, so there is no PIN or key in this page's code.
   const loadSchools = async () => {
     setLoading(true)
     try {
-      // Requires the browser's stored token to belong to a real admin
-      // account -- the PIN above only gates this page's URL, it is not a
-      // substitute for being logged in.
       const res = await api.get('/schools')
       setSchools(res.data)
-    } catch {
-      showToast('Error loading schools. Make sure you are logged in as admin.')
+      setGate('ok')
+    } catch (err) {
+      const status = err.response?.status
+      if (status === 401) setGate('signin')
+      else if (status === 403) setGate('denied')
+      else { setGate(g => (g === 'checking' ? 'denied' : g)); showToast('Could not load the school directory. Please try again.') }
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => { loadSchools() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = schools.filter(s => {
     const q = search.toLowerCase()
     return !q || s.name?.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q)
   })
 
-  // ── PIN Gate ──────────────────────────────────────────────────────────────
-  if (!authed) {
+  // ── Owner check ───────────────────────────────────────────────────────────
+  if (gate !== 'ok') {
+    const msg = gate === 'checking' ? 'Checking access…'
+      : gate === 'signin' ? 'Sign in with the ThesisGuard owner account to view the school directory.'
+      : 'Only the ThesisGuard owner can view the school directory. School administrators see only their own school.'
     return (
       <div style={S.page}>
         <div style={S.pinCard}>
@@ -62,17 +55,9 @@ export default function SuperAdmin() {
               <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z"/>
             </svg>
           </div>
-          <div style={S.pinTitle}>ThesisGuard Admin Panel</div>
-          <div style={S.pinSub}>Enter your access PIN to continue</div>
-          {pinError && <div style={S.pinError}>{pinError}</div>}
-          <form onSubmit={handlePin} style={{ width: '100%' }}>
-            <input
-              type="password" value={pin} onChange={e => setPin(e.target.value)}
-              placeholder="Enter PIN" maxLength={8} autoFocus
-              style={S.pinInput}
-            />
-            <button type="submit" style={S.pinBtn}>Access Panel →</button>
-          </form>
+          <div style={S.pinTitle}>ThesisGuard Owner Panel</div>
+          <div style={S.pinSub} role="status">{msg}</div>
+          {gate === 'signin' && <button onClick={() => navigate('/login')} style={S.pinBtn}>Sign in →</button>}
           <button onClick={() => navigate('/')} style={S.pinBack}>← Back to ThesisGuard</button>
         </div>
       </div>

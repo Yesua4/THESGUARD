@@ -94,7 +94,8 @@ class SchoolController extends Controller
      */
     public function index(Request $request)
     {
-        abort_unless($request->user()?->role === 'admin', 403, 'Only administrators can view the school directory.');
+        // Only the ThesisGuard owner: a school's admin must never see other schools.
+        abort_unless($request->user()?->isPlatformOwner(), 403, 'Only the ThesisGuard owner can view the school directory.');
 
         return response()->json(School::withCount('users')->get());
     }

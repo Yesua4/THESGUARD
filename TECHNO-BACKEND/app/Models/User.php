@@ -43,6 +43,11 @@ class User extends Authenticatable {
 
     // The school's own administrator: an admin not tied to one institute.
     // Admins assigned to an institute are that institute's administrator.
+    // The platform owner (set by OWNER_EMAILS), not a school's admin.
+    public function isPlatformOwner(): bool {
+        return in_array(strtolower((string) $this->email), config('app.owner_emails', []), true);
+    }
+
     public function isSchoolAdmin(): bool {
         return $this->role === 'admin' && !$this->institute_id;
     }

@@ -15,6 +15,12 @@ return [
 
     'name' => env('APP_NAME', 'Laravel'),
 
+    // The ThesisGuard owner(s): only these accounts see the directory of all
+    // schools (/thesisguard-admin). Comma-separated emails, set in Railway.
+    'owner_emails' => array_values(array_filter(array_map(
+        fn ($e) => strtolower(trim($e)), explode(',', (string) env('OWNER_EMAILS', ''))
+    ))),
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment
