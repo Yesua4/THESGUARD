@@ -54,12 +54,39 @@ class DocumentController extends Controller {
         return response()->json($query->orderBy('id', 'desc')->get());
     }
 
+    // Checks the file's own bytes: a PDF starts with "%PDF", an old .doc is
+    // an OLE container, and a .docx is a ZIP that holds word/document.xml.
+    private static function isRealDocument($file): bool {
+        $path = $file->getPathname();
+        $head = (string) @file_get_contents($path, false, null, 0, 1024);
+        return match (strtolower($file->getClientOriginalExtension())) {
+            'pdf'  => str_contains($head, '%PDF-'),
+            'doc'  => str_starts_with($head, "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"),
+            'docx' => str_starts_with($head, 'PK') && (function () use ($path) {
+                $zip = new \ZipArchive();
+                if ($zip->open($path) !== true) return false;
+                $ok = $zip->locateName('word/document.xml') !== false;
+                $zip->close();
+                return $ok;
+            })(),
+            default => false,
+        };
+    }
+
     public function store(Request $request) {
         $request->validate([
             'project_id'     => 'required|integer|exists:projects,id',
             'type'           => 'required|in:proposal,chapter1,chapter2,chapter3,chapter4,chapter5,final_manuscript',
             'version_note'   => 'nullable|string|max:500',
-            'file'           => 'required|file|mimes:pdf,docx,doc|max:20480',
+            // A .docx is a ZIP inside, and some (Google Docs, LibreOffice,
+            // generators) are sniffed as plain "application/zip", which
+            // `mimes:docx` rejects. So: the name must be .pdf/.docx/.doc, and
+            // the content must be detected as one of those OR really be one.
+            'file'           => ['required', 'file', 'max:20480', 'extensions:pdf,docx,doc', function ($attr, $file, $fail) {
+                if (!in_array($file->guessExtension(), ['pdf', 'docx', 'doc'], true) && !self::isRealDocument($file)) {
+                    $fail('The file must be a PDF or Word document (.pdf, .docx or .doc).');
+                }
+            }],
             'github_repo'    => 'nullable|url',
         ]);
 
@@ -75,7 +102,11 @@ class DocumentController extends Controller {
             return response()->json(['message' => 'Title must be approved before uploading documents.'], 403);
         }
 
-        $path = $request->file('file')->store("documents/{$request->project_id}", 'local');
+        // Keep the real extension (store() would name a ZIP-sniffed .docx
+        // ".zip", and previews/editing go by the extension).
+        $file = $request->file('file');
+        $path = $file->storeAs("documents/{$request->project_id}",
+            \Illuminate\Support\Str::random(40) . '.' . strtolower($file->getClientOriginalExtension()), 'local');
         $document = app(\App\Services\DocumentVersionService::class)->create(
             $project, $request->type, $request->user()->id, $path, $request->version_note, $request->github_repo
         );
