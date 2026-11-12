@@ -186,6 +186,20 @@ class ScheduleController extends Controller {
         ], 409);
     }
 
+    // Scheduling an outline / pre-deployment / final defense puts the group's
+    // final title "For Defense", so it shows up in the panel's Evaluate
+    // Projects without a separate manual step. Only an ongoing (or unset)
+    // project moves; Approved/Archived/Flagged ones are left alone. A title
+    // defense is skipped -- there's no final title yet.
+    private function markForDefense(DefenseSchedule $schedule): void {
+        if (!in_array($schedule->defense_type, ['outline', 'pre_deployment', 'final'], true)) return;
+        $project = \App\Models\Project::where('group_id', $schedule->group_id)->where('is_final_title', true)->first();
+        if ($project && in_array($project->status, [null, '', 'ongoing'], true)) {
+            $project->update(['status' => 'for_defense']); // saved -> live update to every open screen
+            $this->activity->broadcast($project->id, 'project_updated', ['project' => $project]);
+        }
+    }
+
     private function savePanel(DefenseSchedule $schedule, ?array $panel, bool $updateGroupPanel): void {
         if ($panel === null) return;
         DefenseSchedulePanelist::where('defense_schedule_id', $schedule->id)->delete();
@@ -247,6 +261,7 @@ class ScheduleController extends Controller {
             $this->savePanel($schedule, $r['panel'], (bool) ($data['update_group_panel'] ?? true));
             return $schedule;
         });
+        $this->markForDefense($schedule);
 
         if ($schedule->project_id) {
             Contribution::create([
@@ -301,6 +316,7 @@ class ScheduleController extends Controller {
             ]);
             $this->savePanel($schedule, $r['panel'], (bool) ($data['update_group_panel'] ?? true));
         });
+        $this->markForDefense($schedule->fresh());
 
         $this->broadcastToGroupProjects($schedule->group_id, 'schedule_updated', ['schedule_id' => $schedule->id]);
         return response()->json($schedule->fresh()->load('group', 'adviser', 'panel'));
