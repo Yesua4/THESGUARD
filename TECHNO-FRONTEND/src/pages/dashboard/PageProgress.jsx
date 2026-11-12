@@ -7,24 +7,44 @@ import { useProjectChannel } from '../../hooks/useProjectChannel'
 import Icon from '../../components/Icon'
 import { humanStatus } from '../../utils/humanStatus'
 import { SkeletonPage } from '../../components/Skeleton'
-import { researchWord } from '../../utils/research'
+import { researchWord, researchTypeOf } from '../../utils/research'
+import { timeRange } from '../../constants/defense'
+import { isNotChosenTitle } from '../../constants/projectStatus'
+
+const PASSED = ['passed_no_revisions', 'passed_with_revisions']
+const VERDICT_TEXT = {
+  passed_no_revisions:   'Passed (no revisions needed)',
+  passed_with_revisions: 'Passed (with revisions needed)',
+  conditional:           'Conditional pass: complete the panel\'s conditions',
+  failed:                'Not passed: check the panel\'s recommendations',
+}
+
+// The proposal this page follows: the final title once it's set, otherwise
+// the newest one still in play (pending or approved), otherwise the newest.
+function pickProject(mine) {
+  const newest = [...mine].sort((a, b) => b.id - a.id)
+  return newest.find(p => p.is_final_title)
+    || newest.find(p => p.title_status !== 'rejected' && !isNotChosenTitle(p))
+    || newest[0] || null
+}
 
 function PageProgress() {
   const { user } = useAuth()
   const [project, setProject]     = useState(null)
   const [group, setGroup]         = useState(null)
   const [documents, setDocuments] = useState([])
-  const [schedule, setSchedule]   = useState(null)
+  const [schedules, setSchedules] = useState([])
   const [loading, setLoading]     = useState(true)
 
   const load = useCallback(() => {
     Promise.all([api.get('/projects'), api.get('/groups'), api.get('/documents'), api.get('/schedules')])
       .then(([projRes, groupRes, docRes, schedRes]) => {
-        setProject(projRes.data.find(p => p.members?.some(m => m.user_id === user.id)) || null)
-        setGroup(groupRes.data.find(g => g.members?.some(m => m.user_id === user.id)) || null)
-        const myProject = projRes.data.find(p => p.members?.some(m => m.user_id === user.id))
-        setDocuments(docRes.data.filter(d => d.project_id === myProject?.id))
-        setSchedule(schedRes.data[0] || null)
+        const proj = pickProject(projRes.data.filter(p => p.members?.some(m => m.user_id === user.id)))
+        const grp  = groupRes.data.find(g => g.members?.some(m => m.user_id === user.id)) || null
+        setProject(proj)
+        setGroup(grp)
+        setDocuments(docRes.data.filter(d => d.project_id === proj?.id))
+        setSchedules(schedRes.data.filter(s => (!grp || s.group_id === grp.id) && s.status !== 'cancelled'))
       }).finally(() => setLoading(false))
   }, [user.id])
 
@@ -35,143 +55,132 @@ function PageProgress() {
   // progress snapshot (documents, status, similarity) when any of them
   // fire, instead of needing a manual reload to see a chapter get approved.
   useProjectChannel(project?.id, load)
-  // Live: group/title/schedule/document changes, including before this
-  // student has a project id to listen on.
-  useSchoolActivity(['projects', 'groups', 'schedules', 'documents'], load)
+  // Live: group/title/schedule/document/evaluation changes, including
+  // before this student has a project id to listen on.
+  useSchoolActivity(['projects', 'groups', 'schedules', 'documents', 'evaluations'], load)
 
   if (loading) return <SkeletonPage label="Loading your progress" />
 
-  // ── Generalized stage definitions ────────────────────────────────────────
-  // Phase 1 (Semester 1 equivalent)
+  // ── What has actually happened ───────────────────────────────────────────
+  const isThesis = researchTypeOf(group) === 'thesis'
+  // The latest defense of each type (a re-defense replaces the earlier one).
+  const latest = type => schedules.filter(s => s.defense_type === type)
+    .sort((a, b) => String(b.defense_date).localeCompare(String(a.defense_date)))[0] || null
+  const def = { title: latest('title'), outline: latest('outline'), pre: latest('pre_deployment'), final: latest('final') }
+  const passed = s => PASSED.includes(s?.verdict)
+  const when = s => `${new Date(s.defense_date).toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}, ${timeRange(s)} — ${s.venue || 'Venue TBA'}`
+
+  const finalTitle = !!project?.is_final_title
+  const archived   = project?.status === 'archived' && !isNotChosenTitle(project)
+  // Passing a later defense means the earlier ones were passed too.
+  const finalPassed   = passed(def.final) || archived
+  const prePassed     = passed(def.pre) || finalPassed
+  const outlinePassed = passed(def.outline) || prePassed || (isThesis && finalPassed)
+
+  // A defense stage: done when passed, red when failed, blue once scheduled.
+  const defenseStage = (s, waitingText, doneAlso = false) => {
+    const done = passed(s) || doneAlso
+    return {
+      done,
+      warning: !done && s?.verdict === 'failed',
+      inProgress: !done && !!s && s.verdict !== 'failed',
+      description: s?.verdict ? `${VERDICT_TEXT[s.verdict] || s.verdict}. (${when(s)})`
+        : s ? `Scheduled: ${when(s)}`
+        : done ? 'Completed.' : waitingText,
+    }
+  }
+  const approvedDocs = documents.filter(d => d.status === 'approved').length
+  const outline = defenseStage(def.outline,
+    approvedDocs
+      ? `${approvedDocs} document(s) approved. Waiting for the ${isThesis ? 'proposal' : 'outline'} defense schedule.`
+      : finalTitle ? (isThesis ? 'Write your chapters for the proposal defense.' : 'Write your chapters and build the system UI (100%) with initial functionality (30%).')
+      : 'Your final title must be set first.',
+    outlinePassed)
+
+  const shortTitle = project ? `"${project.title.length > 60 ? project.title.slice(0, 60) + '…' : project.title}"` : ''
+
+  // ── Phase 1 ──────────────────────────────────────────────────────────────
   const phase1 = [
     {
-      id: 1,
-      icon: <Icon name="users" />,
-      label: 'Grouped',
-      phase: 'Phase 1',
-      description: group
-        ? `Assigned to ${group.group_name}`
-        : 'Waiting to be assigned to a group.',
+      id: 1, icon: <Icon name="users" />, label: 'Grouped', phase: 'Phase 1',
+      description: group ? `Assigned to ${group.group_name}` : 'Waiting to be assigned to a group.',
       done: !!group,
     },
     {
-      id: 2,
-      icon: <Icon name="search" />,
-      label: 'Environmental scanning',
-      phase: 'Phase 1',
-      description: group
-        ? 'Conduct problem analysis (Problem Tree, Solution Tree, MCUA Matrix).'
-        : 'Complete grouping first.',
+      id: 2, icon: <Icon name="search" />, label: 'Environmental scanning', phase: 'Phase 1',
+      description: group ? 'Conduct problem analysis (Problem Tree, Solution Tree, MCUA Matrix).' : 'Complete grouping first.',
       done: !!project, // proxy: if they have a proposal, scanning was done
     },
     {
-      id: 3,
-      icon: <Icon name="edit" />,
-      label: 'Proposal submitted',
-      phase: 'Phase 1',
-      description: project
-        ? `"${project.title.length > 60 ? project.title.slice(0, 60) + '…' : project.title}"`
-        : 'No proposal submitted yet.',
+      id: 3, icon: <Icon name="edit" />, label: 'Proposal submitted', phase: 'Phase 1',
+      description: project ? shortTitle : 'No proposal submitted yet.',
       done: !!project,
     },
     {
-      id: 4,
-      icon: <Icon name="mic" />,
-      label: 'Title defense',
-      phase: 'Phase 1',
+      id: 4, icon: <Icon name="mic" />, label: 'Title defense', phase: 'Phase 1',
       description:
-        project?.title_status === 'approved'
-          ? 'Title approved by the panel.'
-          : project?.title_status === 'rejected'
-          ? 'Title returned for revision. Check feedback.'
-          : project
-          ? 'Awaiting panel review and approval.'
-          : 'Submit a proposal first.',
-      done: project?.title_status === 'approved',
-      warning: project?.title_status === 'rejected',
+        finalTitle ? `Final title set: ${shortTitle}`
+        : project?.title_status === 'rejected' ? 'Title returned for revision. Check the feedback and submit a revised proposal.'
+        : def.title ? `Scheduled: ${when(def.title)}. Your final title is set after the defense.`
+        : project?.title_status === 'approved' ? 'Approved for the title defense. Waiting for the defense schedule.'
+        : project ? 'Waiting for your instructor or adviser to review your proposal.'
+        : 'Submit a proposal first.',
+      done: finalTitle,
+      warning: !finalTitle && project?.title_status === 'rejected',
+      inProgress: !finalTitle && project?.title_status !== 'rejected' && (!!def.title || project?.title_status === 'approved'),
     },
     {
-      id: 5,
-      icon: <Icon name="file" />,
-      label: 'Manuscript & prototype (outline defense)',
-      phase: 'Phase 1',
-      description:
-        documents.some(d => d.status === 'approved')
-          ? `${documents.filter(d => d.status === 'approved').length} document(s) approved. System prototype submitted.`
-          : project?.title_status === 'approved'
-          ? 'Write chapters and build system UI (100%) with initial functionality (30%).'
-          : 'Title must be approved first.',
-      done: documents.some(d => d.status === 'approved'),
-      inProgress: documents.length > 0 && !documents.some(d => d.status === 'approved'),
+      id: 5, icon: <Icon name="file" />, phase: 'Phase 1',
+      label: isThesis ? 'Manuscript (proposal defense)' : 'Manuscript & prototype (outline defense)',
+      ...outline,
+      inProgress: outline.inProgress || (!outline.done && !outline.warning && documents.length > 0),
     },
   ]
 
-  // Phase 2 (Semester 2 equivalent)
+  // ── Phase 2 ──────────────────────────────────────────────────────────────
+  const developed = prePassed || (isThesis ? !!def.final : !!def.pre)
   const phase2 = [
     {
-      id: 6,
-      icon: <Icon name="settings" />,
-      label: 'Full system development',
-      phase: 'Phase 2',
-      description:
-        project?.status === 'for_defense' || project?.status === 'approved' || project?.status === 'archived'
-          ? 'System fully developed with complete functionality and testing.'
-          : 'Complete all Phase 1 stages first.',
-      done: ['for_defense', 'approved', 'archived'].includes(project?.status),
-      inProgress: project?.status === 'ongoing' && documents.length > 0,
+      id: 6, icon: <Icon name="settings" />, phase: 'Phase 2',
+      label: isThesis ? 'Full study and manuscript' : 'Full system development',
+      description: developed
+        ? (isThesis ? 'Study and manuscript completed for the final defense.' : 'System fully developed with complete functionality and testing.')
+        : outlinePassed
+          ? (isThesis ? 'Complete the study and the remaining chapters.' : 'Develop the full system and apply the panel\'s recommendations.')
+          : `Pass the ${isThesis ? 'proposal' : 'outline'} defense first.`,
+      done: developed,
+      inProgress: !developed && outlinePassed,
     },
-    {
-      id: 7,
-      icon: <Icon name="mic" />,
-      label: 'Pre-deployment defense',
-      phase: 'Phase 2',
-      description:
-        project?.status === 'for_defense'
-          ? 'Scheduled for pre-deployment defense. Present full system and testing results.'
-          : ['approved', 'archived'].includes(project?.status)
-          ? 'Pre-deployment defense completed.'
-          : 'System must reach "For Defense" status.',
-      done: ['approved', 'archived'].includes(project?.status),
-      inProgress: project?.status === 'for_defense',
-    },
+    // Thesis groups have no pre-deployment defense.
+    ...(isThesis ? [] : [{
+      id: 7, icon: <Icon name="mic" />, label: 'Pre-deployment defense', phase: 'Phase 2',
+      ...defenseStage(def.pre, 'Your instructor will schedule it once the system is developed.', finalPassed),
+    }]),
   ]
 
-  // Phase 3 (Semester 3 equivalent)
+  // ── Phase 3 ──────────────────────────────────────────────────────────────
+  const deployed = !!def.final || finalPassed
   const phase3 = [
+    ...(isThesis ? [] : [{
+      id: 8, icon: <Icon name="send" />, label: 'Deployment & testing', phase: 'Phase 3',
+      description: deployed ? 'System deployed and pilot testing completed.'
+        : prePassed ? 'Apply the panel\'s recommendations and deploy to a live environment.'
+        : 'Pass the pre-deployment defense first.',
+      done: deployed,
+      inProgress: !deployed && prePassed,
+    }]),
     {
-      id: 8,
-      icon: <Icon name="send" />,
-      label: 'Deployment & testing',
-      phase: 'Phase 3',
-      description:
-        project?.status === 'archived' || project?.status === 'approved'
-          ? 'System deployed and pilot testing completed.'
-          : 'Apply panel recommendations and deploy to a live environment.',
-      done: ['approved', 'archived'].includes(project?.status),
+      id: 9, icon: <Icon name="mic" />, label: 'Final defense', phase: 'Phase 3',
+      ...defenseStage(def.final, 'Your final defense will be scheduled by your instructor.', archived),
     },
     {
-      id: 9,
-      icon: <Icon name="mic" />,
-      label: 'Final defense',
-      phase: 'Phase 3',
-      description: schedule
-        ? `Scheduled on ${new Date(schedule.defense_date).toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at ${schedule.defense_time?.slice(0, 5)} — ${schedule.venue || 'Venue TBA'}`
-        : project?.status === 'archived'
-        ? 'Final defense completed.'
-        : 'Your final defense will be scheduled by your instructor.',
-      done: project?.status === 'archived',
-      inProgress: !!schedule && project?.status !== 'archived',
-    },
-    {
-      id: 10,
-      icon: <Icon name="graduation" />,
-      label: 'Completed',
-      phase: 'Phase 3',
-      description:
-        project?.status === 'archived'
-          ? 'Congratulations! Your thesis/capstone project is complete.'
-          : 'Complete all previous stages to finish.',
-      done: project?.status === 'archived',
+      id: 10, icon: <Icon name="graduation" />, label: 'Completed', phase: 'Phase 3',
+      description: archived
+        ? `Congratulations! Your ${isThesis ? 'thesis' : 'capstone'} is complete and in the archive.`
+        : finalPassed ? 'Final defense passed. Your instructor will archive the project.'
+        : 'Pass the final defense to finish.',
+      done: archived,
+      inProgress: !archived && finalPassed,
     },
   ]
 
@@ -182,8 +191,8 @@ function PageProgress() {
 
   const phaseGroups = [
     { label: 'Phase 1 — Proposal & Initial Defense', color: '#6d28d9', bg: '#ede9fe', stages: phase1 },
-    { label: 'Phase 2 — Development & Pre-Deployment', color: '#1d4ed8', bg: '#dbeafe', stages: phase2 },
-    { label: 'Phase 3 — Deployment & Final Defense',  color: '#b45309', bg: '#fef3c7', stages: phase3 },
+    { label: isThesis ? 'Phase 2 — Study' : 'Phase 2 — Development & Pre-Deployment', color: '#1d4ed8', bg: '#dbeafe', stages: phase2 },
+    { label: isThesis ? 'Phase 3 — Final Defense' : 'Phase 3 — Deployment & Final Defense',  color: '#b45309', bg: '#fef3c7', stages: phase3 },
   ]
 
   return (
