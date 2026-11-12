@@ -6,6 +6,7 @@ import { useToast } from '../../context/ToastContext'
 import { useProjectsChannel } from '../../hooks/useProjectChannel'
 import Icon from '../../components/Icon'
 import { SkeletonTable } from '../../components/Skeleton'
+import { programKey, programName } from '../../utils/program'
 
 function PageArchive() {
   const { user } = useAuth()
@@ -70,14 +71,16 @@ function PageArchive() {
   }
 
   const years     = [...new Set(projects.map(p => p.batch).filter(Boolean))]
-  const programs  = [...new Set(projects.map(p => p.program).filter(Boolean))]
+  // One entry per program, however each record spelled it (BSIT = BS Information Technology).
+  const programs  = [...new Map(projects.filter(p => p.program).map(p => [programKey(p.program), programName(p.program)])).entries()]
+    .sort((a, b) => a[1].localeCompare(b[1]))
   const adviserOf = p => p.adviser?.name || p.adviser_name
   const advisers  = [...new Set(projects.map(adviserOf).filter(Boolean))]
   const filtered  = projects.filter(p => {
     const q = search.toLowerCase()
     return (!q || p.title?.toLowerCase().includes(q) || p.keywords?.toLowerCase().includes(q)) &&
            (!yearFilter || p.batch === yearFilter) &&
-           (!programFilter || p.program === programFilter) &&
+           (!programFilter || programKey(p.program) === programFilter) &&
            (!adviserFilter || adviserOf(p) === adviserFilter)
   })
 
@@ -217,7 +220,7 @@ function PageArchive() {
         </select>
         <select value={programFilter} onChange={e => setProgram(e.target.value)} style={inputStyle}>
           <option value="">All programs</option>
-          {programs.map(p => <option key={p} value={p}>{p}</option>)}
+          {programs.map(([key, name]) => <option key={key} value={key}>{name}</option>)}
         </select>
         <select value={adviserFilter} onChange={e => setAdviser(e.target.value)} style={inputStyle}>
           <option value="">All advisers</option>
@@ -252,7 +255,7 @@ function PageArchive() {
                     <td style={{ padding:'12px 14px', fontWeight:'600', color:'#0a1f44' }}>
                       <span style={{ color:'#1d4ed8', fontSize:'10px', marginRight:'8px' }}>{expandedId === p.id ? '▾' : '▸'}</span>{p.title}
                     </td>
-                    <td style={{ padding:'12px 14px', color:'#64748b' }}>{p.program || '—'}</td>
+                    <td style={{ padding:'12px 14px', color:'#64748b' }}>{p.program ? programName(p.program) : '—'}</td>
                     <td style={{ padding:'12px 14px', color:'#64748b' }}>{adviserOf(p) || '—'}</td>
                     <td style={{ padding:'12px 14px' }}>
                       {p.batch ? <span style={{ fontSize:'11px', background:'#dbeafe', color:'#1e40af', padding:'3px 10px', borderRadius:'20px', fontWeight:'700' }}>{p.batch}</span> : <span style={{ color:'#94a3b8' }}>—</span>}

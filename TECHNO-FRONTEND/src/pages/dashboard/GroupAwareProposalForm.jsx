@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import api from '../../api/axios'
 import Icon from '../../components/Icon'
+import { PROGRAMS, programFromSection, programName } from '../../utils/program'
 
 // Title proposal. The instructor, academic year and semester are filled in
 // from the group automatically; a proposal has no abstract yet, so students
@@ -21,13 +22,16 @@ useEffect(() => {
         ...f,
         group_id: mine.id,
         adviser_id: mine.adviser_id || '',
+        // "BSIT 4B" -> "BS Information Technology"; the student can change it.
+        program: f.program || programFromSection(mine.section || user.section),
       }))
     }
   })
 }, [])
 
   const handle = e => setForm({ ...form, [e.target.name]: e.target.value })
-  const handleSubmit = e => { e.preventDefault(); onSubmit(e, form) }
+  // Save one spelling per program ("BSIT" -> "BS Information Technology").
+  const handleSubmit = e => { e.preventDefault(); onSubmit(e, { ...form, program: programName(form.program) }) }
 
   const inputStyle = {
     width: '100%', boxSizing: 'border-box',
@@ -74,8 +78,14 @@ useEffect(() => {
         <input name="title" value={form.title} onChange={handle} required style={inputStyle} placeholder="Enter full project title..." />
       </div>
       <div>
-        <label style={labelStyle}>Program</label>
-        <input name="program" value={form.program} onChange={handle} style={inputStyle} placeholder="e.g. BS Information Technology" />
+        <label style={labelStyle} htmlFor="proposal-program">Program</label>
+        <input id="proposal-program" name="program" list="program-options" value={form.program} onChange={handle} style={inputStyle} placeholder="e.g. BS Information Technology" />
+        <datalist id="program-options">
+          {PROGRAMS.map(p => <option key={p.code} value={p.name} />)}
+        </datalist>
+        {form.program && form.program === programFromSection(myGroup?.section || user.section) && (
+          <div style={{ fontSize: '11px', color: '#059669', marginTop: '4px' }}>Filled in from your section. Change it if it's wrong.</div>
+        )}
       </div>
       <div>
         <label style={labelStyle} htmlFor="proposal-description">Project Description</label>
