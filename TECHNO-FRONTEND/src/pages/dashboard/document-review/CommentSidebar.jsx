@@ -33,6 +33,8 @@ const btn = (variant = 'ghost') => ({
     : variant === 'danger' ? { background: '#fff', color: '#dc2626', border: '1.5px solid #fecaca' }
     : { background: '#fff', color: '#334155', border: '1.5px solid #e2e8f0' }),
 })
+// A button that can't be pressed yet looks it (dimmed, "not allowed" cursor).
+const off = disabled => (disabled ? { opacity: 0.45, cursor: 'not-allowed' } : {})
 const textarea = { width: '100%', boxSizing: 'border-box', border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '7px 9px', fontSize: '12px', fontFamily: 'inherit', background: '#fff', resize: 'vertical', minHeight: '56px', outline: 'none' }
 
 function StatusPill({ status }) {
@@ -203,17 +205,23 @@ function CommentCard({ c, n, active, anchorState, chapterVersions, actions, onSe
               placeholder={mode === 'reply' ? 'Write a reply…' : mode === 'submit' ? 'What did you change? e.g. "I revised the paragraph and listed the monitoring features."'
                 : mode === 'reject' ? 'What still needs to change?' : 'Why is this being reopened?'} />
           )}
+          {/* Say why "Submit for verification" can't be pressed yet. */}
+          {mode === 'submit' && newerVersions.length > 0 && (!revisionId || text.trim().length < 10) && (
+            <div style={{ fontSize: '11px', color: '#64748b' }}>
+              {!revisionId ? 'Choose the version with your fix.' : `Explain what you changed: at least 10 characters (${10 - text.trim().length} more).`}
+            </div>
+          )}
           {error && <div role="alert" style={{ fontSize: '11px', color: '#dc2626', background: '#fee2e2', borderRadius: '6px', padding: '6px 8px' }}>{error}</div>}
           <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
             <button type="button" onClick={() => { setMode(null); setError('') }} style={btn()}>Cancel</button>
-            {mode === 'reply' && <button type="button" disabled={busy || !text.trim()} onClick={() => run(() => actions.reply(c.id, text.trim()))} style={btn('primary')}>{busy ? 'Sending…' : 'Reply'}</button>}
+            {mode === 'reply' && <button type="button" disabled={busy || !text.trim()} onClick={() => run(() => actions.reply(c.id, text.trim()))} style={{ ...btn('primary'), ...off(busy || !text.trim()) }}>{busy ? 'Sending…' : 'Reply'}</button>}
             {mode === 'submit' && newerVersions.length > 0 && (
               <button type="button" disabled={busy || !revisionId || text.trim().length < 10}
                 onClick={() => run(() => actions.submitCorrection(c.id, { revisionDocumentId: Number(revisionId), explanation: text.trim() }))}
-                style={btn('primary')}>{busy ? 'Submitting…' : 'Submit for verification'}</button>
+                style={{ ...btn('primary'), ...off(busy || !revisionId || text.trim().length < 10) }}>{busy ? 'Submitting…' : 'Submit for verification'}</button>
             )}
-            {mode === 'reject' && <button type="button" disabled={busy || !text.trim()} onClick={() => run(() => actions.verify(c.id, 'reject', text.trim()))} style={btn('warn')}>{busy ? 'Saving…' : 'Request further revision'}</button>}
-            {mode === 'reopen' && <button type="button" disabled={busy || !text.trim()} onClick={() => run(() => actions.reopen(c.id, text.trim()))} style={btn('warn')}>{busy ? 'Saving…' : 'Reopen'}</button>}
+            {mode === 'reject' && <button type="button" disabled={busy || !text.trim()} onClick={() => run(() => actions.verify(c.id, 'reject', text.trim()))} style={{ ...btn('warn'), ...off(busy || !text.trim()) }}>{busy ? 'Saving…' : 'Request further revision'}</button>}
+            {mode === 'reopen' && <button type="button" disabled={busy || !text.trim()} onClick={() => run(() => actions.reopen(c.id, text.trim()))} style={{ ...btn('warn'), ...off(busy || !text.trim()) }}>{busy ? 'Saving…' : 'Reopen'}</button>}
           </div>
         </div>
       )}
