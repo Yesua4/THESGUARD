@@ -34,7 +34,15 @@ export function ImportClassListModal({ user, onClose, onDone }) {
   const [busy, setBusy]       = useState(false)
   const [error, setError]     = useState('')
   const [result, setResult]   = useState(null)
+  const [dragOver, setDragOver] = useState(false)
   const scoped = user?.role === 'instructor' && (user?.handled_sections || []).length > 0
+
+  // Same file types as the picker; a wrong file gets a clear message.
+  const pickFile = f => {
+    if (!f) return
+    if (/\.(xls|xlsx|csv)$/i.test(f.name)) { setFile(f); setError('') }
+    else setError('Please use the class list as .xls, .xlsx or .csv.')
+  }
 
   const submit = async e => {
     e.preventDefault()
@@ -53,7 +61,8 @@ export function ImportClassListModal({ user, onClose, onDone }) {
   }
 
   return (
-    <div style={overlay}>
+    // Dropping a file outside the box must not make the browser open it.
+    <div style={overlay} onDragOver={e => e.preventDefault()} onDrop={e => e.preventDefault()}>
       <div style={{ width:'min(520px, 94vw)', maxHeight:'90vh', overflowY:'auto', background:'#fff', borderRadius:'16px', boxShadow:'0 20px 60px rgba(0,0,0,0.2)' }}>
         <div style={header}>
           <div style={{ fontSize:'14px', fontWeight:'700', color:'#fff' }}>Import Class List</div>
@@ -70,7 +79,32 @@ export function ImportClassListModal({ user, onClose, onDone }) {
               </div>
               <div>
                 <label style={label}>Class list file</label>
-                <input type="file" accept=".xls,.xlsx,.csv" onChange={e => setFile(e.target.files[0] || null)} style={{ fontSize:'13px' }} required />
+                <div
+                  onDragOver={e => { e.preventDefault(); e.stopPropagation(); setDragOver(true) }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={e => { e.preventDefault(); e.stopPropagation(); setDragOver(false); pickFile(e.dataTransfer.files[0]) }}
+                  style={{ border:`2px dashed ${dragOver ? '#059669' : '#e2e8f0'}`, borderRadius:'10px', padding:'22px 18px', textAlign:'center', background: dragOver ? '#ecfdf5' : '#f8fafc', transition:'all 0.15s' }}
+                >
+                  {file ? (
+                    <div>
+                      <div style={{ fontSize:'24px', marginBottom:'6px', color:'#059669' }}><Icon name="file" /></div>
+                      <div style={{ fontSize:'13px', fontWeight:'600', color:'#059669', marginBottom:'2px', wordBreak:'break-all' }}>{file.name}</div>
+                      <div style={{ fontSize:'11px', color:'#94a3b8', marginBottom:'10px' }}>{(file.size / 1024).toFixed(1)} KB</div>
+                      <button type="button" onClick={() => setFile(null)} style={{ fontSize:'11px', color:'#dc2626', background:'#fff', border:'1px solid #fca5a5', borderRadius:'6px', padding:'4px 10px', cursor:'pointer', fontWeight:'600' }}>Remove</button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ fontSize:'28px', marginBottom:'6px', color:'#94a3b8' }}><Icon name="folder" /></div>
+                      <div style={{ fontSize:'13px', color:'#475569', fontWeight:'600', marginBottom:'2px' }}>Drag &amp; drop the class list here</div>
+                      <div style={{ fontSize:'11px', color:'#94a3b8', marginBottom:'10px' }}>or</div>
+                      <label style={{ display:'inline-block', background:'linear-gradient(135deg,#0a1f44,#1040a0)', color:'#fff', fontSize:'12px', padding:'8px 18px', borderRadius:'8px', cursor:'pointer', fontWeight:'600' }}>
+                        Browse File
+                        <input type="file" accept=".xls,.xlsx,.csv" style={{ display:'none' }} onChange={e => { pickFile(e.target.files[0]); e.target.value = '' }} />
+                      </label>
+                      <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'10px' }}>.xls, .xlsx or .csv</div>
+                    </div>
+                  )}
+                </div>
               </div>
               <div>
                 <label style={label}>Section {!scoped && <span style={{ color:'#cbd5e1', textTransform:'none', fontWeight:'400' }}>(leave blank to use the one printed on the class list)</span>}</label>
