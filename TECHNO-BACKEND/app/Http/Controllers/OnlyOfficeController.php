@@ -53,6 +53,7 @@ class OnlyOfficeController extends Controller {
     public function register(Request $request) {
         $secret = config('services.onlyoffice.jwt_secret');
         abort_unless($secret, 503, 'The editor secret is not set up on the server.');
+        self::allowClockDrift();
         try {
             $data = (array) JWT::decode((string) $request->input('token'), new Key($secret, 'HS256'));
         } catch (Throwable $e) {
@@ -69,6 +70,13 @@ class OnlyOfficeController extends Controller {
             \App\Models\AppSetting::put('onlyoffice_url', null);
         }
         return response()->json(['enabled' => self::enabled(), 'server_url' => self::serverUrl()]);
+    }
+
+    // The Document Server (a laptop) signs tokens with its own clock. Even one
+    // second ahead of ours made every callback "issued in the future" and
+    // refused (403), so editing showed "the document could not be saved".
+    private static function allowClockDrift(): void {
+        JWT::$leeway = max(JWT::$leeway, 120);
     }
 
     private static function backendUrl(): ?string {
@@ -207,6 +215,7 @@ class OnlyOfficeController extends Controller {
     private function saveFromCallback(Request $request, DocumentVersionService $versions, string $what, callable $target) {
         $secret = config('services.onlyoffice.jwt_secret');
         if (!$secret) return response()->json(['error' => 1]);
+        self::allowClockDrift();
 
         $token = $request->input('token') ?: $request->bearerToken();
         try {

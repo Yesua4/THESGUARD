@@ -100,6 +100,20 @@ class OnlyOfficeTest extends TestCase
         $this->assertSame('edited docx bytes', Storage::disk('local')->get($versions[1]->file_path));
     }
 
+    public function test_a_document_server_clock_a_little_ahead_is_accepted(): void
+    {
+        // The Document Server signs with its own clock; a second or two ahead of
+        // ours must not make every callback look "issued in the future" (403).
+        Http::fake(['docs.example.org/*' => Http::response('edited docx bytes', 200)]);
+        $body = ['key' => 'tg1-clock', 'status' => 2, 'url' => 'https://docs.example.org/cache/files/out.docx',
+            'users' => [(string) $this->student->id], 'iat' => time() + 5, 'exp' => time() + 305];
+        $this->sendCallback($body)->assertOk()->assertJsonPath('error', 0);
+
+        // ...but a token from far in the future is still refused.
+        $far = ['key' => 'tg1-far', 'status' => 1, 'iat' => time() + 3600, 'exp' => time() + 4000];
+        $this->sendCallback($far)->assertStatus(403);
+    }
+
     public function test_callback_refuses_bad_tokens_and_foreign_file_hosts(): void
     {
         $url = URL::temporarySignedRoute('onlyoffice.callback', now()->addHour(), ['id' => $this->doc->id], false);
