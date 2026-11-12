@@ -7,7 +7,7 @@ import GroupAwareProposalForm from './GroupAwareProposalForm'
 import ProjectTasks from './ProjectTasks'
 import FinalAbstractPanel from '../../components/dashboard/FinalAbstractPanel'
 import SimilarityBreakdown from './SimilarityBreakdown'
-import { PROJECT_STATUSES, PROJECT_STATUS_LABEL } from '../../constants/projectStatus'
+import { PROJECT_STATUSES, displayStatus, isNotChosenTitle, projectStatusLabel } from '../../constants/projectStatus'
 import { humanStatus } from '../../utils/humanStatus'
 import { RecommendedBadge } from '../../components/dashboard/GroupRecommendation'
 import { similarityScoreColor, similarityBadgeStyle } from '../../utils/similarityColors'
@@ -70,7 +70,7 @@ function PageProjects() {
   }
 
   const chooseFinal = async (id) => {
-    if (!confirm('Choose this as your final title? Any other approved titles from your group will be archived.')) return
+    if (!confirm('Choose this as your final title? Any other approved titles from your group will be marked Not chosen.')) return
     try { await api.post(`/projects/${id}/choose-final`); load(); setSelected(null) }
     catch (err) { showToast(err.response?.data?.message || 'Error choosing final title.') }
   }
@@ -115,6 +115,7 @@ function PageProjects() {
     approved:    { background: '#d1fae5', color: '#065f46' },
     for_defense: { background: '#ede9fe', color: '#4c1d95' },
     archived:    { background: '#f1f5f9', color: '#475569' },
+    not_chosen:  { background: '#f1f5f9', color: '#64748b' },
   }[s] || { background: '#dbeafe', color: '#1e40af' })
 
   const titleBadge = s =>
@@ -126,7 +127,7 @@ function PageProjects() {
   const filteredProjects = projects.filter(p => {
     const q = search.toLowerCase()
     return (!q || p.title?.toLowerCase().includes(q) || p.keywords?.toLowerCase().includes(q)) &&
-           (!statusFilter || p.status === statusFilter)
+           (!statusFilter || displayStatus(p) === statusFilter)
   })
   if (sortDir) {
     filteredProjects.sort((a, b) => (sortDir === 'asc' ? 1 : -1) * ((a.similarity_score ?? 0) - (b.similarity_score ?? 0)))
@@ -185,7 +186,7 @@ function PageProjects() {
                 <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.5)', fontWeight:'600', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'4px' }}>Project Details</div>
                 <div style={{ fontSize:'14px', fontWeight:'700', color:'#fff', lineHeight:'1.4', marginBottom:'8px' }}>{selectedProject.title}</div>
                 <div style={{ display:'flex', gap:'6px', flexWrap:'wrap' }}>
-                  <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...statusBadge(selectedProject.status) }}>{PROJECT_STATUS_LABEL[selectedProject.status] || selectedProject.status}</span>
+                  <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...statusBadge(displayStatus(selectedProject)) }}>{projectStatusLabel(selectedProject)}</span>
                   <RecommendedBadge group={selectedProject.group} />
                   <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...scoreBadge(selectedProject.similarity_score) }}>Similarity: {selectedProject.similarity_score}%</span>
                   <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...titleBadge(selectedProject.title_status) }}>Title: {humanStatus(selectedProject.title_status)}</span>
@@ -204,6 +205,12 @@ function PageProjects() {
               <button onClick={() => setSelected(null)} style={{ background:'rgba(255,255,255,0.15)', border:'none', color:'#fff', width:'28px', height:'28px', borderRadius:'6px', cursor:'pointer', fontSize:'14px', flexShrink:0 }}>✕</button>
             </div>
 
+            {isNotChosenTitle(selectedProject) && (
+              <div style={{ margin:'16px 16px 0', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:'10px', padding:'12px 14px' }}>
+                <div style={{ fontSize:'13px', fontWeight:'700', color:'#334155', marginBottom:'2px' }}>Not chosen</div>
+                <div style={{ fontSize:'12px', color:'#64748b' }}>The group set another title as its final title, so this one was set aside. It is not in the Capstone Archive, but it is still used in similarity checks.</div>
+              </div>
+            )}
             {/* Approved = approved for title defense. Faculty set the final title after the defense. */}
             {selectedProject.title_status === 'approved' && !selectedProject.is_final_title && (
               user?.role === 'student' ? (
@@ -214,7 +221,7 @@ function PageProjects() {
               ) : ['instructor','adviser','admin'].includes(user?.role) && (
                 <div style={{ margin:'16px', background:'#f5f3ff', border:'1px solid #ddd6fe', borderRadius:'10px', padding:'14px' }}>
                   <div style={{ fontSize:'13px', fontWeight:'700', color:'#4c1d95', marginBottom:'4px' }}>After the title defense</div>
-                  <div style={{ fontSize:'12px', color:'#5b21b6', marginBottom:'10px' }}>Set this as the group's final title once the panel has decided. Their other approved titles will be archived and the group notified.</div>
+                  <div style={{ fontSize:'12px', color:'#5b21b6', marginBottom:'10px' }}>Set this as the group's final title once the panel has decided. Their other approved titles will be marked Not chosen and the group notified.</div>
                   <button onClick={() => { if (confirm(`Set "${selectedProject.title}" as this group's FINAL title?`)) chooseFinal(selectedProject.id) }} style={{ padding:'8px 16px', borderRadius:'8px', border:'none', background:'linear-gradient(135deg,#4c1d95,#6d28d9)', color:'#fff', fontSize:'12px', fontWeight:'700', cursor:'pointer' }}>
                     <Icon name="award" /> Set as final title
                   </button>
@@ -275,7 +282,7 @@ function PageProjects() {
             {(user?.role === 'adviser' || user?.role === 'admin' || user?.role === 'instructor') && (
               <div style={{ padding:'16px 20px' }}>
                 <div style={panelLabelStyle}>Actions</div>
-                {user?.role === 'adviser' && (
+                {user?.role === 'adviser' && !isNotChosenTitle(selectedProject) && (
                   <div style={{ display:'flex', gap:'8px', flexWrap:'wrap' }}>
                     {[['approved','Approve','#059669'],['for_defense','For Defense','#7c3aed'],['ongoing','Set Ongoing','#2563eb'],['flagged','Flag','#dc2626']].map(([val,label,bg]) => (
                       <button key={val} onClick={() => updateStatus(selectedProject.id, val)} style={{ fontSize:'12px', padding:'7px 14px', borderRadius:'8px', border:'none', background:bg, color:'#fff', cursor:'pointer', fontWeight:'600' }}>{label}</button>
@@ -284,12 +291,12 @@ function PageProjects() {
                 )}
                 {(user?.role === 'admin' || user?.role === 'instructor') && (
                   <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
-                    <div>
+                    {!isNotChosenTitle(selectedProject) && <div>
                       <label style={panelLabelStyle}>Change Status</label>
                       <select value={selectedProject.status} onChange={e => updateStatus(selectedProject.id, e.target.value)} style={{ ...inputStyle, width:'100%', boxSizing:'border-box' }}>
                         {PROJECT_STATUSES.map(([s, l]) => <option key={s} value={s}>{l}</option>)}
                       </select>
-                    </div>
+                    </div>}
                     {user?.role === 'admin' && (
                       <button onClick={() => deleteProjectAdmin(selectedProject.id)} style={{ padding:'9px', borderRadius:'8px', border:'1.5px solid #fecaca', color:'#dc2626', background:'#fff', fontSize:'13px', cursor:'pointer', fontWeight:'600' }}>
                         Delete Project Permanently
@@ -351,6 +358,7 @@ function PageProjects() {
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ ...inputStyle }}>
               <option value="">All statuses</option>
               {PROJECT_STATUSES.map(([s, l]) => <option key={s} value={s}>{l}</option>)}
+              <option value="not_chosen">Not Chosen</option>
             </select>
           </div>
           <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', overflow:'hidden' }}>
@@ -381,13 +389,13 @@ function PageProjects() {
                     <td style={{ padding:'12px 14px', color:'#94a3b8' }}>{p.batch||'—'}</td>
                     <td style={{ padding:'12px 14px' }}><span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...titleBadge(p.title_status) }}>{humanStatus(p.title_status)}</span></td>
                     <td style={{ padding:'12px 14px' }} onClick={e => { if (canChangeStatus) e.stopPropagation() }}>
-                      {canChangeStatus ? (
+                      {canChangeStatus && !isNotChosenTitle(p) ? (
                         <select value={p.status} onChange={e => updateStatus(p.id, e.target.value)} aria-label={`Status of ${p.title}`} title="Click to change the status"
                           style={{ fontSize:'11px', padding:'3px 6px', borderRadius:'20px', fontWeight:'600', border:'1px dashed rgba(15,23,42,0.25)', cursor:'pointer', fontFamily:'inherit', ...statusBadge(p.status) }}>
                           {PROJECT_STATUSES.map(([s, l]) => <option key={s} value={s}>{l}</option>)}
                         </select>
                       ) : (
-                        <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...statusBadge(p.status) }}>{PROJECT_STATUS_LABEL[p.status] || p.status}</span>
+                        <span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...statusBadge(displayStatus(p)) }} title={isNotChosenTitle(p) ? 'The group chose another title as final. Not in the Capstone Archive.' : undefined}>{projectStatusLabel(p)}</span>
                       )}
                     </td>
                     <td style={{ padding:'12px 14px' }}><span style={{ fontSize:'11px', padding:'3px 10px', borderRadius:'20px', fontWeight:'600', ...scoreBadge(p.similarity_score) }}>{p.similarity_score}%</span></td>

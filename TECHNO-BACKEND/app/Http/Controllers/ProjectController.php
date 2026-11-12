@@ -488,11 +488,17 @@ class ProjectController extends Controller {
             ->where('id', '!=', $project->id)
             ->where('title_status', 'approved')
             ->get();
+        // The titles not chosen are stored as 'archived' (shown as "Not chosen";
+        // they stay out of the Capstone Archive) and every open screen hears it.
         foreach ($siblings as $sibling) {
             $sibling->update(['is_final_title' => false, 'status' => 'archived']);
+            $activity->broadcast($sibling->id, 'project_updated', ['project' => $sibling]);
         }
 
-        $project->update(['is_final_title' => true]);
+        // Choosing a title that was set aside earlier brings it back to work;
+        // otherwise a final title marked 'archived' would show up in the
+        // Capstone Archive as if it were a finished capstone.
+        $project->update(['is_final_title' => true] + ($project->status === 'archived' ? ['status' => 'ongoing'] : []));
 
         Contribution::create([
             'project_id'  => $project->id,

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { displayStatus, isNotChosenTitle } from '../../constants/projectStatus'
 import api from '../../api/axios'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
 import MiniCalendar from '../../components/dashboard/MiniCalendar'
@@ -31,14 +32,15 @@ function PageDashboard({ user, onNavigate }) {
       const projects = res.data
       setProjectIds(projects.map(p => p.id))
       const total    = projects.length
-      const archived = projects.filter(p => p.status === 'archived').length
+      // Real archived capstones only -- not the titles a group didn't choose.
+      const archived = projects.filter(p => p.status === 'archived' && !isNotChosenTitle(p)).length
       const flagged  = projects.filter(p => p.similarity_score >= 60).length // 60%+ = mandatory review
       const pending  = projects.filter(p => p.title_status === 'pending').length
       setStats({ total, archived, flagged, pending })
       setActivity(projects.slice(0, 5).map(p => ({
         date:     p.created_at ? new Date(p.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : '—',
         activity: p.title,
-        status:   p.status,
+        status:   displayStatus(p),
       })))
 
       // Student-specific stats
@@ -47,7 +49,7 @@ function PageDashboard({ user, onNavigate }) {
         const mine = minePool.find(p => p.is_final_title) || minePool[0]
         setStudentStats(s => ({
           ...s,
-          status:     mine?.status        || 'No project',
+          status:     mine ? humanStatus(displayStatus(mine)) : 'No project',
           titleStatus:mine?.title_status  || '—',
           similarity: mine?.similarity_score != null ? mine.similarity_score + '%' : '—',
         }))
@@ -143,8 +145,8 @@ function PageDashboard({ user, onNavigate }) {
   const displayStats = buildStats()
 
   const statusStyle = s => ({
-    background: s === 'approved' ? '#d1fae5' : s === 'flagged' ? '#fee2e2' : s === 'for_defense' ? '#ede9fe' : s === 'archived' ? '#f1f5f9' : '#dbeafe',
-    color:      s === 'approved' ? '#065f46' : s === 'flagged' ? '#9f1239' : s === 'for_defense' ? '#4c1d95' : s === 'archived' ? '#475569' : '#1e40af',
+    background: s === 'approved' ? '#d1fae5' : s === 'flagged' ? '#fee2e2' : s === 'for_defense' ? '#ede9fe' : s === 'archived' || s === 'not_chosen' ? '#f1f5f9' : '#dbeafe',
+    color:      s === 'approved' ? '#065f46' : s === 'flagged' ? '#9f1239' : s === 'for_defense' ? '#4c1d95' : s === 'archived' || s === 'not_chosen' ? '#475569' : '#1e40af',
   })
 
   const hour = new Date().getHours()

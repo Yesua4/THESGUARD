@@ -55,7 +55,7 @@ function PageTitleApproval() {
 
   // Final title: set by faculty after the title defense (never automatic).
   const setFinal = async (p) => {
-    if (!confirm(`Set "${p.title}" as this group's FINAL title?\n\nDo this after the title defense. The group's other approved titles will be archived.`)) return
+    if (!confirm(`Set "${p.title}" as this group's FINAL title?\n\nDo this after the title defense. The group's other approved titles will be marked Not chosen.`)) return
     setSaving(true)
     try { await api.post(`/projects/${p.id}/choose-final`); setSelected(null); load(); showToast('Final title set.', 'success') }
     catch (err) { showToast(err.response?.data?.message || 'Could not set the final title.') }
@@ -183,7 +183,7 @@ function PageTitleApproval() {
               <div style={{ margin:'0 20px 16px', background:'#f5f3ff', border:'1px solid #ddd6fe', borderRadius:'10px', padding:'14px' }}>
                 <div style={{ fontSize:'13px', fontWeight:'700', color:'#4c1d95', marginBottom:'4px' }}>After the title defense</div>
                 <div style={{ fontSize:'12px', color:'#5b21b6', marginBottom:'10px' }}>
-                  When the panel has decided, set the group's final title. Their other approved titles will be archived and the group will be notified.
+                  When the panel has decided, set the group's final title. Their other approved titles will be marked Not chosen and the group will be notified.
                 </div>
                 <button onClick={() => setFinal(selected)} disabled={saving} style={{ padding:'8px 16px', borderRadius:'8px', border:'none', background:'linear-gradient(135deg,#4c1d95,#6d28d9)', color:'#fff', fontSize:'12px', fontWeight:'700', cursor:'pointer' }}>
                   <Icon name="award" /> Set as final title

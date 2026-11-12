@@ -67,6 +67,26 @@ class ChooseFinalTitleTest extends TestCase
         $this->assertDatabaseMissing('notifications', ['user_id' => $data['instructor']->id, 'type' => 'title_chosen']);
     }
 
+    public function test_switching_to_a_title_that_was_not_chosen_brings_it_back(): void
+    {
+        $data = $this->makeGroupWithTwoApprovedTitles();
+        Sanctum::actingAs($data['instructor']);
+        $this->postJson("/api/projects/{$data['chosen']->id}/choose-final")->assertOk();
+        // The panel changes its mind: the other title becomes final instead.
+        $this->postJson("/api/projects/{$data['sibling']->id}/choose-final")->assertOk();
+
+        $now = $data['sibling']->fresh();
+        $this->assertTrue($now->is_final_title);
+        $this->assertSame('ongoing', $now->status, 'a final title is active work, not archived');
+        $before = $data['chosen']->fresh();
+        $this->assertFalse($before->is_final_title);
+        $this->assertSame('archived', $before->status);
+
+        // Neither one is a finished capstone, so the Capstone Archive stays empty.
+        Sanctum::actingAs($data['leader']);
+        $this->getJson('/api/archive')->assertOk()->assertJsonCount(0);
+    }
+
     public function test_adviser_can_also_set_the_final_title(): void
     {
         $data = $this->makeGroupWithTwoApprovedTitles();

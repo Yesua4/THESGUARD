@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { displayStatus } from '../../constants/projectStatus'
 import api from '../../api/axios'
 import { useAuth } from '../../context/AuthContext'
 import { useSchoolActivity } from '../../hooks/useSchoolActivity'
@@ -32,7 +33,7 @@ const PILL = {
   ongoing: ['#dbeafe', '#1e40af'], under_review: ['#dbeafe', '#1e40af'],
   pending: ['#fef3c7', '#92400e'], needs_revision: ['#fef3c7', '#92400e'], revision: ['#fef3c7', '#92400e'],
   rejected: ['#fee2e2', '#9f1239'], flagged: ['#fee2e2', '#9f1239'], failed: ['#fee2e2', '#9f1239'], cancelled: ['#fee2e2', '#9f1239'],
-  archived: ['#f1f5f9', '#475569'],
+  archived: ['#f1f5f9', '#475569'], not_chosen: ['#f1f5f9', '#64748b'],
 }
 const pill = (text, style) => <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', fontWeight: 700, whiteSpace: 'nowrap', ...style }}>{text}</span>
 const statusPill = (s, text) => { const [bg, fg] = PILL[s] || ['#f1f5f9', '#475569']; return s ? pill(text || humanStatus(s), { background: bg, color: fg }) : '—' }
@@ -58,11 +59,11 @@ const REPORTS = {
       { h: 'Members', v: r => dash(r.members) },
       { h: 'Adviser', v: r => dash(r.adviser) },
       { h: 'Title Status', v: r => r.title_status ? humanStatus(r.title_status) : '—', r: r => statusPill(r.title_status) },
-      { h: 'Project Status', v: r => r.status ? humanStatus(r.status) : '—', r: r => statusPill(r.status) },
+      { h: 'Project Status', v: r => r.status ? humanStatus(displayStatus(r)) : '—', r: r => statusPill(displayStatus(r)) },
       { h: 'Defense Result', v: r => PROJECT_VERDICT[r.defense_verdict] || '—', r: r => r.defense_verdict ? statusPill(r.defense_verdict, PROJECT_VERDICT[r.defense_verdict]) : '—' },
       { h: 'Similarity', v: r => score(r.similarity_score), r: r => r.similarity_score == null ? '—' : pill(score(r.similarity_score), similarityBadgeStyle(r.similarity_score)) },
     ],
-    summary: rows => [['Projects', rows.length], ...countBy(rows, 'status', k => k === 'none' ? 'No status' : humanStatus(k))],
+    summary: rows => [['Projects', rows.length], ...countBy(rows.map(r => ({ ...r, status: displayStatus(r) })), 'status', k => k === 'none' ? 'No status' : humanStatus(k))],
   },
   similarity: {
     name: 'Similarity Detection Summary', path: '/reports/similarity', filters: ['threshold'],
