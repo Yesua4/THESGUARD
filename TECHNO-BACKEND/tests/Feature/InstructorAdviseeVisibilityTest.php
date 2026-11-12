@@ -65,17 +65,18 @@ class InstructorAdviseeVisibilityTest extends TestCase
         $this->assertSame(['Advisee'], $this->groupNames());
     }
 
-    public function test_advisee_in_one_of_my_sections_is_still_hidden_in_instructor_mode(): void
+    public function test_a_group_in_my_section_shows_in_instructor_mode_even_if_I_advise_it(): void
     {
-        $me = $this->faculty(['instructor', 'adviser'], ['BSIT 4B']);
-        $this->group('Advisee', 'BSIT 4B', $this->other->id, $me->id);
-        $this->group('Section group', 'BSIT 4B', $this->other->id, null);
+        // Handling a section makes you its instructor: all its groups show.
+        $me = $this->faculty(['instructor', 'adviser'], ['BSIT 1-G', 'BSIT 4B']);
+        $this->group('Advisee in my section', 'BSIT 4B', $this->other->id, $me->id);
+        $this->group('Advisee elsewhere', 'BSIT 3A', $this->other->id, $me->id);
 
         Sanctum::actingAs($me);
-        $this->assertSame(['Section group'], $this->groupNames());
+        $this->assertSame(['Advisee in my section'], $this->groupNames());
     }
 
-    public function test_instructor_without_sections_sees_the_school_except_their_own_advisees(): void
+    public function test_instructor_without_sections_keeps_the_school_wide_view(): void
     {
         $me = $this->faculty(['instructor', 'adviser']);
         $this->group('Mine', 'BSIT 1-G', $me->id, null);
@@ -83,7 +84,7 @@ class InstructorAdviseeVisibilityTest extends TestCase
         $this->group('Someone else', 'BSIT 3A', $this->other->id, null);
 
         Sanctum::actingAs($me);
-        $this->assertSame(['Mine', 'Someone else'], $this->groupNames());
+        $this->assertSame(['Advisee', 'Mine', 'Someone else'], $this->groupNames());
     }
 
     public function test_a_group_I_both_instruct_and_advise_shows_in_instructor_mode(): void
