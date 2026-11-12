@@ -357,8 +357,8 @@ function PageProjects() {
             <input value={search} onChange={e => setSearch(e.target.value)} style={{ ...inputStyle, flex:1 }} placeholder="Search by title or keywords..." />
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ ...inputStyle }}>
               <option value="">All statuses</option>
-              {PROJECT_STATUSES.map(([s, l]) => <option key={s} value={s}>{l}</option>)}
-              <option value="not_chosen">Not Chosen</option>
+              {PROJECT_STATUSES.flatMap(([s, l]) => [<option key={s} value={s}>{l}</option>,
+                ...(s === 'ongoing' ? [<option key="not_chosen" value="not_chosen">Not Chosen</option>] : [])])}
             </select>
           </div>
           <div style={{ background:'#fff', borderRadius:'14px', border:'1px solid #e8ecf2', overflow:'hidden' }}>
