@@ -36,7 +36,17 @@ class ScheduleController extends Controller {
     }
 
     public function index(Request $request) {
-        return response()->json($this->visibleSchedules($request->user())->orderBy('defense_date')->get());
+        $schedules = $this->visibleSchedules($request->user())->orderBy('defense_date')->get();
+        // The adviser of a defense is the group's adviser. Older records saved
+        // whoever scheduled it instead; show the group's real adviser.
+        foreach ($schedules as $s) {
+            $groupAdviser = $s->group?->adviser;
+            if ($groupAdviser && (int) $s->adviser_id !== (int) $groupAdviser->id) {
+                $s->setAttribute('adviser_id', $groupAdviser->id);
+                $s->setRelation('adviser', $groupAdviser);
+            }
+        }
+        return response()->json($schedules);
     }
 
     // Defenses this user may see: always only their own school; then a
@@ -44,7 +54,7 @@ class ScheduleController extends Controller {
     // Instructors and admins see the whole school's (needed for booking
     // rooms and panelists without clashes).
     private function visibleSchedules($user) {
-        $query = DefenseSchedule::with(['group', 'group.members', 'group.members.user', 'group.projects', 'group.panel', 'adviser', 'panel']);
+        $query = DefenseSchedule::with(['group', 'group.adviser', 'group.members', 'group.members.user', 'group.projects', 'group.panel', 'adviser', 'panel']);
         if ($user->school_id) {
             $query->whereHas('group', fn ($g) => $g->where('school_id', $user->school_id));
         }
@@ -52,8 +62,8 @@ class ScheduleController extends Controller {
         if ($user->role === 'student') {
             $query->whereIn('group_id', \App\Models\GroupMember::where('user_id', $user->id)->pluck('group_id'));
         } elseif ($user->role === 'adviser') {
-            $advised = Group::where('adviser_id', $user->id)->pluck('id');
-            $query->where(fn ($q) => $q->where('adviser_id', $user->id)->orWhereIn('group_id', $advised));
+            // The defenses of the groups they advise (not ones they merely scheduled).
+            $query->whereIn('group_id', Group::where('adviser_id', $user->id)->pluck('id'));
         } elseif ($user->role === 'panelist') {
             $projectIds = DefenseSchedule::projectIdsForPanelist($user);
             $mine = \App\Models\DefenseSchedulePanelist::where('user_id', $user->id)->pluck('defense_schedule_id');
@@ -223,7 +233,8 @@ class ScheduleController extends Controller {
             $schedule = DefenseSchedule::create([
                 'group_id'     => $r['group_id'],
                 'project_id'   => $data['project_id'] ?? null,
-                'adviser_id'   => $request->user()->id,
+                // The group's adviser; the scheduler only if the group has none yet.
+                'adviser_id'   => Group::whereKey($r['group_id'])->value('adviser_id') ?: $request->user()->id,
                 'defense_type' => $r['type'],
                 'defense_date' => $r['date'],
                 'defense_time' => Times::hhmm($r['start']) ?? ($data['defense_time'] ?? null),
@@ -277,6 +288,7 @@ class ScheduleController extends Controller {
             // Every value is already resolved against the current schedule.
             $schedule->update([
                 'group_id'     => $r['group_id'],
+                'adviser_id'   => Group::whereKey($r['group_id'])->value('adviser_id') ?: $schedule->adviser_id,
                 'project_id'   => array_key_exists('project_id', $data) ? $data['project_id'] : $schedule->project_id,
                 'defense_type' => $r['type'],
                 'defense_date' => $r['date'],

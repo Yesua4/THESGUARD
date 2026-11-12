@@ -200,6 +200,10 @@ class GroupController extends Controller {
         // to see documents (or leave a replaced adviser with stale access).
         if ($request->has('adviser_id')) {
             \App\Models\Project::where('group_id', $group->id)->update(['adviser_id' => $group->adviser_id]);
+            // ...and its defenses, whose adviser is the group's adviser.
+            if ($group->adviser_id) {
+                \App\Models\DefenseSchedule::where('group_id', $group->id)->update(['adviser_id' => $group->adviser_id]);
+            }
         }
 
         if ($request->has('members')) {
