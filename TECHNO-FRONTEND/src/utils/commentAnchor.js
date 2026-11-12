@@ -61,6 +61,21 @@ export function locateQuote(text, quote, hint = null) {
     const re = new RegExp(pattern, 'g')
     let m
     while ((m = re.exec(text)) !== null) { hits.push({ i: m.index, len: m[0].length }); if (re.lastIndex === m.index) re.lastIndex++ }
+  }
+
+  if (hits.length === 0) {
+    // PDF text often runs the last word of a line into the next one
+    // ("important role" comes out as "importantrole"), so retry ignoring all
+    // whitespace, then map the match back to positions in `text`.
+    const at = []
+    let squeezed = ''
+    for (let i = 0; i < text.length; i++) if (!/\s/.test(text[i])) { squeezed += text[i]; at.push(i) }
+    const q = exact.replace(/\s+/g, '')
+    if (q.length >= 8) {
+      for (let i = squeezed.indexOf(q); i !== -1; i = squeezed.indexOf(q, i + 1)) {
+        hits.push({ i: at[i], len: at[i + q.length - 1] + 1 - at[i] })
+      }
+    }
     if (hits.length === 0) return null
   }
 

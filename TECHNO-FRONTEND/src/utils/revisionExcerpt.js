@@ -37,8 +37,9 @@ export function similarity(a, b) {
 function toSentences(text, start, end) {
   let s = start, e = end
   while (s > 0 && !/[.!?\n]/.test(text[s - 1])) s--
-  while (e < text.length && !/[.!?\n]/.test(text[e])) e++
-  return text.slice(s, Math.min(text.length, e + 1)).trim()
+  // Stop at the end of the passage's own last sentence (not the next one's).
+  while (e < text.length && !/[.!?\n]/.test(text[e - 1])) e++
+  return text.slice(s, e).trim()
 }
 
 // The passage the comment was about, in the version it was made on: the
