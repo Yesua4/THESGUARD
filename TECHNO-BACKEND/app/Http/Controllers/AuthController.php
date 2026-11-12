@@ -421,12 +421,17 @@ class AuthController extends Controller {
 
     // Sections only mean something for instructors: set them when given, and
     // clear them if the account no longer has the instructor role.
+    // Groups follow their section to the instructor who now handles it.
     private function applyHandledSections(User $user, ?array $sections): void {
+        $before = $user->handledSectionNames();
         if (!$user->hasRole('instructor')) {
             $user->syncHandledSections([]);
         } elseif ($sections !== null) {
             $user->syncHandledSections($sections);
+        } else {
+            return;
         }
+        \App\Services\SectionHandover::apply($user, $before, $user->handledSectionNames());
     }
 
     // Edit Profile: staff can change their own display name (it shows on
