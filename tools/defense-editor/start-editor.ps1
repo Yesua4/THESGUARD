@@ -81,7 +81,7 @@ Say '  [3/4] Connecting to the internet...'
 Get-Process cloudflared -ErrorAction SilentlyContinue | Stop-Process -Force
 $log = Join-Path $Here 'tunnel.log'
 Remove-Item $log -ErrorAction SilentlyContinue
-$tunnel = Start-Process (Join-Path $Here 'cloudflared.exe') -ArgumentList @('tunnel', '--no-autoupdate', '--url', "http://localhost:$Port", '--logfile', $log) -WindowStyle Hidden -PassThru
+$tunnel = Start-Process (Join-Path $Here 'cloudflared.exe') -ArgumentList @('tunnel', '--no-autoupdate', '--protocol', 'http2', '--url', "http://localhost:$Port", '--logfile', $log) -WindowStyle Hidden -PassThru
 $url = $null
 for ($i = 0; $i -lt 60 -and -not $url; $i++) {
     Start-Sleep 1
