@@ -66,6 +66,19 @@ class Group extends Model {
      * without a section scope.
      */
     public function scopeVisibleToInstructor($query, User $user) {
+        // Faculty who are also advisers switch to adviser mode for their
+        // advisees: in instructor mode a group they only ADVISE is left out
+        // (it still shows if they instruct it, or it has no instructor set).
+        // Without the adviser role there's no other mode, so it stays.
+        $alsoAdviser = $user->hasRole('adviser');
+        $query->when($alsoAdviser, fn ($q) => $q->where(fn ($w) => $w
+            ->whereNull('adviser_id')
+            ->orWhere('adviser_id', '!=', $user->id)
+            ->orWhere('instructor_id', $user->id)
+            ->orWhereNull('instructor_id')
+            ->orWhereIn('id', GroupStageInstructor::where('user_id', $user->id)->select('group_id'))
+        ));
+
         $sections = $user->sectionScope();
         if ($sections === null) {
             return $query;
@@ -73,7 +86,7 @@ class Group extends Model {
         return $query->where(fn ($q) => $q
             ->where(fn ($s) => User::whereSectionIn($s, 'section', $sections))
             ->orWhere('instructor_id', $user->id)
-            ->orWhere('adviser_id', $user->id)
+            ->when(!$alsoAdviser, fn ($w) => $w->orWhere('adviser_id', $user->id))
             // assigned as the instructor of one of its capstone stages
             ->orWhereIn('id', GroupStageInstructor::where('user_id', $user->id)->select('group_id'))
         );
